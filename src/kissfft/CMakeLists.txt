@@ -97,7 +97,7 @@ endif()
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
     add_compile_options(-ffast-math -fomit-frame-pointer
-        -W -Wall -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings
+        -O2 -W -Wall -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings
         "$<$<COMPILE_LANGUAGE:C>:-Wstrict-prototypes;-Wmissing-prototypes;-Wnested-externs;-Wbad-function-cast>")
 endif()
 
@@ -111,7 +111,7 @@ include(GNUInstallDirs)
 # Declare PKGINCLUDEDIR for kissfft include path
 #
 
-set(PKGINCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}/kissfft")
+set(PKGINCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}")
 message(STATUS "PKGINCLUDEDIR is ${PKGINCLUDEDIR}")
 
 #
@@ -333,7 +333,7 @@ foreach(_def ${KISSFFT_COMPILE_DEFINITIONS})
 endforeach()
 if (KISSFFT_PKGCONFIG)
     include(JoinPaths)
-    set(PKGCONFIG_KISSFFT_PKGINCLUDEDIR "\${includedir}/kissfft")
+    set(PKGCONFIG_KISSFFT_PKGINCLUDEDIR "\${includedir}")
     set(PKGCONFIG_KISSFFT_PREFIX "${CMAKE_INSTALL_PREFIX}")
     set(PKGCONFIG_KISSFFT_VERSION "${kissfft_VERSION}")
     join_paths(PKGCONFIG_KISSFFT_LIBDIR "\${prefix}" "${CMAKE_INSTALL_LIBDIR}")
