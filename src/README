@@ -1,0 +1,45 @@
+=======================
+Repos Copied into ezApp
+=======================
+
+These repos have been copied into ezApp, without their .git directories.
+
+cJSON
+-----
+https://github.com/DaveGamble/cJSON
+
+commit fb16e5cf358798aabb049655975cde8427101056
+Author: Ssh1y Ripple <62094604+Ssh1y@users.noreply.github.com>
+Date:   Thu Apr 9 09:59:11 2026 +0800
+
+kissfft
+-------
+https://github.com/mborgerding/kissfft
+
+commit 6398d8a1d0c92486b5ece8a456fd5e6a97ad1f08
+Author: mborgerding <mark@borgerding.net>
+Date:   Mon May 11 20:03:41 2026 -0400
+
+libmp3lame
+----------
+https://github.com/gypified/libmp3lame
+
+commit f416c19b3140a8610507ebb60ac7cd06e94472b8
+Author: Nathan Rajlich <nathan@tootallnate.net>
+Date:   Thu Oct 25 00:59:06 2012 -0700
+
+lodepng
+-------
+https://github.com/lvandeve/lodepng
+
+commit ed6fe5825c6a4fbb7f58ab35a4231c7543cd452a
+Author: Lode Vandevenne <lvandeve@gmail.com>
+Date:   Thu May 28 19:03:49 2026 +0200
+
+pcioc 
+-----
+https://github.com/jpoirier/picoc
+
+commit a97d94fa3d4d35c6b78b7de69faac7643e34de22
+Author: Joseph Poirier <jdpoirier@gmail.com>
+Date:   Wed Jan 17 08:33:58 2018 -0600
