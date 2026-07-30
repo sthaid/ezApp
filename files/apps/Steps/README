@@ -1,0 +1,40 @@
+NAME: Steps
+
+DESCRIPTION:
+
+Step counter.
+
+Displays and graphs steps and miles for 
+the specified day, month, or year.
+
+Select STG (settings) to adjust step 
+length, and to adjust max graph values.
+
+The average walking step length is 30 
+inches for men and 26 inches for women.
+ Actual step length varies.
+
+NOTES:
+
+The Steps service (svcs/Steps/steps.c) 
+wakes periodically, and reads the 
+Android step counter sensor. If there 
+are new steps, the svcs/Steps/steps.dat
+file is updated. The steps.dat file 
+accumulates steps in hour, day, month, 
+and year buckets.
+
+The steps.dat file is a fixed size, and
+supports years 2026 through 2045.
+
+The Steps service will accumulate steps 
+even when ezApp is in the background or 
+when the Android device is sleeping.
+
+The Steps service does not run when 
+ezApp is not running.
+
+The Steps app (apps/Steps/steps.c), 
+accesses the svcs/Steps/steps.dat file 
+by mapping the file into its address 
+space.

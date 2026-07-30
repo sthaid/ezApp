@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Establish adb connection to Android device via TCP/IP.
+
+if [ "$1" = "" ]; then
+  echo "ERROR: device name or ipaddr required"
+  exit 1
+fi
+
+# The purpose of running adb kill-server followed by adb start-server
+# is to restart the Android Debug Bridge (ADB) background process (daemon)
+# on your computer. This sequence is the universal troubleshooting step for
+# resolving connection issues between your development machine and an Android
+# device or emulator.
+adb kill-server
+adb start-server
+
+# Establish Wi-Fi TCP/IP connection to Android Device.
+adb connect $1
+echo 
+
+# Print list of connected devices.
+adb devices

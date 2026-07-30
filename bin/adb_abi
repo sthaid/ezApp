@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Display the Android device Application Binary Interface (ABI).
+# The primary architecture should be arm64.
+
+echo "primary architecture ..."
+adb shell getprop ro.product.cpu.abi
+echo
+
+echo "all supported architectures ..."
+adb shell getprop ro.product.cpu.abilist
+echo

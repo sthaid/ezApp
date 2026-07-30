@@ -1,0 +1,17 @@
+NAME: Memo
+
+DESCRIPTION:
+
+Record an audio memo.
+
+Select '+' at bottom left to create a 
+new memo.
+
+For each recorded memo, select:
+- <name>:  playback
+- '+':     append
+- 'X':     delete
+
+Recording will stop when STOP is 
+selected, or will automatically stop 
+after 3 seconds of silence.

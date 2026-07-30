@@ -1,0 +1,60 @@
+mm-dd hh:mm:ss.zzz I/ this is unit test log file, used to test on Linux
+mm-dd hh:mm:ss.zzz E/ this is an error
+mm-dd hh:mm:ss.zzz I/ and the following 2 are also errors
+mm-dd hh:mm:ss.zzz this is an error becasue it contains 'error' string
+mm-dd hh:mm:ss.zzz this is an error becasue it contains "fail" string
+mm-dd hh:mm:ss.zzz this should be displayed WHITE
+mm-dd hh:mm:ss.zzz I/ this should be displayed GREEN
+mm-dd hh:mm:ss.zzz I/ blank line follows
+mm-dd hh:mm:ss.zzz I/ 
+mm-dd hh:mm:ss.zzz I/ 50 lines follow
+mm-dd hh:mm:ss.zzz I/ line 1
+mm-dd hh:mm:ss.zzz I/ line 2
+mm-dd hh:mm:ss.zzz I/ line 3
+mm-dd hh:mm:ss.zzz I/ line 4
+mm-dd hh:mm:ss.zzz I/ line 5
+mm-dd hh:mm:ss.zzz I/ line 6
+mm-dd hh:mm:ss.zzz I/ line 7
+mm-dd hh:mm:ss.zzz I/ line 8
+mm-dd hh:mm:ss.zzz I/ line 9
+mm-dd hh:mm:ss.zzz I/ line 10
+mm-dd hh:mm:ss.zzz I/ line 11
+mm-dd hh:mm:ss.zzz I/ line 12
+mm-dd hh:mm:ss.zzz I/ line 13
+mm-dd hh:mm:ss.zzz I/ line 14
+mm-dd hh:mm:ss.zzz I/ line 15
+mm-dd hh:mm:ss.zzz I/ line 16
+mm-dd hh:mm:ss.zzz I/ line 17
+mm-dd hh:mm:ss.zzz I/ line 18
+mm-dd hh:mm:ss.zzz I/ line 19
+mm-dd hh:mm:ss.zzz I/ line 20
+mm-dd hh:mm:ss.zzz I/ line 21
+mm-dd hh:mm:ss.zzz I/ line 22
+mm-dd hh:mm:ss.zzz I/ line 23
+mm-dd hh:mm:ss.zzz I/ line 24
+mm-dd hh:mm:ss.zzz I/ line 25
+mm-dd hh:mm:ss.zzz I/ line 26
+mm-dd hh:mm:ss.zzz I/ line 27
+mm-dd hh:mm:ss.zzz I/ line 28
+mm-dd hh:mm:ss.zzz I/ line 29
+mm-dd hh:mm:ss.zzz I/ line 30
+mm-dd hh:mm:ss.zzz I/ line 31
+mm-dd hh:mm:ss.zzz I/ line 32
+mm-dd hh:mm:ss.zzz I/ line 33
+mm-dd hh:mm:ss.zzz I/ line 34
+mm-dd hh:mm:ss.zzz I/ line 35
+mm-dd hh:mm:ss.zzz I/ line 36
+mm-dd hh:mm:ss.zzz I/ line 37
+mm-dd hh:mm:ss.zzz I/ line 38
+mm-dd hh:mm:ss.zzz I/ line 39
+mm-dd hh:mm:ss.zzz I/ line 40
+mm-dd hh:mm:ss.zzz I/ line 41
+mm-dd hh:mm:ss.zzz I/ line 42
+mm-dd hh:mm:ss.zzz I/ line 43
+mm-dd hh:mm:ss.zzz I/ line 44
+mm-dd hh:mm:ss.zzz I/ line 45
+mm-dd hh:mm:ss.zzz I/ line 46
+mm-dd hh:mm:ss.zzz I/ line 47
+mm-dd hh:mm:ss.zzz I/ line 48
+mm-dd hh:mm:ss.zzz I/ line 49
+mm-dd hh:mm:ss.zzz I/ line 50

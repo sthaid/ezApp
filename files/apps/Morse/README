@@ -1,0 +1,17 @@
+NAME: Morse
+
+DESCRIPTION:
+
+Practice morse code.
+
+This mini app will choose 10 5 character
+words at random; and play the morse code
+for each word. The rate is selectable 
+from 5 to 20 words per minute.
+
+Controls:
+  '>' - start
+  'C' - cancel
+
+When the exercise completes, or is 
+canceled, the 10 words are displayed

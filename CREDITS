@@ -1,0 +1,75 @@
+
+Thanks to the following for providing
+permiissive licensed software.
+
+* SDL, SDL_mixer, SDL_ttf - Simple
+  DirectMedia Layer (SDL) is a cross-
+  platform development library designed
+  to provide low level access to audio,
+  keyboard, mouse, joystick, and graphics
+  hardware via OpenGL and Direct3D.
+
+  https://github.com/libsdl-org/SDL
+  https://github.com/libsdl-org/SDL_ttf
+  https://github.com/libsdl-org/SDL_mixer
+
+* pcioc - Small-footprint C interpreter,
+  designed primarily for scripting in
+  embedded systems and robotic apps.
+
+  https://github.com/jpoirier/picoc
+
+* cJSON - Lightweight JSON parser and
+  generator.
+
+  https://github.com/DaveGamble/cJSON
+
+* kissfft - lightweight, FFT library,
+  that follows the "Keep It Simple,
+  Stupid" (KISS) principle.
+
+  https://github.com/mborgerding/kissfft
+
+* lodepng - PNG image decoder and encoder.
+  https://github.com/lvandeve/lodepng
+
+* libmp3lame - Stands for "LAME Ain't
+  an MP3 Encoder", widely considered
+  the highest quality MPEG Audio Layer
+  III encoder available.
+
+  https://github.com/zlargon/lame
+
+Thanks to the following for providing
+free or public domain content.
+
+* geoapify - Provides locations of cities,
+  towns, and villages.
+
+  https://www.geoapify.com/download-all-the-cities-towns-villages/
+  https://www.openstreetmap.org and its contributors.
+
+* USA weather forecast - Free weather
+  forecast provided by the USA government.
+
+  https://api.weather.gov
+
+* Magnetic Field Calculators - provided
+  by the USA government.
+
+  https://www.ngdc.noaa.gov/geomag-web
+
+* Sunset and Sunrise times API - Free
+  API that provides sunset and sunrise
+  times.
+
+  https://api.sunrise-sunset.org
+
+* Public domain beginner Piano pieces:
+  . Twinkle, Twinkle, Little Star
+  . Mary Had a Little Lamb
+  . Jingle Bells
+  . Frere Jacques
+
+Thanks also to Wikipedia and
+Google AI Powered Search.

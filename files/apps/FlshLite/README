@@ -1,0 +1,9 @@
+NAME: FlshLite
+
+DESCRIPTION:
+
+A very simple mini app.
+
+Toggles Android flashlight on/off.
+The display is not updated.
+

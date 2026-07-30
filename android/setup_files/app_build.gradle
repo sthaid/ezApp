@@ -1,0 +1,67 @@
+plugins {
+     id 'com.android.application'
+}
+
+def buildWithCMake = project.hasProperty('BUILD_WITH_CMAKE');
+
+android {
+    namespace = "org.sthaid.ezApp"
+    compileSdkVersion 35
+    defaultConfig {
+        minSdkVersion 29  // EZAPP - API 29 needed for getifaddrs
+        targetSdkVersion 35
+        versionCode 1
+        versionName "1.0"
+        externalNativeBuild {
+            ndkBuild {
+                arguments "APP_PLATFORM=android-29"  // EZAPP
+                // arguments "V=1"  // EZAPP uncomment to enable verbose build output
+                // abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+                abiFilters 'arm64-v8a'
+            }
+            cmake {
+                arguments "-DANDROID_PLATFORM=android-29", "-DANDROID_STL=c++_static", "-DAPP_SUPPORT_FLEXIBLE_PAGE_SIZES=true"  // EZAPP
+                // abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+                abiFilters 'arm64-v8a'
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    applicationVariants.all { variant ->
+        tasks["merge${variant.name.capitalize()}Assets"]
+            .dependsOn("externalNativeBuild${variant.name.capitalize()}")
+    }
+    if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {
+        sourceSets.main {
+            jniLibs.srcDir 'libs'
+        }
+        externalNativeBuild {
+            if (buildWithCMake) {
+                cmake {
+                    path 'jni/CMakeLists.txt'
+                }
+            } else {
+                ndkBuild {
+                    path 'jni/Android.mk'
+                }
+            }
+        }
+
+    }
+    lint {
+        abortOnError = false
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    // EZAPP
+    // - used by ezApp_utils.java
+    // - https://play.google.com/sdks/details/com-google-android-gms-play-services-location?hl=en-US
+    implementation 'com.google.android.gms:play-services-location:21.0.1' // Or the latest version
+}

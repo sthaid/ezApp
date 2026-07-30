@@ -1,0 +1,40 @@
+NAME: ColrOrgn
+
+DESCRIPTION:
+
+The Color Organ display is selectable:
+- BARS:    Vertical bars
+- CIRCLES: Circles
+- FFT:     Fast Fourier Transform
+
+Filter options:
+- SNAP: intensity snaps to higher level,
+        then gradually reduces
+- EXP:  exponential smoothing
+- NONE: no filtering
+
+Tap the upper or lower area of the bar,
+circle, or fft, to adjust scale.
+
+Portrait and Landscape orientations are
+supported.
+
+To make a recording:
+- select MON/REC
+- select Share one app
+- run the App, for example YT Music, 
+  and start playing
+- switch back to ezApp
+- select REC to start the recording
+- when done, select STOP
+- enter filename
+
+To play a file:
+- select the file
+
+NOTES:
+
+KISS FFT is used: 'A mixed-radix Fast 
+Fourier Transform based up on the 
+principle, "Keep It Simple, Stupid."'.
+https://github.com/mborgerding/kissfft

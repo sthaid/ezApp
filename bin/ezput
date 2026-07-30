@@ -1,0 +1,198 @@
+#!/bin/bash
+
+function usage()
+{
+cat << EOF
+This script copies files to the Android device.
+EzApp must be running on the Android device, and have DeveloperMode enabled.
+
+This script must be run from a directory in the files hierarchy.
+
+Options:
+  -h             : display help and exit
+  -d <dev>       : <dev_name|dev_ipaddr>[:port]
+  -p <password>  : ezApp devel mode password
+  -f             : force xfer of data files; data files are not normally copied
+Environment variables EZAPP_DEVICE and EZAPP_PASSWD may be used instead
+of the -d and -p options.
+
+Usage examples:
+
+# Note: in these examples data files are not copied to Android, 
+# because the '-f' option is not set. Files that are not copied are
+# indicated with 'SKIPPING'.
+
+# copy files in Morse dir to Adnroid
+cd files/apps/Morse
+ezput
+
+# copy files in NewApp and lib dirs, and the apps/layout file to Android
+cd files/apps/NewApp
+ezput . ../lib ../layput 
+
+# copy all of the files hierarchy to Android
+cd files
+ezput
+EOF
+}
+
+function okay_to_xfer()
+{
+    if [ "$force" = yes ]; then
+        return 0
+    fi
+
+    if [[ "$1" == *".png" || \
+          "$1" == *".json" || \
+          "$1" == *".dat" || \
+          "$1" == *".mp3" || \
+          "$1" == *".wav" || \
+          "$1" == *".swp" || \
+          "$1" == *"params" || \
+          "$1" == *"FreeMonoBold.ttf" || \
+          "$1" == *"credits" || \
+          "$1" == *"licenses" ]]; \
+    then
+        return 1  # not okay
+    else
+        return 0  # okay
+    fi
+}
+
+# #############  MAIN  ################
+
+# process options 
+# -h             : display usage
+# -d <dev>       : dev name (such as from /etc/hosts), or dev ipaddr
+# -p <password>  : devel password
+# -f             : force xfer of data files
+while true; do
+    if [ "$1" = "-h" ]; then
+        usage
+        exit 0
+    elif [ "$1" = "-d" ]; then
+        dev=$2
+        shift 2
+    elif [ "$1" = "-p" ]; then
+        password=$2
+        shift 2
+    elif [ "$1" = "-f" ]; then
+        force=yes
+        shift 1
+    elif [[ "$1" == "-"* ]]; then
+        echo "ERROR: invalid option $1"
+        exit 1
+    else
+        break
+    fi
+done
+
+# determine the top of the files directory tree,
+# this works if CWD is one of the following directories, for example:
+# - /path_to_files/files
+# - /path_to_files/files/apps
+# - /path_to_files/files/apps/Template
+if [ $(basename "$PWD") = files ]; then
+    files_dir=$PWD
+elif [ $(basename "$(dirname "$PWD")") = files ]; then
+    files_dir=$(dirname $PWD)
+elif [ $(basename "$(dirname "$(dirname "$PWD")")") = files ]; then
+    files_dir=$(dirname $PWD)
+    files_dir=$(dirname $files_dir)
+else
+    echo "ERROR: $PWD must be in files directory tree"
+    exit 1
+fi
+
+# get device and developer password from optional env vars
+dev=$EZAPP_DEVICE
+password=$EZAPP_PASSWD
+
+# verify dev and password have been provided,
+# either from env vars or the -d and -p options
+if [ "$dev" = "" -o "$password" = "" ]; then
+    echo "ERROR: device and password are required"
+    exit 1
+fi
+
+# if no args then default to transferring the current directory
+if [ $# -eq 0 ]; then
+    set -- "."
+fi
+
+# print message
+echo "INFO: transferring files from devel PC to Android device"
+
+# find candidtate files to xfer
+find_output=$(find $* ! -type d 2>/dev/null)
+if [ $? -ne 0 ]; then
+    echo "ERROR: failed to create files list"
+    exit 1
+fi
+
+# loop over candidate file
+# - if file is not okay to xfer (because it is a data file such as steps.dat,
+#   that might be on devel PC), then skip that file
+# - get the real path of the file, relative to the files_dir
+# - add the real path to list of files that will be xfered
+for fn in $find_output; do
+    okay_to_xfer $fn
+    if [ $? -ne 0 ]; then
+        echo "SKIPPING: $fn"
+        skipped=yes
+        continue
+    fi
+
+    real=$(realpath -s --relative-base $files_dir "$fn")
+    if [[ "$real" == "."* || "$real" == ".."* || "$real" == "/"* ]]; then
+        echo "ERROR: $real is not in $files_dir"
+        exit 1
+    fi
+
+    files="$files $real"
+done
+
+# if some files were skipped, this is because they are data files that
+# might be on the devel PC, then print a message on how to override 
+# skipping of files
+if [ "$skipped" = "yes" ]; then
+    echo "INFO: some files were skipped, override with -f"
+    echo
+fi
+
+# if there are no files to transfer then exit
+if [ -z "$files" ]; then
+    echo "ERROR: no files to transfer"
+    exit 1
+fi
+
+# create tar file, containing the files to transfer to Android device
+cd $files_dir
+tar -cf /tmp/ezput.tar  $files
+if [ $? -ne 0 ]; then
+    echo "ERROR: failed to create /tmp/ezput.tar"
+    rm -f /tmp/ezput.tar
+    exit 1
+fi
+
+# copy the tar file to Android device
+ezsh -d $dev -p $password -q "put /tmp/ezput.tar"
+if [ $? -ne 0 ]; then 
+    echo "ERROR: failed to copy /tmp/ezput.tar to Android device"
+    rm -f /tmp/ezput.tar
+    exit 1
+fi
+
+# extract ezput.tar on the Android device
+ezsh -d $dev -p $password -q "tar -xvf ezput.tar"
+if [ $? -ne 0 ]; then 
+    echo "ERROR: failed to extract ezput.tar on Android device"
+    rm -f /tmp/ezput.tar
+    exit 1
+fi
+
+# cleanup
+ezsh -d $dev -p $password -q "rm -f ezput.tar"
+rm -f /tmp/ezput.tar
+exit 0
+

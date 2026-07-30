@@ -1,0 +1,27 @@
+#!/bin/bash
+
+CFLAGS="-Wall -Werror -Wno-unused-result -Wno-format-truncation -Wno-unused-but-set-variable"
+CFLAGS="$CFLAGS   -I . -I ../../../linux/local/include"
+LIB_PATH=$(pwd)/../../../linux/local/lib
+LIBS="-lezApp_lib -lmp3lame -llodepng -lcJSON -lkissfft-float -lSDL3 -lSDL3_ttf -lSDL3_mixer -lm"
+
+# compile
+gcc -o create_ic_launcher $CFLAGS create_ic_launcher.c -L $LIB_PATH $LIBS -Wl,-rpath,$LIB_PATH
+if [ $? -ne 0 ]; then
+  echo "ERROR: gcc create_ic_launcher failed"
+  exit 1
+fi
+
+gcc -o create_ic_notification $CFLAGS create_ic_notification.c -L $LIB_PATH $LIBS -Wl,-rpath,$LIB_PATH
+if [ $? -ne 0 ]; then
+  echo "ERROR: gcc create_ic_notification failed"
+  exit 1
+fi
+
+# run
+./create_ic_launcher
+./create_ic_notification
+
+# cleanup
+rm create_ic_launcher
+rm create_ic_notification

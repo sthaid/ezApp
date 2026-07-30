@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Print the contents of the Android log for the following Tag/Priority entries.
+#   Tag              Priority
+#   ---------        --------
+#   EZAPP            Info
+#   SDL              Info
+#   SDL/AP           Info
+#   AndroidRungime   Info
+#   *                Fatal
+#
+# Exit when done printing.
+#
+# For usage: adb logcat -h
+
+adb logcat -d -s --format=time,color EZAPP:I SDL:I SDL/APP:I AndroidRuntime:I *:F

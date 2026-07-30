@@ -1,0 +1,129 @@
+#!/bin/bash
+
+function usage()
+{
+cat << EOF
+This script copies files from the Android device to the files hierarchy.
+EzApp must be running on the Android device, and have DeveloperMode enabled.
+  
+This script must be run from a directory in the files hierarchy.
+
+Options:
+  -h             : display help and exit
+  -d <dev>       : <dev_name|dev_ipaddr>[:port]
+  -p <password>  : ezApp devel mode password
+Environment variables EZAPP_DEVICE and EZAPP_PASSWD may be used instead
+of the -d and -p options.
+
+Usage examples:
+
+# Copy all files from Android ezApp Morse dir to devel PC.
+cd files/apps/Morse
+ezget
+
+# Copy all files from Android files hierarchy to devel PC.
+# This will take some time if there are large files.
+cd files
+ezget
+EOF
+} 
+
+# #############  MAIN  ################
+
+# process options 
+# -h             : display usage
+# -d <dev>       : dev name (such as from /etc/hosts), or dev ipaddr
+# -p <password>  : devel password
+while true; do
+    if [ "$1" = "-h" ]; then
+        usage
+        exit 0
+    elif [ "$1" = "-d" ]; then
+        dev=$2
+        shift 2
+    elif [ "$1" = "-p" ]; then
+        password=$2
+        shift 2
+    elif [[ "$1" == "-"* ]]; then
+        echo "ERROR: invalid option $1"
+        exit 1
+    else
+        break
+    fi
+done
+
+# no additional args are allowed by ezget
+if [ $# -ne 0 ]; then
+    echo "ERROR: Ezget only supports copying files to the current directory."
+    echo "ERROR: Args are not allowed."
+    exit 1
+fi
+
+# determine the top of the files directory tree,
+# this works if CWD is one of the following directories, for example:
+# - /path_to_files/files
+# - /path_to_files/files/apps
+# - /path_to_files/files/apps/Template
+if [ $(basename "$PWD") = files ]; then
+    files_dir=$PWD
+elif [ $(basename "$(dirname "$PWD")") = files ]; then
+    files_dir=$(dirname $PWD)
+elif [ $(basename "$(dirname "$(dirname "$PWD")")") = files ]; then
+    files_dir=$(dirname $PWD)
+    files_dir=$(dirname $files_dir)
+else
+    echo "ERROR: $PWD must be in files directory tree"
+    exit 1
+fi
+
+# determine Android directory from which the files will be copied
+android_dir=$(realpath --relative-base $files_dir $PWD)
+if [ "$android_dir" = "" ]; then
+    echo "ERROR: failed to determine android_dir"
+    exit 1
+fi
+
+# get device and developer password from optional env vars
+dev=$EZAPP_DEVICE
+password=$EZAPP_PASSWD
+
+# verify dev and password have been provided,
+# either from env vars or the -d and -p options
+if [ "$dev" = "" -o "$password" = "" ]; then
+    echo "ERROR: device and password are required"
+    exit 1
+fi
+
+# print message
+echo "INFO: transferring files from Android device to devel PC"
+
+# create ezget.tar on Android device
+if [ "$android_dir" = "." ]; then
+    ezsh -d $dev -p $password -q "tar -cf ezget.tar apps svcs params"
+else 
+    ezsh -d $dev -p $password -q "tar -cf ezget.tar $android_dir"
+fi
+if [ $? -ne 0 ]; then 
+    echo "ERROR: failed to create ezget.tar on Android device"
+    exit 1
+fi
+
+# copy ezget.tar from Android device to /tmp
+ezsh -d $dev -p $password -q "get ezget.tar /tmp"
+if [ $? -ne 0 ]; then 
+    echo "ERROR: failed to copy ezget.tar from Android device to devel PC"
+    exit 1
+fi
+
+# extract ezget.tar on devel PC
+cd $files_dir
+tar -xvf /tmp/ezget.tar
+if [ $? -ne 0 ]; then 
+    echo "ERROR: failed to extract ezget.tar on devel PC"
+    exit 1
+fi
+
+# cleanup
+rm -f /tmp/ezget.tar
+ezsh -d $dev -p $password -q "rm -f ezget.tar"
+exit 0

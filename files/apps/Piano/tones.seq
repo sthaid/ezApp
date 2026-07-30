@@ -1,0 +1,58 @@
+# format:
+# - case inensitive
+# - title line: "TITLE <tone-seq-name> <initial-octave>
+# - tone sequence items:
+#     C D E F G A B         : pitches in scientific pitch notation (SPN), in current octave
+#     Cn Dn En Fn Gn An Bn  : pitches in SPN, where 'n' is the octave number, e.g. C4
+#     do re mi fa sol la ti : solfege syllables, do=C re=D, ...
+#     <n> up down           : set octave to 'n', or increase, or decrease octave
+#     pause1 pause2 pause4  : delay for 250, 500, 1000 ms
+# - an implicit pause2 is appended to the end of each line of items
+
+TITLE ttls 5  # Twinkle Twinkle Little Star
+C C G G A A G
+F F E E D D C
+G G F F E E D
+G G F F E E D
+C C G G A A G
+F F E E D D C
+
+TITLE mary 5  # Mary Had a Little Lamb
+E D C D E E E
+D D D
+E G G
+E D C D E E E E D D E D C 
+
+TITLE fj 5  # Frere Jacques
+C D E C pause1 C D E C
+E F G pause1 E F G
+G A G F E C pause1 G A G F E C
+C G C pause1 C G C
+
+TITLE jbells 5  # Jingle Bells
+E E E pause1 E E E
+E G C D E
+F F F F F E E
+E D D E D pause1 G
+E E E pause1 E E E
+E G C D E
+F F F F F E E
+G G F D C
+
+TITLE ag 5  # Amazing Grace
+C E G E G E D C      # A-ma-zing grace! How sweet the sound
+C E G E G A C        # That saved a wretch like me!
+C C A G E G E D C    # I once was lost, but now am found
+C E G E G A C        # Was blind, but now I see.
+
+TITLE doremi3 3  # Natural notes in octave 3
+C D E F G A B
+
+TITLE doremi4 4  # Natural notes in octave 4
+C D E F G A B
+
+TITLE doremi5 5  # Natural notes in octave 5
+do re mi fa sol la ti
+
+TITLE doremi6 6  # Natural notes in octave 6
+C D E F G A B

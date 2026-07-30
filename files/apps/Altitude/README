@@ -1,0 +1,35 @@
+NAME: Altitude
+
+DESCRIPTION:
+
+Displays and graphs altitude.
+
+Newer devices provide altitude in feet
+above Mean Sea Level (MSL).
+
+Older devices provide altitude in feet
+above the the WGS84 ellipsoid (WGS84).
+
+NOTES:
+
+Permission to access fine location must 
+be granted.
+
+The Altitude app relies on altitude data
+that is saved in 
+  svcs/Altitude/altitude.dat, 
+by the Altitude service. The altitude.
+dat stores hourly altitude data, and 
+supports storing altitude data from year
+2026 to 2045.
+
+The Altitude service obtains altitude 
+data from GPS. GPS altitude raw readings
+are based on the WGS84 ellipsoid, not
+mean sea level. EzApp uses the Android
+AltitudeConverter to convert the WGS84 
+values to mean sea level.
+
+Even when using the AltitudeConverter, 
+to convert the raw GPS to MSL, the 
+altitude can be off by 150 feet.

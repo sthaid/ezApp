@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# This script will install the Android SDK Command Line Tools.
+# The Android SDK is required to build and install the ezApp 
+# Android Package Kit (APK).
+#
+# After running this script, be sure to set the environment variables
+# as directed.
+
+# if path_to_cmdlinetools_zip arg is not supplied then display usage and exit
+cmdlinetoolszip=$1
+if [ "$cmdlinetoolszip" = "" ]; then
+    cat << 'EOF'
+Usage: install_android_sdk <path_to_cmdlinetools_zip>
+
+commandlinetools-linux-nnnnnnnn_latest.zip is obtained from
+https://developer.android.com/studio#command-line-tools-only
+EOF
+    exit 1
+fi
+
+# verify cmdlinetoolszip file exists, and is really a zip file
+if [ ! -f $cmdlinetoolszip ]; then
+    echo "ERROR: $cmdlinetoolszip does not exist"
+    exit 1
+fi
+if ! file --mime-type "$cmdlinetoolszip" | grep -q 'application/zip'; then
+    echo "ERROR: $cmdlinetoolszip is not a zip archive."
+    exit 1
+fi
+
+# get absolute path of cmdlinetoolszip
+cmdlinetoolszip=$(realpath $cmdlinetoolszip)
+echo $cmdlinetoolszip
+
+# to avoid a possible problem, kill gradle daemon and remove gradle daemon directory
+read -p "To avoid a possible problem the gradle daemn should be killed (y/n)? " yn
+if [ "$yn" = "y" ]; then
+    echo "Killing gradle daemon"
+    pkill -f gradle 
+    sleep 3
+    rm -rf ~/.gradle/daemon
+else
+    echo "Not killing gradle daemon"
+fi
+echo
+
+# if the ~/android dir exists then rename it to a save dir name
+if [ -d ~/android ]; then
+    date_str=`date +%y%m%d_%H%M%S`
+    android_save=~/android_save_$date_str
+    echo "About to rename existing ~/android to $android_save"
+    read -p "Continue (y/n)? " yn
+    if [ "$yn" != "y" ]; then
+        echo ABORT
+        exit 1
+    fi
+    mv ~/android $android_save
+    echo
+fi
+
+# if ~/android still exists then an error has occurred
+if [ -e ~/android ]; then
+    echo "ERROR: something is wrong ~/android still exists"
+    exit 1
+fi
+
+# unzip the cmdlinetools
+echo "Unzipping $cmdlinetoolszip"
+mkdir -p ~/android/sdk
+cd ~/android/sdk
+unzip $cmdlinetoolszip
+echo
+
+# move cmdline-tools to required dir struct
+echo "Move cmdline-tools to required dir struct"
+mv cmdline-tools latest
+mkdir cmdline-tools
+mv latest cmdline-tools
+echo
+
+# install sdk packages needed to build ezApp for Android
+sdkmanager=$HOME/android/sdk/cmdline-tools/latest/bin/sdkmanager
+echo "Install android/sdk packages"
+$sdkmanager "platform-tools" "platforms;android-35" "build-tools;34.0.0" "ndk;27.0.12077973"
+echo
+
+# list installed sdk packages
+echo "List installed android/sdk packages"
+$sdkmanager --list_installed
+echo
+
+# display message regarding env vars
+cat << 'EOF'
+The following environment variables are required to use the
+Android SDK command line tools. Be sure to set these env vars.
+
+export ANDROID_HOME=$HOME/android/sdk
+export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.0.12077973
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+EOF
+echo
+
+exit 0

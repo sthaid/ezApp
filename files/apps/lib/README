@@ -1,0 +1,13 @@
+NAME: lib
+
+DESCRIPTION:
+
+This directory contains common routines
+that are useful to multiple apps.
+
+The lib.c code is automatically included
+in every app.
+
+Apps that call routines that are defined
+in lib.c must:
+  #include "apps/lib/lib.h"

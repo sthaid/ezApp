@@ -1,0 +1,12 @@
+NAME: Paddle
+
+DESCRIPTION:
+
+Ball and Paddle game.
+
+Settings:
+- autonomous mode: computer plays itself
+- ball speed:      0.5 to 3
+- difficulty:      easy, medium, hard
+- sound:           on, off
+

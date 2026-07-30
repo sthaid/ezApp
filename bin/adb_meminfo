@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Print memory usage information for ezApp.
+
+while true; do
+  adb shell dumpsys meminfo -s org.sthaid.ezApp | grep TOTAL
+  sleep 5
+done

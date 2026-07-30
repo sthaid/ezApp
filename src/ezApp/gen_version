@@ -1,0 +1,10 @@
+#!/bin/bash
+
+topdir=$(git rev-parse --show-toplevel)
+cd $topdir
+
+version="1.0"
+build_date="$(date +'%D %T')"
+
+echo "#define VERSION \"$version\"" > src/ezApp/version.h
+echo "#define BUILD_DATE \"$build_date\"" >> src/ezApp/version.h

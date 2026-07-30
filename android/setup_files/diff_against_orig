@@ -1,0 +1,17 @@
+#!/bin/bash
+
+function run_diff()
+{
+    meld orig/$1 $1
+}
+
+run_diff app_src_main_res/values/colors.xml
+run_diff app_src_main_res/values/strings.xml
+run_diff app_src_main_res/values/styles.xml
+
+run_diff gradle.properties
+run_diff app_build.gradle
+run_diff app_jni_Application.mk
+run_diff app_jni_src_Android.mk
+run_diff app_src_main_AndroidManifest.xml
+run_diff app_src_main_java_org_libsdl_app_SDLActivity.java

@@ -1,0 +1,27 @@
+NAME: Weather
+
+DESCRIPTION:
+
+Weather forecast is obtained from 
+https://api.weather.gov.
+
+Text-to-speech system reads the
+detailed weather report aloud.
+
+If the weather forecast has been 
+downloaded within the past 4 hours the 
+forecast is not downloaded again. Select
+'R' to force a new forecast download.
+
+Display choices:
+- Day:  daytime
+- D+N:  day and night
+- Hour: hourly
+
+Selecting a Day or D+N forecast will 
+display and speak the detailed forecast.
+
+NOTES:
+
+Downloading the forecast can take 
+several seconds.

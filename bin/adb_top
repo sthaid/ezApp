@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Print CPU usage information for ezApp.
+#
+# Notes:
+# -b batch mode
+# -H show threads
+# -m max tasks to show
+
+adb shell top -b -H -m 20 | egrep "^  TID|org.sthaid.ezApp" 

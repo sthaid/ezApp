@@ -1,0 +1,41 @@
+NAME: Location
+
+DESCRIPTION:
+
+Displays:
+- current location
+- location history
+
+Settings menu provides options to:
+- Clear location history
+- Enable/disable saving of location 
+  history
+- Download country city-town location 
+  database
+
+NOTES:
+
+Two character country codes: 
+  https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
+
+Geoapify location database is used.
+- https://www.geoapify.com/download-all-the-cities-towns-villages/
+
+Geoapify Copyright and License
+- The data contained in this dataset 
+  is compiled from the OpenStreetMap 
+  (OSM) database and is subject to the
+  copyright terms and conditions of 
+  OSM contributors.
+- OpenStreetMap® is open data, 
+  licensed under the Open Data 
+  Commons Open Database License (ODbL)
+  by the OpenStreetMap Foundation 
+  (OSMF).  
+- You are free to copy, distribute, 
+  transmit, and adapt the data, as 
+  long as you credit OpenStreetMap 
+  and its contributors. If you alter 
+  or build upon our data, you may
+  distribute the result only under
+  the same license.

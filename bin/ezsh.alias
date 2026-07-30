@@ -1,0 +1,18 @@
+# This file defines aliases for the ezsh program.
+
+# abbreviations
+ls          ls -l
+l           local
+
+# monitor Android log
+logclr      logcat -c -b all
+logwatch    logcat -c -b all; logcat -s --format=time,color EZAPP:I SDL:I SDL/APP:I AndroidRuntime:I '*:F'
+logcat      logcat -d -s --format=time,color EZAPP:I SDL:I SDL/APP:I AndroidRuntime:I '*:F'
+
+# query Appliction Binary Interface
+abi         getprop ro.product.cpu.abi; getprop ro.product.cpu.abilist
+
+# misc
+topx        top -b -H -m 20 | egrep "^  TID|org.sthaid.ezApp" 
+psx         ps -Ao pid,pgid,ppid,user,comm,name
+

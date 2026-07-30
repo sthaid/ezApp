@@ -1,8 +1,26 @@
+=========================
+Repos Cloned During Build
+=========================
+
+SDL, SDL_mixer, SDL_ttf
+-----------------------
+https://github.com/libsdl-org/SDL
+https://github.com/libsdl-org/SDL_ttf
+https://github.com/libsdl-org/SDL_mixer
+
+Refer to ezApp/Makefile.
+
+openssl
+-------
+https://github.com/openssl/openssl
+
+Refer to ezApp/src/openssl/Makefile
+
 =======================
 Repos Copied into ezApp
 =======================
 
-These repos have been copied into ezApp, without their .git directories.
+These repos have been copied into ezApp, without their .git directory.
 
 cJSON
 -----

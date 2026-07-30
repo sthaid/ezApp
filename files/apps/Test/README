@@ -1,0 +1,22 @@
+NAME: Test
+
+DESCRIPTION:
+
+Unit Test, use '<' or '>' to change pages.
+
+Test pages:
+- 0:  CLOCK
+- 1:  FONT
+- 2:  SIZEOF
+- 3:  MULTI LINE TEXT
+- 4:  DRAWING
+- 5:  TEXTURES
+- 6:  COLORS
+- 7:  AUDIO
+- 8:  SENSOR INFO TBL
+- 9:  SENSOR DATA
+- 10: LOCATION
+- 11: TEXT ROTATION
+- 12: LANDSCAPE
+- 13: SVC MAKE REQ
+

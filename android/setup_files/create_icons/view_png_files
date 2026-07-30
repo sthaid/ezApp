@@ -1,0 +1,28 @@
+#!/bin/bash
+
+file \
+../app_src_main_res/mipmap-mdpi/ic_launcher.png \
+../app_src_main_res/mipmap-hdpi/ic_launcher.png \
+../app_src_main_res/mipmap-xhdpi/ic_launcher.png \
+../app_src_main_res/mipmap-xxhdpi/ic_launcher.png \
+../app_src_main_res/mipmap-xxxhdpi/ic_launcher.png \
+../app_src_main_res/drawable-mdpi/ic_notification.png \
+../app_src_main_res/drawable-hdpi/ic_notification.png \
+../app_src_main_res/drawable-xhdpi/ic_notification.png \
+../app_src_main_res/drawable-xxhdpi/ic_notification.png \
+../app_src_main_res/drawable-xxxhdpi/ic_notification.png
+echo
+
+eog \
+../app_src_main_res/mipmap-mdpi/ic_launcher.png \
+../app_src_main_res/mipmap-hdpi/ic_launcher.png \
+../app_src_main_res/mipmap-xhdpi/ic_launcher.png \
+../app_src_main_res/mipmap-xxhdpi/ic_launcher.png \
+../app_src_main_res/mipmap-xxxhdpi/ic_launcher.png \
+../app_src_main_res/drawable-mdpi/ic_notification.png \
+../app_src_main_res/drawable-hdpi/ic_notification.png \
+../app_src_main_res/drawable-xhdpi/ic_notification.png \
+../app_src_main_res/drawable-xxhdpi/ic_notification.png \
+../app_src_main_res/drawable-xxxhdpi/ic_notification.png
+echo
+

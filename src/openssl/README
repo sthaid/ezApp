@@ -1,0 +1,12 @@
+Advice from Google AI:
+
+Here is the breakdown of how to use OpenSSL properly:
+
+- The Message: This is your actual payload (the data or password you need to send).
+  It goes into the encryption tool (e.g., AES) as the plaintext.
+
+- The Key: This is a cryptographically random string generated using your password 
+  (usually via a Key Derivation Function like PBKDF2) to lock and unlock the message.
+
+- The Process: You use your password to derive a symmetric key, encrypt your message
+  with that key, and then send the resulting ciphertext over the network.

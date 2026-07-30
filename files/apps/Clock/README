@@ -1,0 +1,26 @@
+NAME: Clock
+
+DESCRIPTION:
+
+Displays analog clock.
+
+Also displays sunrise, sunset, midday 
+times, and daytime length.
+
+NOTES:
+
+The sunrise and sunset times are 
+calculated using the equation from
+  https://en.wikipedia.org/wiki/Sunrise_equation#Hour_angle.
+
+To validate the calculated sunrise/set 
+times, the sunrise and set times were 
+obtained from 
+  https://api.sunrise-sunset.org.
+There is a 2 minute difference between 
+the calculated and web obtained times.
+
+Obtaining the sunrise/sunset times from
+  https://api.sunrise-sunset.org
+was done during development, that code 
+is now commented out.

@@ -1,0 +1,95 @@
+NAME: Piano
+
+DESCRIPTION:
+
+A beginner Piano simulator.
+
+To scroll the keyboard, first select UNLOCK.
+
+The tones.seq file contains several public domain melodies.
+The format of the tone.seq file is documented in that file.
+
+NOTES:
+
+Piano
+-----
+
+https://en.wikipedia.org/wiki/Piano_key_frequencies
+
+standard modern piano has 88 keys, 
+- first freq is 27.5 (A0)  
+- last freq 4186
+- A0 = 27.5 Hz
+- A4 = 440  Hz
+
+Octave
+------
+
+An octave spans 12 semitones, where the top note is exactly double the frequency 
+of the bottom note. Using equal temperament (A4 = 440 Hz), each note is 12th root 
+of 2 (approx. 1.05946) times higher than the previous. 
+For example, in the 4th octave, C4 is 261.63 Hz and C5 is 523.25 Hz.
+
+Scientific Pitch Notation
+-------------------------
+
+https://en.wikipedia.org/wiki/Scientific_pitch_notation
+
+Scientific Pitch Notation (SPN) is a system for identifying specific musical 
+pitches by combining a note name (A-G, plus sharps/flats) with a number 
+indicating its octave. It is widely used to define instrument ranges and 
+MIDI note numbers, with Middle C designated as C4 and the octave number 
+increasing at every C.
+
+In Scientific Pitch Notation (SPN), the seven natural note pitch classes 
+are named using the letters A, B, C, D, E, F, and G. These letters are 
+combined with an Arabic number indicating the specific octave, such as C4 
+(Middle C) or A4 (tuning pitch).
+
+Examples:
+- A4: The concert pitch standard (A440), located above middle C.
+- C1: The lowest C on a standard 88-key piano.
+- C4: Middle C.
+
+Musical Notes:
+- The foundational names for pitches in Western music are the first seven 
+  letters of the alphabet: A, B, C, D, E, F, G
+- These represent the "natural" notes (white keys on a piano).
+- When raised or lowered, they use accidentals: Sharp (#) or Flat (b).
+
+Octave 1: White Keys Only
+  Note    Freq    Piano Key Num
+  C1     32.7 Hz      4
+  D1     36.7 Hz      6
+  E1     41.2 Hz      8
+  F1     43.6 Hz      9
+  G1     49.0 Hz      11   
+  A1     55.0 Hz      13
+  B1     61.7 Hz      15
+
+Solfege
+-------
+
+Key Aspects of Solfege
+- The Syllables: 
+    The standard major scale uses Do, Re, Mi, Fa, Sol, La, Ti, and a final Do.
+- Movable Do vs. Fixed Do: 
+    In "moveable do," Do is always the tonic (first note) of any key, 
+      helping with relative pitch. 
+    In "fixed do," Do is always the note C, regardless of the key.
+
+Public Domain Beginner Pieces 
+-----------------------------
+
+Public Domain Beginner Pieces with Letter/SPN Notation
+The following popular, free tunes are in the public domain 
+and often arranged for beginners with letter notation: 
+
+- Ode to Joy (Beethoven): Often arranged in C Major starting on E4 or E5.
+- Twinkle, Twinkle, Little Star: Commonly played in C4-G4 position.
+- Mary Had a Little Lamb: Ideal for learning E4, D4, C4.
+- Jingle Bells: Simple melody often starting on E5.
+- Amazing Grace: Usually arranged for beginners to play in G Major or C Major.
+- Lavender’s Blue: A beginner-friendly, public-domain folk song.
+- Frere Jacques: Simple, repetitive, and often set in C4.
+
