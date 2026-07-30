@@ -1,0 +1,9 @@
+===================================
+PLATFORM LIBRARY GEN TOOL (libgen)
+===================================
+
+Used to translate platform routine prototypes to format that
+is easily incorporated in platform/library_unix.c.
+
+Usage example, refer to: run_libgen and libgen_in.h.
+

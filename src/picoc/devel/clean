@@ -1,0 +1,3 @@
+#!/bin/bash
+
+rm -f libgen libgen_out1.h libgen_out2.h

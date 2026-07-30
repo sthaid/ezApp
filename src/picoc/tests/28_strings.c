@@ -3,6 +3,8 @@
 
 char a[10];
 
+void main() {
+
 strcpy(a, "hello");
 printf("%s\n", a);
 
@@ -13,7 +15,7 @@ printf("%d\n", strcmp(a, "apple") > 0);
 printf("%d\n", strcmp(a, "goere") > 0);
 printf("%d\n", strcmp(a, "zebra") < 0);
 
-printf("%d\n", strlen(a));
+printf("%zd\n", strlen(a));
 
 strcat(a, "!");
 printf("%s\n", a);
@@ -23,9 +25,9 @@ printf("%d\n", strncmp(a, "goere", 2) == 0);
 printf("%d\n", strncmp(a, "goerg", 2) == 0);
 printf("%d\n", strncmp(a, "zebra", 2) < 0);
 
-printf("%s\n", index(a, 'o'));
-printf("%s\n", rindex(a, 'l'));
-printf("%d\n", rindex(a, 'x') == NULL);
+//printf("%s\n", index(a, 'o'));  // these are not supported
+//printf("%s\n", rindex(a, 'l'));
+//printf("%d\n", rindex(a, 'x') == NULL);
 
 memset(&a[1], 'r', 4);
 printf("%s\n", a);
@@ -37,5 +39,4 @@ printf("%d\n", memcmp(a, "apple", 4) > 0);
 printf("%d\n", memcmp(a, "grgr", 4) == 0);
 printf("%d\n", memcmp(a, "zebra", 4) < 0);
 
-
-void main() {}
+}

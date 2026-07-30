@@ -6,6 +6,11 @@
 
 #include "platform.h"
 
+// why is this needed?
+struct __sFILE {
+  char __private[152];
+} __attribute__((aligned(sizeof(void*))));
+
 #ifndef NULL
 #define NULL 0
 #endif
@@ -19,27 +24,28 @@
 #endif
 */
 /* Get the name of a type */
-// #define typename(x) _Generic((x),   \
-//     _Bool: "_Bool", \
-//     unsigned char: "unsigned char", \
-//     char: "char", \
-//     signed char: "signed char", \
-//     short int: "short int", \
-//     unsigned short int: "unsigned short int",   \
-//     int: "int", \
-//     unsigned int: "unsigned int", \
-//     long int: "long int", \
-//     unsigned long int: "unsigned long int", \
-//     long long int: "long long int", \
-//     unsigned long long int: "unsigned long long int", \
-//     float: "float", \
-//     double: "double", \
-//     long double: "long double", \
-//     char *: "pointer to char", \
-//     void *: "pointer to void", \
-//     int *: "pointer to int", \
-//     default: "other") (x)
-
+#if 0
+#define typename(x) _Generic((x),   \
+    _Bool: "_Bool", \
+    unsigned char: "unsigned char", \
+    char: "char", \
+    signed char: "signed char", \
+    short int: "short int", \
+    unsigned short int: "unsigned short int",   \
+    int: "int", \
+    unsigned int: "unsigned int", \
+    long int: "long int", \
+    unsigned long int: "unsigned long int", \
+    long long int: "long long int", \
+    unsigned long long int: "unsigned long long int", \
+    float: "float", \
+    double: "double", \
+    long double: "long double", \
+    char *: "pointer to char", \
+    void *: "pointer to void", \
+    int *: "pointer to int", \
+    default: "other") (x)
+#endif
 
 #define MEM_ALIGN(x) (((x) + sizeof(ALIGN_TYPE)-1) & ~(sizeof(ALIGN_TYPE)-1))
 
@@ -59,7 +65,8 @@ typedef FILE IOFILE;
 
 /* coercion of numeric types to other numeric types */
 #define IS_FP(v) ((v)->Typ->Base == TypeFP)
-#define FP_VAL(v) ((v)->Val->FP)
+#define IS_FP32(v) ((v)->Typ->Base == TypeFP32)
+#define IS_FP_OR_FP32(v) (IS_FP(v) || IS_FP32(v))
 
 /* ap -> AllowPointerCoercion = true | false */
 #define IS_POINTER_COERCIBLE(v, ap) ((ap) ? ((v)->Typ->Base == TypePointer) : 0)
@@ -67,7 +74,7 @@ typedef FILE IOFILE;
 
 #define IS_INTEGER_NUMERIC_TYPE(t) ((t)->Base >= TypeInt && (t)->Base <= TypeUnsignedLong)
 #define IS_INTEGER_NUMERIC(v) IS_INTEGER_NUMERIC_TYPE((v)->Typ)
-#define IS_NUMERIC_COERCIBLE(v) (IS_INTEGER_NUMERIC(v) || IS_FP(v))
+#define IS_NUMERIC_COERCIBLE(v) (IS_INTEGER_NUMERIC(v) || IS_FP_OR_FP32(v))
 #define IS_NUMERIC_COERCIBLE_PLUS_POINTERS(v,ap) (IS_NUMERIC_COERCIBLE(v) || IS_POINTER_COERCIBLE(v,ap))
 
 
@@ -77,6 +84,8 @@ struct Picoc_Struct;
 typedef struct Picoc_Struct Picoc;
 
 /* lexical tokens */
+/* NOTE: the order of this array must correspond to the order of
+         OperatorPrecedence[] in expression.c */
 enum LexToken {
     /* 0x00 */ TokenNone,
     /* 0x01 */ TokenComma,
@@ -123,22 +132,29 @@ enum LexToken {
                TokenArrow,
     /* 0x2b */ TokenOpenBracket,
                TokenCloseBracket,
+
+    /* OperatorPrecedence, found in expression.c, ends here */
+
     /* 0x2d */ TokenIdentifier,
                TokenIntegerConstant,
+               TokenLongIntegerConstant,
+               TokenUnsignedIntegerConstant,
+               TokenUnsignedLongIntegerConstant,
                TokenFPConstant,
+               TokenFP32Constant,
                TokenStringConstant,
                TokenCharacterConstant,
-    /* 0x32 */ TokenSemicolon,
+    /* 0x36 */ TokenSemicolon,
                TokenEllipsis,
-    /* 0x34 */ TokenLeftBrace,
+    /* 0x38 */ TokenLeftBrace,
                TokenRightBrace,
-    /* 0x36 */ TokenIntType,
+    /* 0x3a */ TokenIntType,
                TokenCharType,
                TokenFloatType,
                TokenDoubleType,
                TokenVoidType,
                TokenEnumType,
-    /* 0x3c */ TokenLongType,
+    /* 0x40 */ TokenLongType,
                TokenSignedType,
                TokenShortType,
                TokenStaticType,
@@ -149,7 +165,7 @@ enum LexToken {
                TokenUnionType,
                TokenUnsignedType,
                TokenTypedef,
-    /* 0x46 */ TokenContinue,
+    /* 0x4a */ TokenContinue,
                TokenDo,
                TokenElse,
                TokenFor,
@@ -161,17 +177,17 @@ enum LexToken {
                TokenCase,
                TokenDefault,
                TokenReturn,
-    /* 0x52 */ TokenHashDefine,
+    /* 0x56 */ TokenHashDefine,
                TokenHashInclude,
                TokenHashIf,
                TokenHashIfdef,
                TokenHashIfndef,
                TokenHashElse,
                TokenHashEndif,
-    /* 0x59 */ TokenNew,
+    /* 0x5d */ TokenNew,
                TokenDelete,
-    /* 0x5b */ TokenOpenMacroBracket,
-    /* 0x5c */ TokenEOF,
+    /* 0x5f */ TokenOpenMacroBracket,
+    /* 0x60 */ TokenEOF,
                TokenEndOfLine,
                TokenEndOfFunction,
                TokenBackSlash
@@ -215,25 +231,26 @@ struct ParseState {
 
 /* values */
 enum BaseType {
-    TypeVoid,                   /* no type */
-    TypeInt,                    /* integer */
-    TypeShort,                  /* short integer */
-    TypeChar,                   /* a single character (signed) */
-    TypeLong,                   /* long integer */
-    TypeUnsignedInt,            /* unsigned integer */
-    TypeUnsignedShort,          /* unsigned short integer */
-    TypeUnsignedChar,           /* unsigned 8-bit number */ /* must be before unsigned long */
-    TypeUnsignedLong,           /* unsigned long integer */
-    TypeFP,                     /* floating point */
-    TypeFunction,               /* a function */
-    TypeMacro,                  /* a macro */
-    TypePointer,                /* a pointer */
-    TypeArray,                  /* an array of a sub-type */
-    TypeStruct,                 /* aggregate type */
-    TypeUnion,                  /* merged type */
-    TypeEnum,                   /* enumerated integer type */
-    TypeGotoLabel,              /* a label we can "goto" */
-    Type_Type                   /* a type for storing types */
+    TypeVoid,                   /* 0  no type */
+    TypeInt,                    /* 1  integer */
+    TypeShort,                  /* 2  short integer */
+    TypeChar,                   /* 3  a single character (signed) */
+    TypeLong,                   /* 4  long integer */
+    TypeUnsignedInt,            /* 5  unsigned integer */
+    TypeUnsignedShort,          /* 6  unsigned short integer */
+    TypeUnsignedChar,           /* 7  unsigned 8-bit number */ /* must be before unsigned long */
+    TypeUnsignedLong,           /* 8  unsigned long integer */
+    TypeFP,                     /* 9  floating point (double) */
+    TypeFP32,                   /* 10 floating point (float) */
+    TypeFunction,               /* 11 a function */
+    TypeMacro,                  /* 12 a macro */
+    TypePointer,                /* 13 a pointer */
+    TypeArray,                  /* 14 an array of a sub-type */
+    TypeStruct,                 /* 15 aggregate type */
+    TypeUnion,                  /* 16 merged type */
+    TypeEnum,                   /* 17 enumerated integer type */
+    TypeGotoLabel,              /* 18 a label we can "goto" */
+    Type_Type                   /* 19 a type for storing types */
 };
 
 /* data type */
@@ -252,6 +269,7 @@ struct ValueType {
 };
 
 /* function definition */
+struct Value;
 struct FuncDef {
     struct ValueType *ReturnType;   /* the return value type */
     int NumParams;                  /* the number of parameters */
@@ -259,7 +277,8 @@ struct FuncDef {
                                         the explicitly specified ones */
     struct ValueType **ParamType;   /* array of parameter types */
     char **ParamName;               /* array of parameter names */
-    void (*Intrinsic)();            /* intrinsic call address or NULL */
+    void (*Intrinsic)(struct ParseState *, struct Value *, struct Value **, int);
+                                    /* intrinsic call address or NULL */
     struct ParseState Body;         /* lexical tokens of the function body if
                                         not intrinsic */
 };
@@ -289,6 +308,7 @@ union AnyValue {
     struct FuncDef FuncDef;
     struct MacroDef MacroDef;
     double FP;
+    float FP32;
     void *Pointer;      /* unsafe native pointers */
 };
 
@@ -472,6 +492,7 @@ struct Picoc_Struct {
     struct ValueType UnsignedLongType;
     struct ValueType UnsignedCharType;
     struct ValueType FPType;
+    struct ValueType FP32Type;
     struct ValueType VoidType;
     struct ValueType TypeType;
     struct ValueType FunctionType;
@@ -733,5 +754,8 @@ extern void StdboolSetupFunc(Picoc *pc);
 extern const char UnistdDefs[];
 extern struct LibraryFunction UnistdFunctions[];
 extern void UnistdSetupFunc(Picoc *pc);
+
+/* libgen.c */
+extern struct LibraryFunction LibgenFunctions[];
 
 #endif /* INTERPRETER_H */

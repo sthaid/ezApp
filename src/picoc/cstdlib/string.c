@@ -27,6 +27,20 @@ void StringStrcmp(struct ParseState *Parser, struct Value *ReturnValue,
         Param[1]->Val->Pointer);
 }
 
+void StringStrcasecmp(struct ParseState *Parser, struct Value *ReturnValue,
+    struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = strcasecmp(Param[0]->Val->Pointer,
+        Param[1]->Val->Pointer);
+}
+
+void StringStrncasecmp(struct ParseState *Parser, struct Value *ReturnValue,
+    struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = strncasecmp(Param[0]->Val->Pointer,
+        Param[1]->Val->Pointer, Param[2]->Val->Integer);
+}
+
 void StringStrncmp(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
 {
@@ -48,7 +62,7 @@ void StringStrncat(struct ParseState *Parser, struct Value *ReturnValue,
         Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(ANDROID)
 void StringIndex(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
 {
@@ -160,6 +174,13 @@ void StringStrstr(struct ParseState *Parser, struct Value *ReturnValue,
         Param[1]->Val->Pointer);
 }
 
+void StringStrcasestr(struct ParseState *Parser, struct Value *ReturnValue,
+    struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Pointer = strcasestr(Param[0]->Val->Pointer,
+        Param[1]->Val->Pointer);
+}
+
 void StringStrtok(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
 {
@@ -192,8 +213,8 @@ void StringStrtok_r(struct ParseState *Parser, struct Value *ReturnValue,
 /* all string.h functions */
 struct LibraryFunction StringFunctions[] =
 {
-#ifndef WIN32
-	{StringIndex,   "char *index(char *,int);"},
+#if !defined(WIN32) && !defined(ANDROID)
+    {StringIndex,   "char *index(char *,int);"},
     {StringRindex,  "char *rindex(char *,int);"},
 #endif
     {StringMemcpy,  "void *memcpy(void *,void *,int);"},
@@ -207,6 +228,8 @@ struct LibraryFunction StringFunctions[] =
     {StringStrrchr, "char *strrchr(char *,int);"},
     {StringStrcmp,  "int strcmp(char *,char *);"},
     {StringStrncmp, "int strncmp(char *,char *,int);"},
+    {StringStrcasecmp,  "int strcasecmp(char *,char *);"},
+    {StringStrncasecmp,  "int strncasecmp(char *,char *, int);"},
     {StringStrcoll, "int strcoll(char *,char *);"},
     {StringStrcpy,  "char *strcpy(char *,char *);"},
     {StringStrncpy, "char *strncpy(char *,char *,int);"},
@@ -216,6 +239,7 @@ struct LibraryFunction StringFunctions[] =
     {StringStrcspn, "int strcspn(char *,char *);"},
     {StringStrpbrk, "char *strpbrk(char *,char *);"},
     {StringStrstr,  "char *strstr(char *,char *);"},
+    {StringStrcasestr,  "char *strcasestr(char *,char *);"},
     {StringStrtok,  "char *strtok(char *,char *);"},
     {StringStrxfrm, "int strxfrm(char *,char *,int);"},
 #ifndef WIN32

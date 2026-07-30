@@ -146,19 +146,17 @@ enum LexToken LexCheckReservedWord(Picoc *pc, const char *Word)
         return TokenNone;
 }
 
+enum LexToken GetIntegerConstantToken(unsigned long Result, int Base, char IsUnsigned, char IsLong);
+
 /* get a numeric literal - used while scanning */
 enum LexToken LexGetNumber(Picoc *pc, struct LexState *Lexer, struct Value *Value)
 {
-    long Result = 0;
+    unsigned long Result = 0;
     long Base = 10;
-    enum LexToken ResultToken;
     double FPResult;
     double FPDiv;
-    /* long/unsigned flags */
-#if 0 /* unused for now */
     char IsLong = 0;
     char IsUnsigned = 0;
-#endif
 
     if (*Lexer->Pos == '0') {
         /* a binary, octal or hex literal */
@@ -169,6 +167,8 @@ enum LexToken LexGetNumber(Picoc *pc, struct LexState *Lexer, struct Value *Valu
             } else if (*Lexer->Pos == 'b' || *Lexer->Pos == 'B') {
                 Base = 2; LEXER_INC(Lexer);
             } else if (*Lexer->Pos != '.')
+                /* NOTE: this sets the base for '0' to 8, as well as
+                   setting the base of octal constans, such as 0123, to 8 */
                 Base = 8;
         }
     }
@@ -180,29 +180,36 @@ enum LexToken LexGetNumber(Picoc *pc, struct LexState *Lexer, struct Value *Valu
 
     if (*Lexer->Pos == 'u' || *Lexer->Pos == 'U') {
         LEXER_INC(Lexer);
-        /* IsUnsigned = 1; */
+        IsUnsigned = 1;
     }
     if (*Lexer->Pos == 'l' || *Lexer->Pos == 'L') {
         LEXER_INC(Lexer);
-        /* IsLong = 1; */
+        IsLong = 1;
     }
 
-    Value->Typ = &pc->LongType; /* ignored? */
-    Value->Val->LongInteger = Result;
+    if ((Lexer->Pos == Lexer->End) ||
+        (*Lexer->Pos != '.' && *Lexer->Pos != 'e' && *Lexer->Pos != 'E'))
+    {
+        enum LexToken tok;
+        tok = GetIntegerConstantToken(Result, Base, IsUnsigned, IsLong);
+        if (tok == TokenIntegerConstant) {
+            Value->Typ = &pc->IntType;
+            Value->Val->Integer = Result;
+        } else if (tok == TokenLongIntegerConstant) {
+            Value->Typ = &pc->LongType;
+            Value->Val->LongInteger = Result;
+        } else if (tok == TokenUnsignedIntegerConstant) {
+            Value->Typ = &pc->UnsignedIntType;
+            Value->Val->UnsignedInteger = Result;
+        } else { // tok == TokenUnsignedLongIntegerConstant
+            Value->Typ = &pc->UnsignedLongType;
+            Value->Val->UnsignedLongInteger = Result;
+        }
 
-    ResultToken = TokenIntegerConstant;
-
-    if (Lexer->Pos == Lexer->End)
-        return ResultToken;
-
-    if (Lexer->Pos == Lexer->End) {
-        return ResultToken;
+        return tok;
     }
 
-    if (*Lexer->Pos != '.' && *Lexer->Pos != 'e' && *Lexer->Pos != 'E') {
-        return ResultToken;
-    }
-
+    // floating point constant ...
     Value->Typ = &pc->FPType;
     FPResult = (double)Result;
 
@@ -232,12 +239,45 @@ enum LexToken LexGetNumber(Picoc *pc, struct LexState *Lexer, struct Value *Valu
         FPResult *= pow((double)Base, (double)Result * ExponentSign);
     }
 
-    Value->Val->FP = FPResult;
-
-    if (*Lexer->Pos == 'f' || *Lexer->Pos == 'F')
+    if (*Lexer->Pos == 'f' || *Lexer->Pos == 'F') {
         LEXER_INC(Lexer);
+        Value->Val->FP32 = FPResult;
+        return TokenFP32Constant;
+    } else {
+        Value->Val->FP = FPResult;
+        return TokenFPConstant;
+    }
+}
 
-    return TokenFPConstant;
+enum LexToken GetIntegerConstantToken(unsigned long Result, int Base, char IsUnsigned, char IsLong)
+{
+    if (IsLong && IsUnsigned) {
+        return TokenUnsignedLongIntegerConstant;
+    } else if (IsLong) {
+        return TokenLongIntegerConstant;
+    } else if (IsUnsigned) {
+        if (Result <= 0xffffffffu) {
+            return TokenUnsignedIntegerConstant;
+        } else {
+            return TokenUnsignedLongIntegerConstant;
+        }
+    } else if (Base == 10) {
+        if (Result <= 0x7fffffffu) {
+            return TokenIntegerConstant;
+        } else {
+            return TokenLongIntegerConstant;
+        }
+    } else {
+        if (Result <= 0x7fffffffu) {
+            return TokenIntegerConstant;
+        } else if (Result <= 0xffffffffu) {
+            return TokenUnsignedIntegerConstant;
+        } else if (Result <= 0x7fffffffffffffffu) {
+            return TokenLongIntegerConstant;
+        } else {
+            return TokenUnsignedLongIntegerConstant;
+        }
+    }
 }
 
 /* get a reserved word or identifier - used while scanning */
@@ -613,9 +653,13 @@ int LexTokenSize(enum LexToken Token)
 {
     switch (Token) {
     case TokenIdentifier: case TokenStringConstant: return sizeof(char*);
-    case TokenIntegerConstant: return sizeof(long);
+    case TokenIntegerConstant: return sizeof(int);
+    case TokenUnsignedIntegerConstant: return sizeof(unsigned int);
+    case TokenLongIntegerConstant: return sizeof(long);
+    case TokenUnsignedLongIntegerConstant: return sizeof(unsigned long);
     case TokenCharacterConstant: return sizeof(unsigned char);
     case TokenFPConstant: return sizeof(double);
+    case TokenFP32Constant: return sizeof(float);
     default: return 0;
     }
 }
@@ -817,13 +861,25 @@ enum LexToken LexGetRawToken(struct ParseState *Parser, struct Value **Value,
                 pc->LexValue.Typ = NULL;
                 break;
             case TokenIntegerConstant:
+                pc->LexValue.Typ = &pc->IntType;
+                break;
+            case TokenLongIntegerConstant:
                 pc->LexValue.Typ = &pc->LongType;
+                break;
+            case TokenUnsignedIntegerConstant:
+                pc->LexValue.Typ = &pc->UnsignedIntType;
+                break;
+            case TokenUnsignedLongIntegerConstant:
+                pc->LexValue.Typ = &pc->UnsignedLongType;
                 break;
             case TokenCharacterConstant:
                 pc->LexValue.Typ = &pc->CharType;
                 break;
             case TokenFPConstant:
                 pc->LexValue.Typ = &pc->FPType;
+                break;
+            case TokenFP32Constant:
+                pc->LexValue.Typ = &pc->FP32Type;
                 break;
             default:
                 break;
@@ -995,20 +1051,24 @@ void LexPrintToken(enum LexToken Token)
                     "CloseBracket",
         /* 0x2d */  "Identifier",
                     "IntegerConstant",
+                    "LongIntegerConstant",
+                    "UnsignedIntegerConstant",
+                    "UnsignedLongIntegerConstant",
                     "FPConstant",
+                    "FP32Constant",
                     "StringConstant",
                     "CharacterConstant",
-        /* 0x32 */  "Semicolon",
+        /* 0x36 */  "Semicolon",
                     "Ellipsis",
-        /* 0x34 */  "LeftBrace",
+        /* 0x38 */  "LeftBrace",
                     "RightBrace",
-        /* 0x36 */  "IntType",
+        /* 0x3a */  "IntType",
                     "CharType",
                     "FloatType",
                     "DoubleType",
                     "VoidType",
                     "EnumType",
-        /* 0x3c */  "LongType",
+        /* 0x40 */  "LongType",
                     "SignedType",
                     "ShortType",
                     "StaticType",
@@ -1019,7 +1079,7 @@ void LexPrintToken(enum LexToken Token)
                     "UnionType",
                     "UnsignedType",
                     "Typedef",
-        /* 0x46 */  "Continue",
+        /* 0x4a */  "Continue",
                     "Do",
                     "Else",
                     "For",
@@ -1031,20 +1091,20 @@ void LexPrintToken(enum LexToken Token)
                     "Case",
                     "Default",
                     "Return",
-        /* 0x52 */
-                    "HashDefine",
+        /* 0x56 */  "HashDefine",
                     "HashInclude",
                     "HashIf",
                     "HashIfdef",
                     "HashIfndef",
                     "HashElse",
                     "HashEndif",
-        /* 0x59 */  "New",
+        /* 0x5d */  "New",
                     "Delete",
-        /* 0x5b */  "OpenMacroBracket",
-        /* 0x5c */  "EOF",
+        /* 0x5f */  "OpenMacroBracket",
+        /* 0x60 */  "EOF",
                     "EndOfLine",
-                    "EndOfFunction"
+                    "EndOfFunction",
+                    "BackSlash"
     };
     printf("{%s}", TokenNames[Token]);
 }
@@ -1087,7 +1147,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value,
             pointer to the next one */
         TryNextToken = (Parser->HashIfEvaluateToLevel < Parser->HashIfLevel &&
                 Token != TokenEOF) || WasPreProcToken;
-        if (!IncPos && TryNextToken)
+        if (!IncPos && TryNextToken && !WasPreProcToken)
             LexGetRawToken(Parser, NULL, true);
 
     } while (TryNextToken);

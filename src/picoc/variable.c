@@ -367,6 +367,12 @@ struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser,
             *FirstVisit = true;
         }
 
+        /* a static array, with initial data, may not have been initialized yet;
+           this is indicated by Sizeof equal 0; if so then fail program */
+        if (Typ->Sizeof == 0) {
+            ProgramFail(Parser, "sizeof %s is 0", Ident);
+        }
+
         /* static variable exists in the global scope - now make a
             mirroring variable in our own scope with the short name */
         VariableDefinePlatformVar(Parser->pc, Parser, Ident, ExistingValue->Typ,

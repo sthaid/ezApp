@@ -3,13 +3,11 @@
 
 #include "../interpreter.h"
 
-
 static int trueValue = 1;
 static int falseValue = 0;
 
-
 /* structure definitions */
-const char StdboolDefs[] = "typedef int bool;";
+const char StdboolDefs[] = "typedef unsigned char bool;";
 
 /* creates various system-dependent definitions */
 void StdboolSetupFunc(Picoc *pc)

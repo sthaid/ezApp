@@ -1,0 +1,16 @@
+#!/bin/bash
+
+gcc -g -o libgen -Wall libgen.c
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
+./libgen < libgen_in.h 1>libgen_out1.h 2>libgen_out2.h
+
+echo "-------- libgen_out1.h --------"
+cat libgen_out1.h
+echo
+
+echo "-------- libgen_out2.h --------"
+cat libgen_out2.h
+echo

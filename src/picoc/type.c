@@ -144,6 +144,7 @@ void TypeInit(Picoc *pc)
     struct CharAlign {char x; char y;} ca;
     struct LongAlign {char x; long y;} la;
     struct DoubleAlign {char x; double y;} da;
+    struct FloatAlign {char x; float y;} fa;
     struct PointerAlign {char x; void *y;} pa;
 
     IntAlignBytes = (char*)&ia.y - &ia.x;
@@ -172,6 +173,8 @@ void TypeInit(Picoc *pc)
     TypeAddBaseType(pc, &pc->GotoLabelType, TypeGotoLabel, 0, 1);
     TypeAddBaseType(pc, &pc->FPType, TypeFP, sizeof(double),
         (char*)&da.y - &da.x);
+    TypeAddBaseType(pc, &pc->FP32Type, TypeFP32, sizeof(float),
+        (char*)&fa.y - &fa.x);
     TypeAddBaseType(pc, &pc->TypeType, Type_Type, sizeof(double),
     (char*)&da.y - &da.x);  /* must be large enough to cast to a double */
     pc->CharArrayType = TypeAdd(pc, NULL, &pc->CharType, TypeArray, 0,
@@ -450,6 +453,8 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ,
         *Typ = Unsigned ? &pc->UnsignedLongType : &pc->LongType;
         break;
     case TokenFloatType:
+        *Typ = &pc->FP32Type;
+        break;
     case TokenDoubleType:
         *Typ = &pc->FPType;
         break;

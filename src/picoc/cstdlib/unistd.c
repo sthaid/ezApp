@@ -45,6 +45,7 @@ void UnistdClose(struct ParseState *Parser, struct Value *ReturnValue,
     ReturnValue->Val->Integer = close(Param[0]->Val->Integer);
 }
 
+#ifndef ANDROID
 void UnistdConfstr(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
 {
@@ -57,6 +58,7 @@ void UnistdCtermid(struct ParseState *Parser, struct Value *ReturnValue,
 {
     ReturnValue->Val->Pointer = ctermid(Param[0]->Val->Pointer);
 }
+#endif
 
 #if 0
 void UnistdCuserid(struct ParseState *Parser, struct Value *ReturnValue,
@@ -141,11 +143,13 @@ void UnistdGetcwd(struct ParseState *Parser, struct Value *ReturnValue,
         Param[1]->Val->Integer);
 }
 
+#ifndef ANDROID
 void UnistdGetdtablesize(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->Integer = getdtablesize();
 }
+#endif
 
 void UnistdGetegid(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
@@ -165,11 +169,13 @@ void UnistdGetgid(struct ParseState *Parser, struct Value *ReturnValue,
     ReturnValue->Val->Integer = getgid();
 }
 
+#ifndef ANDROID
 void UnistdGethostid(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->Integer = gethostid();
 }
+#endif
 
 void UnistdGetlogin(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
@@ -177,12 +183,14 @@ void UnistdGetlogin(struct ParseState *Parser, struct Value *ReturnValue,
     ReturnValue->Val->Pointer = getlogin();
 }
 
+#ifndef ANDROID
 void UnistdGetlogin_r(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->Integer = getlogin_r(Param[0]->Val->Pointer,
         Param[1]->Val->Integer);
 }
+#endif
 
 void UnistdGetpagesize(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
@@ -190,11 +198,13 @@ void UnistdGetpagesize(struct ParseState *Parser, struct Value *ReturnValue,
     ReturnValue->Val->Integer = getpagesize();
 }
 
+#ifndef ANDROID
 void UnistdGetpass(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->Pointer = (void*)getpass(Param[0]->Val->Pointer);
 }
+#endif
 
 #if 0
 void UnistdGetpgid(struct ParseState *Parser, struct Value *ReturnValue,
@@ -262,12 +272,14 @@ void UnistdLink(struct ParseState *Parser, struct Value *ReturnValue,
         Param[1]->Val->Pointer);
 }
 
+#ifndef ANDROID
 void UnistdLockf(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->Integer = lockf(Param[0]->Val->Integer,
         Param[1]->Val->Integer, Param[2]->Val->Integer);
 }
+#endif
 
 void UnistdLseek(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
@@ -449,12 +461,14 @@ void UnistdTtyname_r(struct ParseState *Parser, struct Value *ReturnValue,
         Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
+#ifndef ANDROID
 void UnistdUalarm(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->Integer = ualarm(Param[0]->Val->Integer,
         Param[1]->Val->Integer);
 }
+#endif
 
 void UnistdUnlink(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
@@ -487,9 +501,9 @@ const char UnistdDefs[] = "\
 typedef int uid_t; \
 typedef int gid_t; \
 typedef int pid_t; \
-typedef int off_t; \
-typedef int size_t; \
-typedef int ssize_t; \
+typedef long off_t; \
+typedef unsigned long size_t; \
+typedef long ssize_t; \
 typedef int useconds_t;\
 typedef int intptr_t;\
 ";
@@ -500,12 +514,15 @@ struct LibraryFunction UnistdFunctions[] =
     {UnistdAccess, "int access(char*, int);"},
     {UnistdAlarm, "unsigned int alarm(unsigned int);"},
 /*    {UnistdBrk, "int brk(void*);"}, */
-    {UnistdChdir, "int chdir(char*);"},
+/*    {UnistdChdir, "int chdir(char*);"},  EZAPP: chdir not allowed */
+/*    {UnistdFchdir, "int fchdir(int);"},  EZAPP: fchdir not allowed */
     {UnistdChroot, "int chroot(char*);"},
     {UnistdChown, "int chown(char*, uid_t, gid_t);"},
     {UnistdClose, "int close(int);"},
+#ifndef ANDROID
     {UnistdConfstr, "size_t confstr(int, char*, size_t);"},
     {UnistdCtermid, "char *ctermid(char*);"},
+#endif
 /*    {UnistdCuserid, "char *cuserid(char*);"}, */
     {UnistdDup, "int dup(int);"},
     {UnistdDup2, "int dup2(int, int);"},
@@ -518,24 +535,31 @@ struct LibraryFunction UnistdFunctions[] =
 /*    {UnistdExecvp, "int execvp(char*, char* []);"}, */
     {Unistd_Exit, "void _exit(int);"},
     {UnistdFchown, "int fchown(int, uid_t, gid_t);"},
-    {UnistdFchdir, "int fchdir(int);"},
     {UnistdFdatasync, "int fdatasync(int);"},
     {UnistdFork, "pid_t fork(void);"},
     {UnistdFpathconf, "long fpathconf(int, int);"},
     {UnistdFsync, "int fsync(int);"},
     {UnistdFtruncate, "int ftruncate(int, off_t);"},
     {UnistdGetcwd, "char *getcwd(char*, size_t);"},
+#ifndef ANDROID
     {UnistdGetdtablesize, "int getdtablesize(void);"},
+#endif
     {UnistdGetegid, "gid_t getegid(void);"},
     {UnistdGeteuid, "uid_t geteuid(void);"},
     {UnistdGetgid, "gid_t getgid(void);"},
 /*    {UnistdGetgroups, "int getgroups(int, gid_t []);"}, */
+#ifndef ANDROID
     {UnistdGethostid, "long gethostid(void);"},
+#endif
     {UnistdGetlogin, "char *getlogin(void);"},
+#ifndef ANDROID
     {UnistdGetlogin_r, "int getlogin_r(char*, size_t);"},
+#endif
 /*    {UnistdGetopt, "int getopt(int, char * [], char *);"}, */
     {UnistdGetpagesize, "int getpagesize(void);"},
+#ifndef ANDROID
     {UnistdGetpass, "char *getpass(char*);"},
+#endif
 /*    {UnistdGetpgid, "pid_t getpgid(pid_t);"}, */
     {UnistdGetpgrp, "pid_t getpgrp(void);"},
     {UnistdGetpid, "pid_t getpid(void);"},
@@ -546,7 +570,9 @@ struct LibraryFunction UnistdFunctions[] =
     {UnistdIsatty, "int isatty(int);"},
     {UnistdLchown, "int lchown(char*, uid_t, gid_t);"},
     {UnistdLink, "int link(char*, char *);"},
+#ifndef ANDROID
     {UnistdLockf, "int lockf(int, int, off_t);"},
+#endif
     {UnistdLseek, "off_t lseek(int, off_t, int);"},
     {UnistdNice, "int nice(int);"},
     {UnistdPathconf, "long pathconf(char*, int);"},
@@ -576,7 +602,9 @@ struct LibraryFunction UnistdFunctions[] =
     {UnistdTruncate, "int truncate(char*, off_t);"},
     {UnistdTtyname, "char *ttyname(int);"},
     {UnistdTtyname_r, "int ttyname_r(int, char*, size_t);"},
+#ifndef ANDROID
     {UnistdUalarm, "useconds_t ualarm(useconds_t, useconds_t);"},
+#endif
     {UnistdUnlink, "int unlink(char*);"},
     {UnistdUsleep, "int usleep(useconds_t);"},
     {UnistdVfork, "pid_t vfork(void);"},

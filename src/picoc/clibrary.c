@@ -26,6 +26,13 @@ void LibraryInit(Picoc *pc)
         (union AnyValue*)&BigEndian, false);
     VariableDefinePlatformVar(pc, NULL, "LITTLE_ENDIAN", &pc->IntType,
         (union AnyValue*)&LittleEndian, false);
+
+    /* define ANDROID macro when picoc built for Android */
+#ifdef ANDROID
+    int one = 1;
+    VariableDefinePlatformVar(pc, NULL, "ANDROID", &pc->IntType,
+        (union AnyValue*)&one, false);
+#endif
 }
 
 /* add a library */
@@ -86,6 +93,9 @@ void PrintType(struct ValueType *Typ, IOFILE *Stream)
         break;
     case TypeFP:
         PrintStr("double", Stream);
+        break;
+    case TypeFP32:
+        PrintStr("float", Stream);
         break;
     case TypeFunction:
         PrintStr("function", Stream);

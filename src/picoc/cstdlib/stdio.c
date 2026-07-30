@@ -258,23 +258,16 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut,
                 switch (*FPos) {
                 case 'd':
                 case 'i':
+                case 'u':
+                case 'o':
+                case 'x':
+                case 'X':
                     if (ShowLong) {
                         ShowLong = 0;
                         ShowType = &pc->LongType;
                     } else {
                         ShowType = &pc->IntType;
                     }
-                    break;
-                case 'u':
-                    if (ShowLong) {
-                        ShowLong = 0;
-                        ShowType = &pc->UnsignedLongType;
-                        break;
-                    }
-                case 'o':
-                case 'x':
-                case 'X':
-                    ShowType = &pc->IntType;
                     break; /* integer base conversions */
                 case 'l':
                     ShowLong = 1;
@@ -297,7 +290,7 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut,
                     break;     /* hexadecimal, 0x- format */
                 case 'c':
                     ShowType = &pc->IntType;
-                break;     /* character */
+                    break;     /* character */
                 case 's':
                     ShowType = pc->CharPtrType;
                     break;  /* string */
@@ -418,7 +411,8 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut,
     }
 
     /* null-terminate */
-    if (SOStream.StrOutPtr != NULL && SOStream.StrOutLen > 0)
+    // null terminate strings when StrOutLen is -1; such as from sprintf
+    if (SOStream.StrOutPtr != NULL && (SOStream.StrOutLen > 0 || SOStream.StrOutLen == -1))
         *SOStream.StrOutPtr = '\0';
 
     return SOStream.CharCount;
@@ -801,6 +795,35 @@ void StdioVsscanf(struct ParseState *Parser, struct Value *ReturnValue,
         Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Pointer);
 }
 
+void StdioPopen(struct ParseState *Parser, struct Value *ReturnValue,
+    struct Value **Param, int NumArgs)
+{
+    char *cmd  = Param[0]->Val->Pointer;
+    char *type = Param[1]->Val->Pointer;
+    FILE *fp;
+
+    fp = popen(cmd, type);
+    ReturnValue->Val->Pointer = fp;
+}
+
+void StdioPclose(struct ParseState *Parser, struct Value *ReturnValue,
+    struct Value **Param, int NumArgs)
+{
+    FILE *fp = Param[0]->Val->Pointer;
+    int rc;
+
+    rc = pclose(fp);
+    ReturnValue->Val->Integer = rc;
+}
+
+void StdioSetlinebuf(struct ParseState *Parser, struct Value *ReturnValue,
+    struct Value **Param, int NumArgs)
+{
+    FILE *fp = Param[0]->Val->Pointer;
+
+    setlinebuf(fp);
+}
+
 /* handy structure definitions */
 const char StdioDefs[] = "\
 typedef struct __va_listStruct va_list; \
@@ -857,6 +880,9 @@ struct LibraryFunction StdioFunctions[] =
     {StdioVscanf, "int vscanf(char *, va_list);"},
     {StdioVfscanf, "int vfscanf(FILE *, char *, va_list);"},
     {StdioVsscanf, "int vsscanf(char *, char *, va_list);"},
+    {StdioPopen, "FILE *popen(char *cmd, char *type);"},
+    {StdioPclose, "int pclose(FILE *stream);"},
+    {StdioSetlinebuf, "void setlinebuf(FILE *fp);"},
     {NULL, NULL}
 };
 

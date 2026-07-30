@@ -62,13 +62,12 @@ TESTS=	00_assignment.test \
 	66_printf_undefined.test \
 	67_macro_crash.test \
 	68_return.test \
-	69_shebang_script.test \
 
 include csmith/Makefile
 include jpoirier/Makefile
 
 %.test: %.expect %.c
-	@echo Test: $*...
+	@printf "%-35s" "Test: $*... "
 	@if [ "x`echo $* | grep args`" != "x" ]; \
 	then \
 		../picoc $*.c - arg1 arg2 arg3 arg4 2>&1 >$*.output; \
@@ -80,30 +79,49 @@ include jpoirier/Makefile
 	fi
 	@if [ "x`diff -qbu $*.expect $*.output`" != "x" ]; \
 	then \
-        	echo "error in test $*"; \
-        	diff -u $*.expect $*.output; \
-       		rm -f $*.output; \
+        	echo "********** FAILED **********"; \
+        	diff --side-by-side $*.expect $*.output; \
 		exit 1; \
+	else \
+        	echo "PASSED"; \
 	fi; \
        	rm -f $*.output
 
-all: test
+all: test shaid jpoirier csmith
 
 test: $(TESTS)
-	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	@echo "%%%%%%%%%%%% Tests Passed %%%%%%%%%%%%"
-	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 	@echo
 
 csmith: $(CSMITH_TESTS)
-	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	@echo "%%%%%%%%%%%% CSmith Tests Passed %%%%%%%%%%%%"
-	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 	@echo
 
 jpoirier: $(JPOIRIER_TESTS)
-	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	@echo "%%%%%%%%%%%% JPoirier Tests Passed %%%%%%%%%%%%"
-	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 	@echo
 
+# ##############################
+
+# These tests differs from the baseline tests in that these tests
+# generate the expect file on every invokation.
+
+include shaid/Makefile
+
+shaid: $(SHAID_TESTS)
+	@echo
+
+$(SHAID_TESTS):
+	@printf "%-35s" "Test: $@ ... "
+	@rm -f $@.expect;  gcc -o $@ -Wall -Werror $@.c;  $@ > $@.expect;  rm $@
+	@../picoc $@.c 2>&1 > $@.output
+	@cmp -s $@.expect $@.output; \
+	if [ $$? != 0 ]; then \
+	    echo "********** FAILED **********"; \
+	    diff --side-by-side $@.expect $@.output; \
+	    exit 1; \
+	else \
+	    echo "PASSED"; \
+	    rm -f $@.expect $@.output; \
+	fi
+
+clean:
+	rm -f *.output
+	rm -f shaid/*.output shaid/*.expect

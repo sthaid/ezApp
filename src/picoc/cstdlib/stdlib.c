@@ -107,6 +107,14 @@ void StdlibSystem(struct ParseState *Parser, struct Value *ReturnValue,
     ReturnValue->Val->Integer = system(Param[0]->Val->Pointer);
 }
 
+void StdlibWexitstatus(struct ParseState *Parser, struct Value *ReturnValue,
+    struct Value **Param, int NumArgs)
+{
+    int rc = Param[0]->Val->Integer;
+
+    ReturnValue->Val->Integer = WEXITSTATUS(rc);
+}
+
 #if 0
 void StdlibBsearch(struct ParseState *Parser, struct Value *ReturnValue,
     struct Value **Param, int NumArgs)
@@ -145,6 +153,20 @@ void StdlibLdiv(struct ParseState *Parser, struct Value *ReturnValue,
 }
 #endif
 
+void StdlibRandom(struct ParseState *Parser, struct Value *ReturnValue,
+    struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->LongInteger = random();
+}
+
+void StdlibSrandom(struct ParseState *Parser, struct Value *ReturnValue,
+    struct Value **Param, int NumArgs)
+{
+    unsigned int seed = Param[0]->Val->UnsignedInteger;
+
+    srandom(seed);
+}
+
 #if 0
 /* handy structure definitions */
 const char StdlibDefs[] = "\
@@ -177,6 +199,7 @@ struct LibraryFunction StdlibFunctions[] =
     {StdlibExit, "void exit(int);"},
     {StdlibGetenv, "char *getenv(char *);"},
     {StdlibSystem, "int system(char *);"},
+    {StdlibWexitstatus, "int WEXITSTATUS(int);"},
 /*    {StdlibBsearch, "void *bsearch(void *,void *,int,int,int (*)());"}, */
 /*    {StdlibQsort, "void *qsort(void *,int,int,int (*)());"}, */
     {StdlibAbs, "int abs(int);"},
@@ -185,6 +208,8 @@ struct LibraryFunction StdlibFunctions[] =
     {StdlibDiv, "div_t div(int);"},
     {StdlibLdiv, "ldiv_t ldiv(int);"},
 #endif
+    {StdlibRandom,  "long random(void);"},
+    {StdlibSrandom, "void srandom(unsigned int seed);"},
     {NULL, NULL}
 };
 

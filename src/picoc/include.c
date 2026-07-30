@@ -21,6 +21,7 @@ void IncludeInit(Picoc *pc)
 # ifndef WIN32
     IncludeRegister(pc, "unistd.h", &UnistdSetupFunc, &UnistdFunctions[0], UnistdDefs);
 # endif
+    IncludeRegister(pc, "libgen.h", NULL, &LibgenFunctions[0], NULL);
 }
 
 /* clean up space used by the include system */
