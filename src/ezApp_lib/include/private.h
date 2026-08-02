@@ -101,6 +101,7 @@ int sdlx_create_detached_thread(int (*thread_fn)(void*), char *thread_name, void
 void svcs_start_all(void);
 void svcs_stop_all(void);
 void svcs_display(int bg_color);
+int num_svcs_running(void);
 
 // --------------------
 // utils_android.cpp
@@ -133,6 +134,7 @@ int ssl_decrypt(unsigned char *key, ssl_payload_t *payload, char **plaintext);
 // --------------------
 
 int run(char *name, bool is_svc);
+bool is_app_running(void);
 
 #ifdef __cplusplus
 }

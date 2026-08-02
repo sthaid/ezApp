@@ -14,6 +14,7 @@ update_build_file()
 
 # ######### MAIN ##########
 
+echo "==== INITIALIZE ===="
 if [ -d SDL ]; then
   read -p "Existing build will be removed, continue (y/n)? " yn
   if [ "$yn" != y ]; then
@@ -23,7 +24,6 @@ if [ -d SDL ]; then
   echo
 fi
 
-echo "==== INITIALIZE ===="
 PACKAGE_NAME=org.sthaid.ezApp
 REPO_TOP=$(git rev-parse --show-toplevel)
 if [ $? -ne 0 ]; then
@@ -33,14 +33,19 @@ ANDROID_TOP=$REPO_TOP/android
 SDL_DIR=$ANDROID_TOP/SDL
 BUILD_DIR=$SDL_DIR/build/$PACKAGE_NAME
 
-cd $ANDROID_TOP
-
 echo "PACKAGE_NAME = $PACKAGE_NAME"
 echo "REPO_TOP     = $REPO_TOP"
 echo "ANDROID_TOP  = $ANDROID_TOP"
 echo "SDL_DIR      = $SDL_DIR"
 echo "BUILD_DIR    = $BUILD_DIR"
 echo
+
+if [[ ! -d $REPO_TOP/src/SDL || ! -d $REPO_TOP/src/SDL_mixer || ! -d $REPO_TOP/src/SDL_ttf ]]; then
+  echo "ABORT: src/SDL directory not found"
+  exit 1
+fi
+
+cd $ANDROID_TOP
 
 echo "==== REMOVE EXISTING ===="
 rm -rf SDL assets setup_files/orig

@@ -2,18 +2,15 @@
 UNDER CONSTRUCTION
 ==================
 
-ezApp
-=====
-
-EzApp is intended to run on Android
-Smartphones.
+ezApp for Android Smartphones
+=============================
 
 EzApp runs miniApps and miniSvcs that
 are written in the C Language. These
 miniApps and miniSvcs are executed by
 a C language interpreter.
 
-Users can develop their own miniApps
+Users can develop your own miniApps
 and miniSvcs. To develop miniApps and
 miniSvcs a PC is required.
 
@@ -33,7 +30,7 @@ will not function. For example, if
 'Activity Recognition' is not granted
 the Step counter will not function.
 
-Source code is here:
+ezApp source code is here:
 https://github.com/sthaid/ezApp.git.
 See the doc directory for details.
 
@@ -62,8 +59,7 @@ can be viewed by tapping the '?'.
 - Log:      View  message from ezApp
              and miniApp printf.
 - Memo:     Record an audio memo.
-- Morse:    Practice morse code, rate
-            selectable from 5 to 20 WPM.
+- Morse:    Practice morse code.
 - Paddle:   Ball and paddle game.
 - Piano:    Beginner Piano simulator.
             Includes several melodies.
@@ -90,8 +86,7 @@ the Android is in Doze Mode.
 The following MiniSvcs are included.
 These provide support for miniApps
 by saving data in files, or responding
-to the svc_make_req call issued by a
-miniApp.
+to requests from miniApps.
 
 - Altitude: Saves altitude history.
 - Location: Saves location history.
@@ -99,5 +94,5 @@ miniApp.
 - Template: A miniSvc example.
 
 MiniSvcs can be stopped or started by
-selecting "Settings" > "Services".
+selecting Settings > Services.
 

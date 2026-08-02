@@ -30,6 +30,10 @@ EOF
 
 # #############  MAIN  ################
 
+# get device and developer password from optional env vars
+dev=$EZAPP_DEVICE
+password=$EZAPP_PASSWD
+
 # process options 
 # -h             : display usage
 # -d <dev>       : dev name (such as from /etc/hosts), or dev ipaddr
@@ -52,9 +56,15 @@ while true; do
     fi
 done
 
+# verify dev and password have been provided,
+# either from env vars or the -d and -p options
+if [ "$dev" = "" -o "$password" = "" ]; then
+    echo "ERROR: device and password are required"
+    exit 1
+fi
+
 # no additional args are allowed by ezget
 if [ $# -ne 0 ]; then
-    echo "ERROR: Ezget only supports copying files to the current directory."
     echo "ERROR: Args are not allowed."
     exit 1
 fi
@@ -80,17 +90,6 @@ fi
 android_dir=$(realpath --relative-base $files_dir $PWD)
 if [ "$android_dir" = "" ]; then
     echo "ERROR: failed to determine android_dir"
-    exit 1
-fi
-
-# get device and developer password from optional env vars
-dev=$EZAPP_DEVICE
-password=$EZAPP_PASSWD
-
-# verify dev and password have been provided,
-# either from env vars or the -d and -p options
-if [ "$dev" = "" -o "$password" = "" ]; then
-    echo "ERROR: device and password are required"
     exit 1
 fi
 

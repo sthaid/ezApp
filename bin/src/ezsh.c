@@ -525,6 +525,7 @@ void *sig_hndlr_thread(void *cx)
 int run_special_cmd(char *cmdline);
 int special_cmd_put(char *src, char *dest);
 int special_cmd_get(char *src, char *dest);
+int special_cmd_quiesced(char *src, char *dest);
 int special_cmd_cd(char *path);
 int special_cmd_pwd(void);
 int special_cmd_alias(void);
@@ -721,6 +722,8 @@ int run_special_cmd(char *cmdline)
         return special_cmd_put(arg1, arg2);
     } else if (strcmp(cmd, "get") == 0) {
         return special_cmd_get(arg1, arg2);
+    } else if (strcmp(cmd, "quiesced") == 0) {
+        return special_cmd_quiesced(arg1, arg2);
     } else if (strcmp(cmd, "vi") == 0) {
         return special_cmd_vi(arg1);
     } else if (strcmp(cmd, "local") == 0) {
@@ -850,6 +853,16 @@ int special_cmd_get(char *src, char *dest)
 
     // free data, and return status
     free(data);
+    return status;
+}
+
+// returns 0 if ezApp currently has no app and no svcs running
+int special_cmd_quiesced(char *src, char *dest)
+{
+    char *cmdline = "quiesced";
+    int status;
+
+    status = run_cmd_on_android(cmdline, cmdline, NULL, 0, NULL, 0);
     return status;
 }
 

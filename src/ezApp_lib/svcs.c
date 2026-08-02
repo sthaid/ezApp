@@ -261,6 +261,20 @@ void svcs_display(int bg_color)
     }
 }
 
+int num_svcs_running(void)
+{
+    int num = 0;
+
+    for (int id = 0; id < max_svcs; id++) {
+        svc_t *x = svcs+id;
+        if (x->svc_state == SERVICE_STATE_RUNNING) {
+            num++;
+        }
+    }
+
+    return num;
+}
+
 static void update_svcs_tbl(void)
 {
     FILE *fp;

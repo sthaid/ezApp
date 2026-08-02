@@ -7,21 +7,26 @@
 # After running this script, be sure to set the environment variables
 # as directed.
 
-# if path_to_cmdlinetools_zip arg is not supplied then display usage and exit
+# if path_to_cmdlinetools_zip or accept_sdk_licenses args are 
+# not supplied then display usage and exit
 cmdlinetoolszip=$1
-if [ "$cmdlinetoolszip" = "" ]; then
+accept_sdk_licenses=$2
+if [ "$cmdlinetoolszip" = "" -o "$accept_sdk_licenses" = "" ]; then
     cat << 'EOF'
-Usage: install_android_sdk <path_to_cmdlinetools_zip>
+Usage: install_android_sdk <path_to_cmdlinetools_zip> <accept_sdk_licenses>
 
 commandlinetools-linux-nnnnnnnn_latest.zip is obtained from
 https://developer.android.com/studio#command-line-tools-only
+
+accept_sdk_licenses arg expected either true or false
 EOF
     exit 1
 fi
 
 # verify cmdlinetoolszip file exists, and is really a zip file
-if [ ! -f $cmdlinetoolszip ]; then
+if [ ! -f "$cmdlinetoolszip" ]; then
     echo "ERROR: $cmdlinetoolszip does not exist"
+    echo '       if path starts with ~, use $HOME instead'
     exit 1
 fi
 if ! file --mime-type "$cmdlinetoolszip" | grep -q 'application/zip'; then
@@ -30,20 +35,23 @@ if ! file --mime-type "$cmdlinetoolszip" | grep -q 'application/zip'; then
 fi
 
 # get absolute path of cmdlinetoolszip
-cmdlinetoolszip=$(realpath $cmdlinetoolszip)
+cmdlinetoolszip=$(realpath "$cmdlinetoolszip")
 echo $cmdlinetoolszip
 
-# to avoid a possible problem, kill gradle daemon and remove gradle daemon directory
-read -p "To avoid a possible problem the gradle daemn should be killed (y/n)? " yn
-if [ "$yn" = "y" ]; then
-    echo "Killing gradle daemon"
-    pkill -f gradle 
-    sleep 3
-    rm -rf ~/.gradle/daemon
-else
-    echo "Not killing gradle daemon"
+# to avoid a possible problem, kill gradle daemon and remove gradle daemon directory;
+# commented out because this may be a rare problem
+if false; then
+    read -p "To avoid a possible problem the gradle daemn should be killed (y/n)? " yn
+    if [ "$yn" = "y" ]; then
+        echo "Killing gradle daemon"
+        pkill -f gradle 
+        sleep 3
+        rm -rf ~/.gradle/daemon
+    else
+        echo "Not killing gradle daemon"
+    fi
+    echo
 fi
-echo
 
 # if the ~/android dir exists then rename it to a save dir name
 if [ -d ~/android ]; then
@@ -69,7 +77,7 @@ fi
 echo "Unzipping $cmdlinetoolszip"
 mkdir -p ~/android/sdk
 cd ~/android/sdk
-unzip $cmdlinetoolszip
+unzip "$cmdlinetoolszip"
 echo
 
 # move cmdline-tools to required dir struct
@@ -79,8 +87,17 @@ mkdir cmdline-tools
 mv latest cmdline-tools
 echo
 
-# install sdk packages needed to build ezApp for Android
+# set shorthand sdkmanager
 sdkmanager=$HOME/android/sdk/cmdline-tools/latest/bin/sdkmanager
+
+# if accept_sdk_licenses = true then accept the licenses
+if [ "$accept_sdk_licenses" = true ]; then
+    echo "Accept sdk licenses"
+    yes | $sdkmanager --licenses
+    echo
+fi
+
+# install sdk packages needed to build ezApp for Android
 echo "Install android/sdk packages"
 $sdkmanager "platform-tools" "platforms;android-35" "build-tools;34.0.0" "ndk;27.0.12077973"
 echo
