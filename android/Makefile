@@ -20,6 +20,7 @@ build: SDL gen_version gen_assets openssl
         ./gradlew assembleDebug
 
 install:
+	# -r: reinstall existing app and keep its data
 	adb devices
 	cd SDL/build/org.sthaid.ezApp; \
         adb install -r ./app/build/outputs/apk/debug/app-debug.apk
@@ -27,7 +28,18 @@ install:
 build_and_install: build install
 
 uninstall:
-	adb uninstall org.sthaid.ezApp
+	@echo "Android ezApp data files will be lost."
+	@echo "Consider saving and restoring the data files using ezbackup and ezrestore"
+	@read -p "Continue (y/n)? " yn; \
+	if [ "$$yn" = "y" ]; then \
+	    adb uninstall org.sthaid.ezApp; \
+	else \
+	    echo "CANCELLED"; \
+	fi
+
+.PHONY: build install build_and_install uninstall
+
+# --------------------
 
 SDL:
 	./setup
@@ -47,7 +59,7 @@ gen_assets:
 openssl:
 	make -C ../src/openssl
 
-.PHONY: build install build_and_install uninstall gen_version gen_assets openssl
+.PHONY: gen_version gen_assets openssl
 
 # --------------------
 

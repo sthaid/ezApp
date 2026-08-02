@@ -11,6 +11,7 @@ Install ezApp on your Android device
 ====================================
 
 Install ezApp from the Google Play Store.
+xxx todo publish on Google Play Store
 
 Open ezApp, accept the permission requests, and try out the miniApps that
 are included with ezApp. Select Settings > Readme for a brief description of the
@@ -25,23 +26,48 @@ Enable ezApp Developer Mode.
 
 You do not need to enable Android Device 'Developer options' to create miniApps.
 
-Setup Development PC
+Setup Ubuntu Devel PC
 ====================
+
+xxx update this section
 
 A PC running Windows 11 or Ubuntu 25.10 (or newer) is required.
 Other Linux distros may also work.
-
-xxx describe steps for Windows 11 wsl
 
 Install Ubuntu Linux packages:
 ```
 sudo apt update
 sudo apt install -y git
-sudo apt install -y build-essential
+sudo apt install -y build-essential cmake
 sudo apt install -y openjdk-17-jdk-headless
-sudo apt install -y ssl-dev
+sudo apt install -y libssl-dev libreadline-dev libasound2-dev
 sudo apt install -y cscope universal-ctags
 ```
+
+Setup Windows Devel PC
+======================
+
+Using wsl ...
+wsl --install                     # install wsl; NOT reboot required 'shutdown /r /t 0'
+wsl --status                      # should inidcate Defaut Version: 2
+wsl --list --online               # lists avail distros
+wsl --install -d Ubuntu-26.04     # install wsl support for Ubuntu-26.04; respond to queries
+wsl --list --verbose              # lists installed distros, should show Ubuntu-26.04
+wsl --set-default Ubuntu-26.04    # this is optional, Ubuntu-26.04 should already be the default
+wsl ~                             # starts bash on the default distro, and cd to wsl home dir
+wsl ~ -u root -d Ubuntu-26.04     # starts bash for user root in distro Ubuntu-26.04
+
+wsl --help                        # display usage
+wsl --shutdown                    # terminates all running distros
+wsl --update                      # updates wsl
+wsl --version                     # display wsl version
+wsl --status                      # show wsl status
+wsl --unregister Ubuntu-26.04     # unregisters the distro and deletes the root filesystem.
+
+xxx todo more in this section
+
+Build and Test ezApp on Devel PC
+================================
 
 Clone ezApp from github:
 ```
@@ -49,7 +75,8 @@ cd ~
 git clone https://github.com/sthaid/ezApp.git
 ```
 
-Set environment variable
+Set environment variable  xxx improve these comments
+xxx don't go into much detail here
 - The Android device should be connected to a trusted Wi-Fi network
 - The Android Device IP address is displayed in ezApp > Settings
 - The 'android-device-ip-addr' can be an IP address, such as 192.168.1.101 or a Hostname (if available)
@@ -61,6 +88,7 @@ export EZAPP_PASSWD=<devel-mode-password>             # example: my-secret-passw
 ```
 
 Build ezApp: This will take several minutes, and performs the following steps:
+xxx don't go into much detail here
 - git clone the SDL repos
 - build tools in the bin/src dir
 - build a version of ezApp that runs on the Devel PC
@@ -70,7 +98,7 @@ cd ~/ezApp
 make
 ```
 
-Tests to validate the setup:
+Tests to validate:
 
 * Run a Linux build of ezApp on the Devel PC.
 ```

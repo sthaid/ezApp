@@ -3,7 +3,9 @@
 #include <sdlx.h>
 #include <private.h>
 
-// note: can not '#include <picoc_ezApp.h>' here because of a circular
+static bool app_running = false;
+
+// can not '#include <picoc_ezApp.h>' here because of a circular
 // build dependency between ezApp_lib and picoc
 extern int picoc_ezApp(char *args);
 
@@ -58,9 +60,16 @@ int run(char *name, bool is_svc)
 
     // run the app using the picoc c language interpreter
     INFO("%s: starting, args = %s\n", name, picoc_args);
+    if (!is_svc) app_running = true;
     rc = picoc_ezApp(picoc_args);
+    if (!is_svc) app_running = false;
     INFO("%s: completed, rc = %d\n", name, rc);
 
     // return completion status
     return rc;
+}
+
+bool is_app_running(void)
+{
+    return app_running;
 }

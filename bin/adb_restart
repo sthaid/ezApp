@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# The purpose of running adb kill-server followed by adb start-server
+# is to restart the Android Debug Bridge (ADB) background process (daemon)
+# on your computer. This sequence is the universal troubleshooting step for
+# resolving connection issues between your development machine and an Android
+# device or emulator.
+adb kill-server
+adb start-server
+
+adb devices
+

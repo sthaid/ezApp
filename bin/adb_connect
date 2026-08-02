@@ -1,23 +1,145 @@
 #!/bin/bash
 
-# Establish adb connection to Android device via TCP/IP.
+# Establish wireless debug connection to your Android Device.
 
-if [ "$1" = "" ]; then
-  echo "ERROR: device name or ipaddr required"
-  exit 1
-fi
+function usage()
+{
+    cat << 'EOF'
+Usage:
+    -h:              usage
+    help:            details on how to connect Devel PC to Android device
+    <ipaddr>:<port>: connect to Android device at <ipaddr>:<port>
+    recon:           connect using the most recent successful <ipaddr>:<port>
+                     (default)
+EOF
+}
 
-# The purpose of running adb kill-server followed by adb start-server
-# is to restart the Android Debug Bridge (ADB) background process (daemon)
-# on your computer. This sequence is the universal troubleshooting step for
-# resolving connection issues between your development machine and an Android
-# device or emulator.
-adb kill-server
-adb start-server
+function help()
+{
+cat << 'EOF'
+Help:
+---------------------------------------------------------------
+-------- Initial Setup, Perform Steps 1,2,3 Just Once  --------
+---------------------------------------------------------------
 
-# Establish Wi-Fi TCP/IP connection to Android Device.
-adb connect $1
-echo 
+Step 1: Install Android SDK
+---------------------------
 
-# Print list of connected devices.
-adb devices
+If you haven't already installed the android sdk then do so now.
+- ezApp/bin/install_android_sdk
+- be sure to set environment variables as directed by this script
+- run 'which adb' to confirm the adb program is found in PATH
+
+Step 2: Enable Android Device Developer Mode
+--------------------------------------------
+
+Note: the location of the Android settings for 'Build number' and
+'Developer options' is device dependent.
+
+Enable developer mode by tapping "Build number" 8 times.
+- Settings > About Phone > Software Information > Build Number
+
+Tap Settings > Developer options , and enable
+- Stay awake
+- USB debugging
+- Wireless debugging
+
+Step 3: Pair Devel PC and Android device
+----------------------------------------
+
+Tap 'Wireless debugging' > 'Pair device with pairing code'
+You will see a Wi-Fi pairing code, Ip Address & Port.
+There may be 2 Port values on the display; be sure to use
+the Port value associated with "Pair with device".
+
+To pair, refer to the following example:
+
+    $ adb pair 192.168.1.101:45678
+    Enter pairing code: 123456
+    Successfully paired to 192.168.1.101:45678
+
+    $ adb disconnect
+    disconnected everything
+
+---------------------------------------------------------
+-------- Perform Step 4 following Initial Setup. --------
+-------- Repeat Step 4 when reconnect is needed. --------
+---------------------------------------------------------
+
+Step 4: Establish Wireless Debugging Connection
+-----------------------------------------------
+
+Use the IP address & Port that is shown for the device, in Wireless debugging.
+This Port number is different than the Port number used in Step 3, above.
+
+For example:
+
+    $ adb connect 192.168.1.101:77777
+    connected to 192.168.1.101:77777
+
+    $ adb devices
+    List of devices attached
+    192.168.1.101:77777	device
+
+    $ adb shell
+    sofia:/ $ exit
+
+EOF
+}
+
+function do_connect()
+{
+    top=$(git rev-parse --show-toplevel)
+    if [ $? -ne 0 ]; then
+        echo "ERROR: failed to get top repo directory"
+        exit 1
+    fi
+
+    cmd="adb connect $1"
+    if ! $cmd | grep "^connected"; then
+        echo "ERROR: failed to connect to $1"
+        exit 1
+    fi
+
+    echo "$cmd" > $top/bin/adb_connect_last
+
+    adb devices
+}
+
+function do_reconnect()
+{
+    top=$(git rev-parse --show-toplevel)
+    if [ $? -ne 0 ]; then
+        echo "ERROR: failed to get top repo directory"
+        exit 1
+    fi
+
+    if [ -f $top/bin/adb_connect_last ]; then
+        source $top/bin/adb_connect_last
+        adb devices
+    else
+        echo "ERROR: file $top/bin/adb_connect_last does not exist"
+        exit 1        
+    fi
+}
+
+# ######## MAIN ########
+
+case $1 in
+"-h")
+    usage
+    ;;
+"help")
+    usage
+    echo
+    help
+    ;;
+"recon" | "")
+    do_reconnect
+    ;;
+*)
+    do_connect $1
+    ;;
+esac
+
+exit 0

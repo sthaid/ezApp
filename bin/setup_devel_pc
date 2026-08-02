@@ -1,0 +1,391 @@
+#!/bin/bash
+
+# This script will setup your Devel PC for ezApp development.
+#
+# The sample config settings, found in function config_init, 
+# must first be updated.
+#
+# This script performs the following steps:
+# - display and validate the config settings
+# - prompts to continue
+# - copies your provided rsa key to ~/.ssh  (optional)
+# - install and configure git
+# - git clone ezApp
+# - install required linux packages
+# - install android sdk, this creates ~/android/sdk
+# - creates ~/.vimrc  (optional)
+# - create ~/.bashrc_ezapp, and appends a call to this file to ~/.bashrc
+#
+# This script has been tested on
+# - Ubuntu 26.04 LTS running on x86_64
+# - Windows 11 WSL distro Ubuntu-26.04 running on AMD Ryzen 5
+
+# NOTES:
+# - To get this file replace <branch> with the desired branch, usually 'main'.
+#     wget https://raw.githubusercontent.com/sthaid/ezApp/refs/heads/<branch>/bin/setup_devel_pc  
+#   To run:
+#     chmod 755 setup_devel_pc
+#     ./setup_devel_pc
+#
+# - If git_clone_using_ssh = true
+#       path_to_rsa_key_dir is required,
+#       github account is required, and must be cofigured with the id_rsa.pub
+#   else
+#       path_to_rsa_key_dir is optional,
+#       github account is optional
+#   endif
+#     
+# - Download commandlinetools-linux-nnnnnnnn_latest.zip from here:
+#   https://developer.android.com/studio#command-line-tools-only
+#
+# - The config values, found in fucntion function config_init, are an example.
+#   These config values must be updated for your use case.
+#
+# - If config value create_vimrc is true, this script will create ~/.vimrc with my
+#   preferred settings. The 'tabs' settings will cause tab chars to be replaced 
+#   with space.
+
+# ######## FUNCTION ########
+
+SSH_REPO_URL=git@github.com:sthaid/ezApp.git
+HTTPS_REPO_URL=https://github.com/sthaid/ezApp.git
+
+function config_init()
+{
+    # Notes:
+    # - update these values for your use case.
+    # - avoid using spaces in the paths, that has not been tested.
+
+    if [ "$running_on" = ubuntu_wsl ]; then
+        path_to_rsa_key_dir=/mnt/c/Users/STEVEN~1/.ssh
+        path_to_android_tools=/mnt/c/Users/STEVEN~1/Downloads/commandlinetools-linux-15859902_latest.zip
+        your_name="Steven Haid"
+        your_email=stevenhaid@gmail.com
+        branch_name=wsl_devel
+        git_clone_using_ssh=true
+        create_vimrc=true
+    elif [ "$running_on" = ubuntu_linux ]; then
+        path_to_rsa_key_dir=    # leave this blank because the .ssh dir already has the rsa key files
+        path_to_android_tools=/home/haid/Downloads/commandlinetools-linux-15859902_latest.zip
+        your_name="Steven Haid"
+        your_email=stevenhaid@gmail.com
+        branch_name=wsl_devel
+        git_clone_using_ssh=true
+        create_vimrc=true
+    else
+        echo "BUG: unexpected value for running_on=$running_on"
+        exit 1
+    fi
+
+    echo "Config:"
+    echo "- path_to_rsa_key_dir    = $path_to_rsa_key_dir"
+    echo "- path_to_android_tools  = $path_to_android_tools"
+    echo "- your_name              = $your_name"
+    echo "- your_email             = $your_email"
+    echo "- branch_name            = $branch_name"
+    echo "- git_clone_using_ssh    = $git_clone_using_ssh"
+    echo "- create_vimrc           = $create_vimrc"
+    echo
+
+    # verify if path_to_rsa_key_dir is set that file_id_rsa exists in that dir
+    if [ -n "$path_to_rsa_key_dir" -a ! -f "$path_to_rsa_key_dir"/id_rsa ]; then
+        echo "ERROR $path_to_rsa_key_dir/id_rsa does not exist"
+        exit 1
+    fi
+
+    # verify path_to_android_tools exists
+    if [ ! -f "$path_to_android_tools" ]; then
+        echo "ERROR $path_to_android_tools does not exist"
+        exit 1
+    fi
+
+    # verify that when git_clone_using_ssh is true, that rsa keys are available
+    if [ "$git_clone_using_ssh" = true ]; then
+        if [ ! -f "$path_to_rsa_key_dir"/id_rsa -a ! -f ~/.ssh/id_rsa ]; then
+            echo "ERROR rsa key required when git clone using ssh"
+            exit 1
+        fi
+    fi
+
+    # verify branch_name is provided
+    if [ -z "$branch_name" ]; then
+        echo "ERROR branch_name is required"
+        exit 1
+    fi
+
+    # verify git repo and branch exists
+    if ! git ls-remote --exit-code "$HTTPS_REPO_URL" &> /dev/null; then
+        echo "ERROR repo $HTTPS_REPO_URL not accessible"
+        exit 1
+    fi
+    if ! git ls-remote --exit-code --heads "$HTTPS_REPO_URL" "refs/heads/${branch_name}" &> /dev/null; then
+        echo "ERROR branch $branch_name is not accessible"
+        exit 1
+    fi
+
+    # warn if rsa key in .ssh will be replaced
+    if [ "$path_to_rsa_key_dir" -a -f ~/.ssh/id_rsa ]; then
+        echo "Warning: existing ~/.ssh/id_rsa will be replaced"
+    fi
+
+    # warn that .vimrc will be replaced
+    if [ "$create_vimrc" = true -a -f ~/.vimrc ]; then
+        echo "Warning: existing .vimrc will be replaced"
+        echo
+    fi
+
+    # prompt to continue
+    read -p "Continue (y/n)? " yn
+    if [ "$yn" != y ]; then
+        exit 1
+    fi
+    echo
+}
+
+function determine_running_on()
+{
+    if echo "$WSL_DISTRO_NAME" | grep -qi "ubuntu"; then
+        running_on=ubuntu_wsl
+    elif [ -f /etc/os-release ]; then
+        . /etc/os-release
+        if [ "$ID" = "ubuntu" ]; then
+            running_on=ubuntu_linux
+        fi
+    fi
+    if [ "$running_on" = "" ]; then
+        echo "ERROR: not running ubuntu_linux or ubuntu_wsl"
+        exit 1
+    fi
+}
+
+function get_rsa_key()
+{
+    if [ ! -d "$path_to_rsa_key_dir" ]; then
+        echo "ERROR: directory $path_to_rsa_key_dir not found"
+        exit 1
+    fi
+
+    mkdir -p ~/.ssh
+
+    cp $path_to_rsa_key_dir/id_rsa $path_to_rsa_key_dir/id_rsa.pub ~/.ssh
+    if [ $? -ne 0 ]; then
+        echo "ERROR: failed to copy rsa key files from $path_to_rsa_key_dir"
+        exit 1
+    fi
+
+    chmod 600 ~/.ssh/id_rsa
+    chmod 644 ~/.ssh/id_rsa.pub
+}
+
+function install_linux_packages()
+{
+    sudo apt update
+
+    # devel tools
+    sudo apt install -y git build-essential pkg-config cmake openjdk-17-jdk-headless \
+                        cscope universal-ctags vim unzip x11-apps meld
+
+    # wayland
+    sudo apt install -y libwayland-dev     # display protocol, replaces X11
+    sudo apt install -y wayland-protocols  # adds extra features to wayland display system
+
+    # graphics library
+    sudo apt install -y libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libgles2
+
+    # audio
+    sudo apt install -y libasound2-dev     # ALSA audio, connect to computer's sound hardware
+    sudo apt install -y libpulse-dev       # client for PulseAudio sound server, required by WSL
+
+    # misc
+    sudo apt install -y libssl-dev         # secure socket layer
+    sudo apt install -y libreadline-dev    # readline
+    sudo apt install -y libfreetype-dev    # render text fonts into bitmap
+    sudo apt install -y libxkbcommon-dev   # translate raw keypresses to characters
+    sudo apt install -y libdecor-0-dev     # draws window title bar and border
+    sudo apt install -y xfonts-base xfonts-100dpi xfonts-75dpi xfonts-scalable
+                                           # fix for 'Warning: Missing charsets in String to FontSet conversion'
+}
+
+function create_vimrc_func()
+{
+cat << 'EOF' > ~/.vimrc
+" tabs
+set expandtab
+set tabstop=8
+set softtabstop=4
+set shiftwidth=4
+" enable copy and paste out of vim
+set mouse=r
+" disable autoinent
+set nocindent
+set nosmartindent
+set noautoindent
+set indentexpr=
+filetype indent off
+filetype plugin indent off
+" highlight search
+set hlsearch
+" disable show next match while entering a search
+set noincsearch
+" jump to last line position when reopening a file
+if has("autocmd")
+  au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+endif
+" search current dir and parents for tags file
+set tags=./tags;
+EOF
+}
+
+function create_bashrc_ezApp()
+{
+# create ~/.bashrc_ezApp
+cat << 'EOF' > ~/.bashrc_ezApp
+
+# -----------------------
+# ---- .bashrc_ezApp ----
+# -----------------------
+
+# command aliases
+alias ls='ls -l --color=always --group-directories-first --human-readable'
+alias gca='git commit --all -m cont; git push'
+alias bashrc='source ~/.bashrc'
+
+# change dir aliases
+alias ez='cd ~/ezApp'
+
+alias ez_src='cd ~/ezApp/src'
+alias ez_android='cd ~/ezApp/android'
+alias ez_linux='cd ~/ezApp/linux'
+alias ez_files='cd ~/ezApp/files'
+alias ez_bin='cd ~/ezApp/bin'
+alias ez_doc='cd ~/ezApp/doc'
+
+alias ez_main='cd ~/ezApp/src/ezApp'
+alias ez_lib='cd ~/ezApp/src/ezApp_lib'
+alias ez_picoc='cd ~/ezApp/src/picoc'
+
+alias ez_apps='cd ~/ezApp/files/apps'
+alias ez_svcs='cd ~/ezApp/files/svcs'
+
+# env vars
+export EDITOR=vim
+export GIT_EXTERNAL_DIFF=$HOME/ezApp/bin/git_external_diff
+export ANDROID_HOME=$HOME/android/sdk
+export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.0.12077973
+export EZAPP_DEVICE=192.168.1.243
+export EZAPP_PASSWD=secret
+export ADB_MDNS=0   # disable MDNS device discovery
+
+# PATH env var
+if [ "$PATH_INITIALIZED" = "" ]; then
+    export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+    export PATH=$PATH:~/ezApp/bin:.
+    export PATH_INITIALIZED=true
+fi
+
+# set bash prompt to include git branch name
+parse_git_branch() {
+     git branch --show-current 2> /dev/null | sed 's/\(.*\)/ (\1)/'
+}
+export PS1="\u@\h \[\033[32m\]\w\[\033[33m\]\$(parse_git_branch)\[\033[00m\] \$ "
+
+EOF
+
+# additions to ~/.bashrc_ezApp when running on wsl
+if [ "$running_on" = ubuntu_wsl ]; then
+    cat << 'EOF' >> ~/.bashrc_ezApp
+# WSL: force the Linux graphics stack (Mesa) to route GPU commands through
+# Windows Direct3D 12 (D3D12) instead of looking for native Linux hardware drivers.
+export GALLIUM_DRIVER="d3d12"
+export MESA_LOADER_DRIVER_OVERRIDE="d3d12"
+
+EOF
+fi
+
+# add call .bashrc_ezApp from .bashrc
+cat << 'EOF' >> ~/.bashrc
+
+# call .bashrc_ezApp
+source ~/.bashrc_ezApp
+
+EOF
+
+# execute .bashrc_ezApp
+source ~/.bashrc_ezApp
+}
+
+# ######## MAIN ########
+
+# change to home dir
+cd ~
+
+# determine running_on, either ubuntu_linux or ubuntu_wsl
+determine_running_on
+echo "Running on $running_on"
+echo
+
+# initialize and verify config params
+config_init
+
+# get rsa key
+if [ -n "$path_to_rsa_key_dir" ]; then
+    get_rsa_key
+    echo "Obtained copy of id_rsa and id_rsa.pub from $path_to_rsa_key_dir"
+    echo
+fi
+
+# install and configure git
+sudo apt install git
+git config --global user.email "$your_email"
+git config --global user.name "$your_name"
+echo "Installed and configured git"
+echo
+
+# git clone ezApp, and set branch
+if [ "$git_clone_using_ssh" = true ]; then
+    git clone -b $branch_name $SSH_REPO_URL
+else
+    git clone -b $branch_name $HTTPS_REPO_URL
+fi
+echo "Cloned ezApp and set branch to $branch_name"
+echo
+
+# install linux packages
+install_linux_packages
+echo "Installed Linux packages"
+echo
+
+# install android sdk
+ezApp/bin/install_android_sdk $path_to_android_tools
+echo "Installed android/sdk from $path_to_android_tools"
+echo
+
+# create vimrc
+if [ "$create_vimrc" = true ]; then
+    create_vimrc_func
+    echo "Created ~/.vimrc"
+    echo
+fi
+
+# create ~/.bashrc_ezApp, and update ~/.bashrc to call it
+create_bashrc_ezApp
+echo "Created ~/.bashrc_ezApp, and updated .bashrc to call it"
+echo
+
+# provide final instructions
+if [ "$running_on" = ubuntu_wsl ]; then
+    echo "User must restart wsl, from Windows cmd prompt:"
+    echo "> wsl --shutdown"
+    echo "> wsl ~"
+    echo
+elif [ "$running_on" = ubuntu_linux ]; then
+    echo "User must reload bash configuration"
+    echo "$ source ~/.bashrc"
+else
+    echo "BUG: unexpected value for running_on=$running_on"
+    exit 1
+fi
+echo
+
+# success
+exit 0

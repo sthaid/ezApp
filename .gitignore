@@ -30,6 +30,8 @@ params
 
 bin/ezsh
 bin/src/ezlogfilter
+bin/adb_connect_last
+bin/backups
 
 cscope.files
 cscope.out

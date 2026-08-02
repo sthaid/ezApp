@@ -1,0 +1,129 @@
+#!/bin/bash
+
+function usage()
+{
+cat << EOF
+This script creates a backup tar file of ezApp data files thar are on the
+Android device. The backup tar file is copied to ezApp/bin/backups on the 
+Devel PC.
+
+The data files included in the backup are: *.dat, *.mp3 and params.
+
+This script can be used to save these data files if it becomes necessary
+to uninstall the ezApp from your Android device. After reinstalling ezApp these
+data files can then be restored to the Android device using the ezrestore script.
+  
+This script may be run from any directory within the ezApp repo.
+
+Options:
+  -h             : display help and exit
+  -d <dev>       : <dev_name|dev_ipaddr>[:port]
+  -p <password>  : ezApp devel mode password
+Environment variables EZAPP_DEVICE and EZAPP_PASSWD may be used instead
+of the -d and -p options.
+EOF
+}
+
+# #############  MAIN  ################
+
+# get device and developer password from optional env vars
+dev=$EZAPP_DEVICE
+password=$EZAPP_PASSWD
+
+# process options 
+# -h             : display usage
+# -d <dev>       : dev name (such as from /etc/hosts), or dev ipaddr
+# -p <password>  : devel password
+while true; do
+    if [ "$1" = "-h" ]; then
+        usage
+        exit 0
+    elif [ "$1" = "-d" ]; then
+        dev=$2
+        shift 2
+    elif [ "$1" = "-p" ]; then
+        password=$2
+        shift 2
+    elif [[ "$1" == "-"* ]]; then
+        echo "ERROR: invalid option $1"
+        exit 1
+    else
+        break
+    fi
+done
+
+# verify dev and password exist
+if [ -z "$dev" -o -z "$password" ]; then
+    echo "ERROR: dev and password required"
+    exit 1
+fi
+
+# verify no additional args
+if [ $# -ne 0 ]; then
+    echo "ERROR: no args expected"
+    exit 1
+fi
+
+# cd ezApp/bin/backups
+top=$(git rev-parse --show-toplevel)
+if [ $? -ne 0 ]; then
+    echo "ERROR: failed to get top repo directory"
+    exit 1
+fi
+mkdir -p $top/bin/backups
+cd $top/bin/backups
+
+# create backup_filename, incorporating the current date/time
+backup_filename=$(date +%y%m%d_%H%M%S)_backup.tar
+backup_pathname=$top/bin/backups/$backup_filename
+
+# define EZSH
+EZSH="ezsh -d $dev -p $password"
+
+# verify Android device is quiesced, there should be no apps/svcs running
+# when the Android ezApp data files are being backed up 
+echo "checking that android device is quiesced"
+$EZSH quiesced
+if [ $? -ne 0 ]; then
+    echo "ERROR: android device is either not responding, or"
+    echo "ERROR: ezApp has an app or svcs running"
+    exit 1
+fi
+echo
+
+# create the backup on the android device
+echo "creating $backup_filename on android device"
+$EZSH "find apps svcs -type f \( -name "*.mp3" -o -name "*.dat" -o -name "params" \) -print0 | tar --null -cvf $backup_filename -T -"
+if [ $? -ne 0 ]; then
+    echo "ERROR: ezsh failed to create $backup_filename"
+    exit 1
+fi
+echo
+
+# copy the file from the android device to the current dir
+echo "copying $backup_filename from android device"
+$EZSH "get $backup_filename"
+if [ $? -ne 0 ]; then
+    echo "ERROR: ezsh failed to copy $backup_filename from Android device to Devel PC"
+    exit 1
+fi
+echo
+
+# delete the backup file on the android device
+echo "removing $backup_filename from android device"
+$EZSH "rm $backup_filename"
+if [ $? -ne 0 ]; then
+    echo "ERROR: ezsh failed to remove $backup_filename from Android device"
+    exit 1
+fi
+echo
+
+# verify the file has been created
+if [ -f "$backup_pathname" ]; then
+    echo "created $backup_pathname"
+    exit 0
+else
+    echo "ERROR: failed to create $backup_pathname"
+    exit 1
+fi
+echo

@@ -22,7 +22,7 @@
 #endif
 
 #define DEFAULT_DEVEL_PORT     9000   // IANA registered port range 1024 - 49151
-#define DEFAULT_DEVEL_PASSWORD "none"
+#define DEFAULT_DEVEL_PASSWORD "must_be_set"
 #define MIN_DEVEL_PASSWORD_LEN 4
 
 #define LAST_PAGE ((max_apps - 1) / 18)
@@ -93,6 +93,7 @@ int MAIN(int argc, char **argv)
 
     rc = init();
     if (rc != 0) {
+        ERROR("init failed, terminating\n");
         return 1;
     }
 
@@ -114,6 +115,7 @@ static int init(void)
     // init logging
     rc = log_init();
     if (rc != 0) {
+        ERROR("log_init failed\n");
         return -1;
     }
 
@@ -186,7 +188,11 @@ static int init(void)
     sdlx_create_detached_thread(devel_mode_server_thread, "devel_server", NULL);
 
     // init sdl
-    sdlx_init(SUBSYS_VIDEO | SUBSYS_AUDIO | SUBSYS_SENSOR);
+    rc = sdlx_init(SUBSYS_VIDEO | SUBSYS_AUDIO | SUBSYS_SENSOR);
+    if (rc != 0) {
+        ERROR("sdlx_init failed\n");
+        return -1;
+    }
     INFO("sdlx_win_width,height = %d %d  sdlx_char_width,height=%d %d\n",
          sdlx_win_width, sdlx_win_height, sdlx_char_width_dflt, sdlx_char_height_dflt);
 
@@ -205,6 +211,7 @@ static int init(void)
     svcs_start_all();
 
     // success
+    INFO("init success\n");
     return 0;
 }
 
@@ -365,7 +372,13 @@ static void processing(void)
             break;
         } else if (event.event_id == EVID_MINIMIZE) {
             INFO("got EVID_MINIMIZE\n");
+#ifdef ANDROID
+            INFO("calling sdlx_minimize_window on Android\n");
             sdlx_minimize_window();
+#else
+            INFO("end program on Linux\n");
+            return;
+#endif
         } else if (event.event_id == EVID_PAGE_DECREMENT) {
             if (--page < 0) {
                 page = LAST_PAGE;
@@ -917,7 +930,7 @@ static void settings(void)
             break; }
         case EVID_DEVEL_PASSWORD: {
             char *str; 
-            str = sdlx_get_input_str("Password\nMin Length 4", false, NULL);
+            str = sdlx_get_input_str("Password\nMin Length 4", false, params.devel_password);
             if (strlen(str) >= MIN_DEVEL_PASSWORD_LEN) {
                 strcpy(params.devel_password, str);
                 util_set_str_param(".", "devel_password", str);
@@ -1378,6 +1391,8 @@ static int process_req_thread(void *cx)
                 free(data);
                 status = 0;
             }
+        } else if (strcmp(str, "quiesced") == 0) {
+            status = ((!is_app_running() ? 0 : 1) + (num_svcs_running() == 0 ? 0 : 10));
         } else {
             FILE *fp;
             int rc;

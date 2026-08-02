@@ -50,8 +50,8 @@ function okay_to_xfer()
           "$1" == *".swp" || \
           "$1" == *"params" || \
           "$1" == *"FreeMonoBold.ttf" || \
-          "$1" == *"credits" || \
-          "$1" == *"licenses" ]]; \
+          "$1" == *"CREDITS" || \
+          "$1" == *"LICENSES" ]]; \
     then
         return 1  # not okay
     else
@@ -60,6 +60,10 @@ function okay_to_xfer()
 }
 
 # #############  MAIN  ################
+
+# get device and developer password from optional env vars
+dev=$EZAPP_DEVICE
+password=$EZAPP_PASSWD
 
 # process options 
 # -h             : display usage
@@ -87,6 +91,13 @@ while true; do
     fi
 done
 
+# verify dev and password have been provided,
+# either from env vars or the -d and -p options
+if [ "$dev" = "" -o "$password" = "" ]; then
+    echo "ERROR: device and password are required"
+    exit 1
+fi
+
 # determine the top of the files directory tree,
 # this works if CWD is one of the following directories, for example:
 # - /path_to_files/files
@@ -101,17 +112,6 @@ elif [ $(basename "$(dirname "$(dirname "$PWD")")") = files ]; then
     files_dir=$(dirname $files_dir)
 else
     echo "ERROR: $PWD must be in files directory tree"
-    exit 1
-fi
-
-# get device and developer password from optional env vars
-dev=$EZAPP_DEVICE
-password=$EZAPP_PASSWD
-
-# verify dev and password have been provided,
-# either from env vars or the -d and -p options
-if [ "$dev" = "" -o "$password" = "" ]; then
-    echo "ERROR: device and password are required"
     exit 1
 fi
 

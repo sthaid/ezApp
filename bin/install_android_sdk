@@ -20,8 +20,9 @@ EOF
 fi
 
 # verify cmdlinetoolszip file exists, and is really a zip file
-if [ ! -f $cmdlinetoolszip ]; then
+if [ ! -f "$cmdlinetoolszip" ]; then
     echo "ERROR: $cmdlinetoolszip does not exist"
+    echo '       if path starts with ~, use $HOME instead'
     exit 1
 fi
 if ! file --mime-type "$cmdlinetoolszip" | grep -q 'application/zip'; then
@@ -30,20 +31,23 @@ if ! file --mime-type "$cmdlinetoolszip" | grep -q 'application/zip'; then
 fi
 
 # get absolute path of cmdlinetoolszip
-cmdlinetoolszip=$(realpath $cmdlinetoolszip)
+cmdlinetoolszip=$(realpath "$cmdlinetoolszip")
 echo $cmdlinetoolszip
 
-# to avoid a possible problem, kill gradle daemon and remove gradle daemon directory
-read -p "To avoid a possible problem the gradle daemn should be killed (y/n)? " yn
-if [ "$yn" = "y" ]; then
-    echo "Killing gradle daemon"
-    pkill -f gradle 
-    sleep 3
-    rm -rf ~/.gradle/daemon
-else
-    echo "Not killing gradle daemon"
+# to avoid a possible problem, kill gradle daemon and remove gradle daemon directory;
+# commented out because this may be a rare problem
+if false; then
+    read -p "To avoid a possible problem the gradle daemn should be killed (y/n)? " yn
+    if [ "$yn" = "y" ]; then
+        echo "Killing gradle daemon"
+        pkill -f gradle 
+        sleep 3
+        rm -rf ~/.gradle/daemon
+    else
+        echo "Not killing gradle daemon"
+    fi
+    echo
 fi
-echo
 
 # if the ~/android dir exists then rename it to a save dir name
 if [ -d ~/android ]; then
@@ -69,7 +73,7 @@ fi
 echo "Unzipping $cmdlinetoolszip"
 mkdir -p ~/android/sdk
 cd ~/android/sdk
-unzip $cmdlinetoolszip
+unzip "$cmdlinetoolszip"
 echo
 
 # move cmdline-tools to required dir struct
