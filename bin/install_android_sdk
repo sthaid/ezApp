@@ -7,14 +7,18 @@
 # After running this script, be sure to set the environment variables
 # as directed.
 
-# if path_to_cmdlinetools_zip arg is not supplied then display usage and exit
+# if path_to_cmdlinetools_zip or accept_sdk_licenses args are 
+# not supplied then display usage and exit
 cmdlinetoolszip=$1
-if [ "$cmdlinetoolszip" = "" ]; then
+accept_sdk_licenses=$2
+if [ "$cmdlinetoolszip" = "" -o "$accept_sdk_licenses" = "" ]; then
     cat << 'EOF'
-Usage: install_android_sdk <path_to_cmdlinetools_zip>
+Usage: install_android_sdk <path_to_cmdlinetools_zip> <accept_sdk_licenses>
 
 commandlinetools-linux-nnnnnnnn_latest.zip is obtained from
 https://developer.android.com/studio#command-line-tools-only
+
+accept_sdk_licenses arg expected either true or false
 EOF
     exit 1
 fi
@@ -83,8 +87,17 @@ mkdir cmdline-tools
 mv latest cmdline-tools
 echo
 
-# install sdk packages needed to build ezApp for Android
+# set shorthand sdkmanager
 sdkmanager=$HOME/android/sdk/cmdline-tools/latest/bin/sdkmanager
+
+# if accept_sdk_licenses = true then accept the licenses
+if [ "$accept_sdk_licenses" = true ];
+    echo "Accept sdk licenses"
+    yes | sdkmanager --licenses
+    echo
+fi
+
+# install sdk packages needed to build ezApp for Android
 echo "Install android/sdk packages"
 $sdkmanager "platform-tools" "platforms;android-35" "build-tools;34.0.0" "ndk;27.0.12077973"
 echo

@@ -25,6 +25,7 @@ Help:
 Step 1: Install Android SDK
 ---------------------------
 
+xxx reword
 If you haven't already installed the android sdk then do so now.
 - ezApp/bin/install_android_sdk
 - be sure to set environment variables as directed by this script

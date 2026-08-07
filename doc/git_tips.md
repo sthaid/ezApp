@@ -6,7 +6,7 @@ Cloning
 
 ssh cloning
 - git clone git@github.com:sthaid/ezApp.git
-- Streamlined workflow, git account, with ssh key configured, is required. 
+- Streamlined workflow, github account with ssh key, is required. 
   See section below on adding your public ssh key to your github account.
 
 https cloning
@@ -44,16 +44,16 @@ Commit Fixup
 ============
 
 Combine sequence of commits, use this only on a personal feature-branch
-- git rebase -i <commit-hash>  : some of the choices ...
+- git rebase -i <commit-hash>  : will bring up editor, from which you can
+  customize the rebase operaton; some of the choices:
   - 'fixup'  : melds the commit into the previous commit
   - 'reword' : edit the commit message
-- git push
-- git push --force   # if prior git push did not work; use --force carefully
+- git push --force
 
 Bash Prompt
 ===========
 
-Set bash prompt to include branch name
+Set bash prompt to include branch name, add this to your .bashrc file:
   parse_git_branch() {
      git branch --show-current 2> /dev/null | sed 's/\(.*\)/ (\1)/'
   }
@@ -82,7 +82,8 @@ Make change to file(s).
 List the files that have been modified.
 - git status
 
-View the diff of all files with modifications;
+xxx try alternate method
+View the diff of all modified files;
 GIT_EXTERNAL_DIFF env var can opptionally be set to specify an alternate diff program;
 the ezApp repo uses GIT_EXTERNAL_DIFF to view diff using the meld program
 - git diff
@@ -99,6 +100,6 @@ This will fail unless you are the owner of the repo,
 or have been added by the owner as a collaborator.
 - git push
 
-If you now want to copy other developer's changes, that they had pushed to the origin:
+If you now want to pull in other developer's changes, that they had pushed to the origin:
 - git pull
 - git log 

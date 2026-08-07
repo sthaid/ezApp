@@ -22,7 +22,7 @@
 #endif
 
 #define DEFAULT_DEVEL_PORT     9000   // IANA registered port range 1024 - 49151
-#define DEFAULT_DEVEL_PASSWORD "must_be_set"
+#define DEFAULT_DEVEL_PASSWORD "change_me"
 #define MIN_DEVEL_PASSWORD_LEN 4
 
 #define LAST_PAGE ((max_apps - 1) / 18)

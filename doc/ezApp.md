@@ -7,7 +7,7 @@ EzApp runs miniApps and miniSvcs that are written in the C Language. These
 miniApps and miniSvcs are executed by a C language interpreter.
 
 Users can develop their own miniApps and miniSvcs. To develop miniApps and 
-miniSvcs a PC is required. Refer to miniApps.md for how to build miniApps
+miniSvcs a Development PC is required. Refer to miniApps.md for how to build miniApps
 and miniSvcs.
 
 The Simple DirectMedia Layer (SDL) provides the framework from which the
@@ -59,4 +59,4 @@ Select ezApp 'Settings':
 - Devel_Port: set devel mode port, usually no need to modify the default
 - Devel_Password: set devel mode password, min 4 chars
 - Reset_Apps_And_svcs: reset apps and svcs to their original contents,
-  WARNING all files that have been created will be lost
+  all files that have been created will be lost

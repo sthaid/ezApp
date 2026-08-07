@@ -1,23 +1,32 @@
 Create a miniApp
 ================
 
-This document describes how to:
-- install and setup ezApp on your Android Smartphone
-- create a new miniApp using a Development PC
-- transfer the new miniApp from the Development PC to the ezApp
-- run the new miniApp on your Android Smartphone
+Table of Contents
+=================
+
+- Install ezApp on your Android device
+- Setup Ubuntu Devel PC
+- Setup Windows Devel PC
+- Build and Test ezApp on Devel PC
+- Create a new miniApp
+- Test the new miniApp on the Devel PC
+- Run the new miniApp on Android
+- APIs available for use by miniApps
+- PicoC Limitations
+- miniSvcs
+- Appendix A - Using WSL
 
 Install ezApp on your Android device
 ====================================
 
 Install ezApp from the Google Play Store.
-xxx todo publish on Google Play Store
 
 Open ezApp, accept the permission requests, and try out the miniApps that
-are included with ezApp. Select Settings > Readme for a brief description of the
-miniApps that are included.
+are included with ezApp. From within ezApp, select Settings > Readme for a
+brief description of the miniApps that are included.
 
-If you want to create a new miniApp then continue with the steps described in this document.
+If you want to create a new miniApp then continue with the steps described
+in this document.
 
 Enable ezApp Developer Mode.
 - Open ezApp, 'Settings' selection should be at bottom right of display
@@ -27,89 +36,70 @@ Enable ezApp Developer Mode.
 You do not need to enable Android Device 'Developer options' to create miniApps.
 
 Setup Ubuntu Devel PC
-====================
+=====================
 
-xxx update this section
+This section describes how to setup a Ubuntu-26.04 PC to develop miniApps.
 
-A PC running Windows 11 or Ubuntu 25.10 (or newer) is required.
-Other Linux distros may also work.
-
-Install Ubuntu Linux packages:
+A bash script is provided to do the setup.
+Download and run the bash script, and follow the instruction provided.
 ```
-sudo apt update
-sudo apt install -y git
-sudo apt install -y build-essential cmake
-sudo apt install -y openjdk-17-jdk-headless
-sudo apt install -y libssl-dev libreadline-dev libasound2-dev
-sudo apt install -y cscope universal-ctags
+cd ~
+wget https://raw.githubusercontent.com/sthaid/ezApp/refs/heads/main/bin/setup_devel_pc
+chmod +x setup_devel_pc
+./setup_devel_pc
 ```
 
 Setup Windows Devel PC
 ======================
 
-Using wsl ...
-wsl --install                     # install wsl; NOT reboot required 'shutdown /r /t 0'
-wsl --status                      # should inidcate Defaut Version: 2
-wsl --list --online               # lists avail distros
-wsl --install -d Ubuntu-26.04     # install wsl support for Ubuntu-26.04; respond to queries
-wsl --list --verbose              # lists installed distros, should show Ubuntu-26.04
-wsl --set-default Ubuntu-26.04    # this is optional, Ubuntu-26.04 should already be the default
-wsl ~                             # starts bash on the default distro, and cd to wsl home dir
-wsl ~ -u root -d Ubuntu-26.04     # starts bash for user root in distro Ubuntu-26.04
+This section describes how to setup a Windows 11 PC to develop miniApps.
+Windows Subsystem for Linux (WSL) will be used. 
 
-wsl --help                        # display usage
-wsl --shutdown                    # terminates all running distros
-wsl --update                      # updates wsl
-wsl --version                     # display wsl version
-wsl --status                      # show wsl status
-wsl --unregister Ubuntu-26.04     # unregisters the distro and deletes the root filesystem.
+To install WSL:
+```
+wsl --install                   # install wsl
+shutdown /r /t 0                # required reboot
+wsl --install -d Ubuntu-26.04   # install Ubuntu-26.04 distro
+wsl --list --verbose            # verify VERSION 2 is indicated
+wsl ~                           # launch Ubuntu-26.04 distro
+```
 
-xxx todo more in this section
+A bash script is provided to do the setup.
+Download and run the bash script, and follow the instruction provided.
+```
+cd ~
+wget https://raw.githubusercontent.com/sthaid/ezApp/refs/heads/main/bin/setup_devel_pc
+chmod +x setup_devel_pc
+./setup_devel_pc
+```
+
+Notes:
+- if WSL is not working, shut it down and restart as follows:
+```
+    wsl --shutdown
+    wsl ~
+```
+
+- Refer to "Appendix A - Using WSL"
 
 Build and Test ezApp on Devel PC
 ================================
 
-Clone ezApp from github:
-```
-cd ~
-git clone https://github.com/sthaid/ezApp.git
-```
-
-Set environment variable  xxx improve these comments
-xxx don't go into much detail here
-- The Android device should be connected to a trusted Wi-Fi network
-- The Android Device IP address is displayed in ezApp > Settings
-- The 'android-device-ip-addr' can be an IP address, such as 192.168.1.101 or a Hostname (if available)
-- The [:port] is only needed if the ezApp Devel_Port had been changed to something other than the default 9000
-```
-export PATH=$PATH:~/ezApp/bin
-export EZAPP_DEVICE=<android-device-ip-addr[:port]>   # example: 192.168.1.101
-export EZAPP_PASSWD=<devel-mode-password>             # example: my-secret-password
-```
-
-Build ezApp: This will take several minutes, and performs the following steps:
-xxx don't go into much detail here
-- git clone the SDL repos
-- build tools in the bin/src dir
-- build a version of ezApp that runs on the Devel PC
-- perform a test build of all included miniApps and miniSvcs
+Build ezApp. This will take several minutes.
 ```
 cd ~/ezApp
 make
 ```
 
-Tests to validate:
-
-* Run a Linux build of ezApp on the Devel PC.
+* Verification 1: Run a Linux build of ezApp on the Devel PC.
 ```
     cd ~/ezApp/linux
     make run
-    terminate with ctrl-c
 ```
 
-* Verify ezsh, running on the Devel PC, can connect to the Android ezApp, and execute the 'ls' cmd.
-This should list the contents of the /data/data/org.sthaid.ezApp/files/apps directory on the 
-Android device.
+* Verification 2: Run the ezsh developer tool. Note that ezApp Devel_Mode 
+must be enabled, and Devel_Password set. This command should list the contents
+of the /data/data/org.sthaid.ezApp/files/apps directory on the Android device.
 ```
     ezsh ls apps
 ```
@@ -129,18 +119,16 @@ vi template.c    # change "Hello\nWorld" to "NewApp"
 Test the new miniApp on the Devel PC
 ====================================
 
-These tests are optional, but very helpful.
-
 Test 1: perform test build of the miniApp using the gcc compiler; if the test
-build succeeds, the miniApp is run on the Devel PC using PicoC.
+build succeeds, the miniApp will then be run on the Devel PC using the PicoC C
+language interpreter.
 ```
 cd ~/ezApp/files/apps/NewApp
 eztest
 ```
 
 Test 2: runs ezApp on the Linux Devel PC. This is especially helpful when testing
-a miniApp that interacts with a miniSvc. The interactions between miniApp and miniSvc
-are not covered by Test 1.
+a miniApp that interacts with a miniSvc.
 ```
 cd ~/ezApp/Linux
 make run
@@ -161,7 +149,7 @@ cd ~/ezApp/files/apps/NewApp
 ezput
 ```
 
-The NewApp should appear on the Android Device ezApp menu. Tap the '>' to page
+The NewApp should appear on the Android Device ezApp menu. Tap '>' to page
 through the menu to locate the NewApp.
 
 Tap the NewApp to run it.
@@ -169,15 +157,14 @@ Tap the NewApp to run it.
 APIs available for use by miniApps
 ==================================
 
-Picoc is extended to support the APIs defined in ~/ezApp/src/ezApp_lib/include:
+The PicoC C language interpreter is extended to support the APIs defined
+in ~/ezApp/src/ezApp_lib/include:
 - sdlx.h: provides miniApp access to SDL features: video, audio, events, and sensors.
 - utils.h: various utilities, including json, png, fft, file access, time, location, text-to-speech, ...
 - svcs.h: provides miniApp the ability to make a request to a miniSvc
 Refer to these files for documentation of the APIs they provide.
 
-These APIs have been added to PicoC via the ezApp/src/picoc/platform/library_unix.c file.
-
-To view the standard C APIs provided by PicoC, inspect files in ezApp/src/picoc/cstdlib.
+To view the standard C APIs provided by PicoC, inspect the files in ezApp/src/picoc/cstdlib.
 
 PicoC Limitations
 =================
@@ -186,8 +173,8 @@ PicoC is not intended to be a complete implementation of ISO C:
 - PicoC supports the essential aspects of the C language.
 - For more info on PicoC, refer to ezApp/src/picoc/README.md.
 
-When the PicoC interpreter encounters code that it doesn't understand the error location
-is identified, for example:
+When the PicoC interpreter encounters code that it doesn't understand the
+error location is identified, for example:
 ```
 $ cat t1.c
 int main() {
@@ -308,3 +295,22 @@ cd NewSvc/
 ezput
 ```
 - On ezApp: 'Settings' > 'Services'; tap NewSvc to start the new miniSvc.
+
+Appendix A - Using WSL
+======================
+
+wsl --install                     # install wsl; NOTE reboot required 'shutdown /r /t 0'
+wsl --status                      # should inidcate Defaut Version: 2
+wsl --list --online               # lists avail distros
+wsl --install -d Ubuntu-26.04     # install wsl support for Ubuntu-26.04; respond to queries
+wsl --list --verbose              # lists installed distros, should show Ubuntu-26.04
+wsl --set-default Ubuntu-26.04    # this is optional, Ubuntu-26.04 should already be the default
+wsl ~                             # starts bash on the default distro, and cd to wsl home dir
+wsl ~ -u root -d Ubuntu-26.04     # starts bash for user root in distro Ubuntu-26.04
+
+wsl --help                        # display usage
+wsl --shutdown                    # terminates all running distros
+wsl --update                      # updates wsl
+wsl --version                     # display wsl version
+wsl --status                      # show wsl status
+wsl --unregister Ubuntu-26.04     # unregisters the distro and deletes the root filesystem.

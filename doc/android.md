@@ -1,93 +1,68 @@
-Developer build and install ezApp on your Android device
-========================================================
+Build & Install ezApp on your Android Device
+============================================
 
-This document describes how to:
-- install the Android SDK on your Devel PC
-- enable Developer Options on your Android device
-- build ezApp on your Devel PC
-- install your ezApp build on your Android device
+Prior to using this document; the steps described in miniApps.md, 
+"Setup Ubuntu Devel PC" or "Setup Windows Devel PC" must have
+been performed.
 
-Prior to using the steps described in this document; the
-steps described in miniApps.md, "Setup Development PC" must
-have been performed.
+Those steps will have installed the Android SDK, in ~/android/sdk.
+And also set the required environment variables, in ~/.bashrc_ezApp.
 
-Install the Android SDK on your Devel PC
-========================================
+Table of Contents
+=================
 
-Download the Linux Android SDK command line tools zip file.
-from https://developer.android.com/studio#command-line-tools-only.
+- Connect adb with your Android Device
+- Build ezApp Android APK
+- Install ezApp Android APK
+- Appendix A - adb Commands
+- Appendix B - Android Version Info
+- Appendix C - Miscellaneous Notes
 
-Run ezApp/bin/install_android_sdk script to install the Android SDK.
-The SDK will be created in ~/android/sdk.
-```
-install_android_sdk ~/Downloads/commandlinetools-linux-nnnnnnnn_latest.zip
-```
-Setup the enviroment variables as described by the ```install_android_sdk``` script.
+Connect adb with your Android Device
+====================================
 
-Enable Developer Options on your Android device
-===============================================
+Run ```adb_connect help``` and follow the instructions to:
+- enable Android Developer options
+- establish a Wireless Debugging Connection from your Devel PC to your Android device.
 
-On Android device:
-- Enable developer mode by tapping "Build number" 8 times.
-  - Settings -> About Phone -> Software Information -> Build Number
-- Go to Settings > Developer options , and enable
-  - USB Debugging
-  - Stay Awake
+Build ezApp Android APK
+=======================
 
-Establish connection using USB **Data** cable. 
-- Connect USB **Data** cable from Devel PC to Android device
-- When prompted on Android device, tap:
-  - Always allow from this computer
-  - Allow
-- Test connection, from Devel PC ```adb shell```
-
-Optional additional steps to connect using Wi-Fi:
-- On Devel PC ```adb tcpip 5555```
-- Disconnect USB Data cable
-- Get IP address of Android device, either from:
-  - Android Settings > About Phone > Status information
-  - ezApp Settings
-- On Devel PC: ```adb connect <ipaddr>```
-- Test Wi-Fi connection ```adb shell```
-
-Notes:
-- It is recommended to use the optional Wi-Fi procedure only on a trusted network.
-- Use ```ezApp/bin/adb_connect <ipaddr>``` instead of ```adb connect <ipaddr>```
-  to resolve connection issues. Refer to comments in that script.
-- You will occasionally need to re-issue  ```ezApp/bin/adb_connect <ipaddr>```.
-- On home network, recommend adjusting router setting to use static IP address for your
-  Android device.
-
-Summary of adb commands related to connecting to your Android device:
-- adb help:                show help
-- adb tcpip PORT           restart ADB daemon listening on TCP on PORT
-- adb connect HOST[:PORT]: connect to a device via TCP/IP [default port=5555]
-- adb disconnect:          disconnect from all devices
-- adb devices:             list connected devices
-- adb kill-server; adb start-server: 
-                           restart Android Debug Bridge (ADB) daemon on Devel PC
-
-Build ezApp on your Devel PC
-============================
-
+This will take a few minutes on the first build.
+Subsequent builds will ususally be faster.
 ```
 cd ~/ezApp/android
 make build
 ```
 
-Install your ezApp build on your Android device
-===============================================
+Install ezApp Android APK
+=========================
 
 ```
 cd ~/ezApp/android
 make install
 ```
 
-APPENDICES
-==========
+Appendix A - adb Commands
+=========================
 
-android version info
---------------------
+xxx check indenting here
+
+General
+- adb help:                show help
+- adb kill-server; adb start-server:
+                           restart Android Debug Bridge (ADB) daemon on Devel PC
+
+Connecting Devel PC with Android 
+- adb pair HOST:[PORT]:    pair Devel PC with Android device
+- adb connect HOST[:PORT]: connect Devel PC with Android device, using Wi-Fi TCP/IP
+- adb disconnect:          disconnect from all devices
+- adb devices:             list connected devices
+
+xxx todo others
+
+Appendix B - Android Version Info
+=================================
 
 Reference: https://apilevels.com/
 
@@ -139,8 +114,8 @@ NDK Version:
   will automatically select a default version that it is known to be
   compatible with
 
-miscellaneous notes
--------------------
+Appendix C - Miscellaneous Notes
+================================
 
 * To list what files are contained in the APK:
 ```
