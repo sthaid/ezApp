@@ -84,13 +84,13 @@ function config_init()
     echo
 
     # verify user is  member of sudo group
-    if ! id -nG "username" | grep -qw "sudo"; then
+    if ! groups |  grep -q "sudo"; then
         echo "ERROR user is not member of sudo group"
         exit 1
     fi
 
     # verify path_to_rsa_key_dir exists and contains file id_rsa
-    if [ ! -d "$path_to_rsa_key_dir" -o ! -f "$path_to_rsa_key_dir"/id_rsa]; then
+    if [ ! -d "$path_to_rsa_key_dir" -o ! -f "$path_to_rsa_key_dir"/id_rsa ]; then
         echo "ERROR file $path_to_rsa_key_dir/id_rsa does not exist"
         exit 1
     fi
@@ -230,7 +230,7 @@ EOF
 function create_bashrc_ezApp()
 {
 # create ~/.bashrc_ezApp
-cat << EOF > ~/.bashrc_ezApp
+cat << 'EOF' > ~/.bashrc_ezApp
 
 # -----------------------
 # ---- .bashrc_ezApp ----
@@ -263,8 +263,6 @@ export EDITOR=vim
 export GIT_EXTERNAL_DIFF=$HOME/ezApp/bin/git_external_diff
 export ANDROID_HOME=$HOME/android/sdk
 export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.0.12077973
-export EZAPP_DEVICE=$ezapp_device
-export EZAPP_PASSWD=$ezapp_passwd
 export ADB_MDNS=0   # disable MDNS device discovery
 
 # PATH env var
@@ -292,6 +290,13 @@ export MESA_LOADER_DRIVER_OVERRIDE="d3d12"
 
 EOF
 fi
+
+# additions to ~/.bashrc_ezApp, allowing variable substiturion
+cat << EOF >> ~/.bashrc_ezApp
+export EZAPP_DEVICE=$ezapp_device
+export EZAPP_PASSWD=$ezapp_passwd
+
+EOF
 
 # add call .bashrc_ezApp from .bashrc
 cat << 'EOF' >> ~/.bashrc
