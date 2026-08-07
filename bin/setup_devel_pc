@@ -371,7 +371,7 @@ echo
 
 # build ezApp and ezApp/android
 if [ "$run_build" = true ]; then
-    source ./bashrc_ezApp
+    source ~/.bashrc_ezApp
     make -C ~/ezApp
     echo "Completed make -C ~/ezApp"
     echo
