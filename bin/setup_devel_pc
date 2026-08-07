@@ -293,6 +293,7 @@ fi
 
 # additions to ~/.bashrc_ezApp, allowing variable substiturion
 cat << EOF >> ~/.bashrc_ezApp
+# ezApp Devel_Mode device and password
 export EZAPP_DEVICE=$ezapp_device
 export EZAPP_PASSWD=$ezapp_passwd
 
