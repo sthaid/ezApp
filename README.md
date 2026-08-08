@@ -5,8 +5,7 @@ UNDER CONSTRUCTION
 ezApp
 =====
 
-EzApp is intended to run on Android
-Smartphones.
+EzApp runs on Android Smartphones.
 
 EzApp runs miniApps and miniSvcs that
 are written in the C Language. These
@@ -62,8 +61,7 @@ can be viewed by tapping the '?'.
 - Log:      View  message from ezApp
              and miniApp printf.
 - Memo:     Record an audio memo.
-- Morse:    Practice morse code, rate
-            selectable from 5 to 20 WPM.
+- Morse:    Practice morse code.
 - Paddle:   Ball and paddle game.
 - Piano:    Beginner Piano simulator.
             Includes several melodies.
@@ -99,5 +97,5 @@ miniApp.
 - Template: A miniSvc example.
 
 MiniSvcs can be stopped or started by
-selecting "Settings" > "Services".
+selecting Settings > Services.
 

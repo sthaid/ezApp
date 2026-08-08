@@ -215,7 +215,7 @@ will print "x=0" in standard C, and print "x=1" in PicoC.
 * Floating point numbers must not start with '.'. For example ```x = .123;``` is not supported.
 Instead use ```x = 0.123```.
 
-* Nested ternary operator may give incorrect result. For exmple: ```(true ? 1 : true ? 2 : 3);``` evaluates 
+* Nested ternary operator may give incorrect result. For example: ```(true ? 1 : true ? 2 : 3);``` evaluates 
 to 2 in PicoC, it should evaluate to 1. Instead use ```(true ? 1 : (true ? 2 : 3))```.
 
 * Static array declarations must include the number of array elements. For example:
@@ -300,7 +300,7 @@ Appendix A - Using WSL
 ======================
 
 wsl --install                     # install wsl; NOTE reboot required 'shutdown /r /t 0'
-wsl --status                      # should inidcate Defaut Version: 2
+wsl --status                      # should indicate Defaut Version: 2
 wsl --list --online               # lists avail distros
 wsl --install -d Ubuntu-26.04     # install wsl support for Ubuntu-26.04; respond to queries
 wsl --list --verbose              # lists installed distros, should show Ubuntu-26.04

@@ -50,7 +50,7 @@ Commit Fixup
 
 Combine sequence of commits, use this only when working on a personal branch
 - git rebase -i <commit-hash>  : will bring up editor, from which you can
-  customize the rebase operaton; some of the choices:
+  customize the rebase operation; some of the choices:
   - 'fixup'  : melds the commit into the previous commit
   - 'reword' : edit the commit message
 - git push --force    # force push is required following git rebase
