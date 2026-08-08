@@ -6,8 +6,9 @@ Cloning
 
 ssh cloning
 - git clone git@github.com:sthaid/ezApp.git
-- Streamlined workflow, github account with ssh key, is required. 
-  See section below on adding your public ssh key to your github account.
+- streamlined workflow
+- github account with ssh key, is required. 
+- refer to section below on adding your public ssh key to your github account.
 
 https cloning
 - git clone https://github.com/sthaid/ezApp.git
@@ -18,24 +19,28 @@ Diff
 
 git diff
 
+Diff has been configured to generate the diff using meld.
+The setup_devel_pc script has configured git using command:
+- git config --global diff.external ~/ezApp/bin/git_meld_diff
+
 Branches
 ========
 
-Create a feature-branch:
+Create a branch:
 - git checkout main
 - git pull
-- git switch -c <feature-branch>
-- git push -u origin <feature-branch>
+- git switch -c <branch>        # create branch and switch to it
+- git push -u origin <branch>   # make the branch visible at the origin
 
-Merge feature-branch back to main;
-- may want to first 'git rebase -i' on the feature-branch:
+Merge branch back to main;
+- may want to first 'git rebase -i' on the branch:
 - git checkout main
 - git pull
-- git merge <feature-branch>
+- git merge <branch>
 - git push
 
-Change branch:
-- git checkout <branch>
+Switch to an existing branch:
+- git switch <branch>
 
 List all branches:
 - git branch --all
@@ -43,21 +48,23 @@ List all branches:
 Commit Fixup
 ============
 
-Combine sequence of commits, use this only on a personal feature-branch
+Combine sequence of commits, use this only when working on a personal branch
 - git rebase -i <commit-hash>  : will bring up editor, from which you can
   customize the rebase operaton; some of the choices:
   - 'fixup'  : melds the commit into the previous commit
   - 'reword' : edit the commit message
-- git push --force
+- git push --force    # force push is required following git rebase
 
 Bash Prompt
 ===========
 
 Set bash prompt to include branch name, add this to your .bashrc file:
-  parse_git_branch() {
-     git branch --show-current 2> /dev/null | sed 's/\(.*\)/ (\1)/'
-  }
-  export PS1="\u@\h \[\033[32m\]\w\[\033[33m\]\$(parse_git_branch)\[\033[00m\] \$ "
+```
+parse_git_branch() {
+   git branch --show-current 2> /dev/null | sed 's/\(.*\)/ (\1)/'
+}
+export PS1="\u@\h \[\033[32m\]\w\[\033[33m\]\$(parse_git_branch)\[\033[00m\] \$ "
+```
 
 Add Your Public SSH Key to Your Github Account
 ==============================================
@@ -82,13 +89,10 @@ Make change to file(s).
 List the files that have been modified.
 - git status
 
-xxx try alternate method
 View the diff of all modified files;
-GIT_EXTERNAL_DIFF env var can opptionally be set to specify an alternate diff program;
-the ezApp repo uses GIT_EXTERNAL_DIFF to view diff using the meld program
 - git diff
 
-Commit the changes; this commits the changes on your Devel PC.
+Commit the changes; this commits the changes on your Devel PC copy of repo.
 The changes will not yet be copied back to the origin (github) repo.
 - git commit --all
 
@@ -100,6 +104,6 @@ This will fail unless you are the owner of the repo,
 or have been added by the owner as a collaborator.
 - git push
 
-If you now want to pull in other developer's changes, that they had pushed to the origin:
+To get changes that have been made, and pushed, by other developers:
 - git pull
 - git log 

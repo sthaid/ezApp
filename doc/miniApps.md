@@ -19,7 +19,8 @@ Table of Contents
 Install ezApp on your Android device
 ====================================
 
-Install ezApp from the Google Play Store.
+Install ezApp, from the Google Play Store, on your Android Smartphone.
+EZAPP_TODO: ezApp is not currently published on Google Play.
 
 Open ezApp, accept the permission requests, and try out the miniApps that
 are included with ezApp. From within ezApp, select Settings > Readme for a
@@ -29,9 +30,9 @@ If you want to create a new miniApp then continue with the steps described
 in this document.
 
 Enable ezApp Developer Mode.
-- Open ezApp, 'Settings' selection should be at bottom right of display
+- Open ezApp, 'Settings' selection is located at bottom right of display
 - Settings > Devel_Mode > Tap to set ON
-- Settings > Devel_Password > Tap to set your password
+- Settings > Devel_Password > Tap to set your desired password, must be minimum 4 char length
 
 You do not need to enable Android Device 'Developer options' to create miniApps.
 
@@ -79,7 +80,6 @@ Notes:
     wsl --shutdown
     wsl ~
 ```
-
 - Refer to "Appendix A - Using WSL"
 
 Build and Test ezApp on Devel PC
@@ -97,12 +97,14 @@ make
     make run
 ```
 
-* Verification 2: Run the ezsh developer tool. Note that ezApp Devel_Mode 
-must be enabled, and Devel_Password set. This command should list the contents
-of the /data/data/org.sthaid.ezApp/files/apps directory on the Android device.
-```
-    ezsh ls apps
-```
+* Verification 2: Run the ezsh developer tool.
+  - ezApp must be running on your Android device
+  - Devel_Mode must be enabled, 
+  - Devel_Password set
+  - On Devel PC, env vars EZAPP_DEVICE must be set to Android device IP address
+  - On Devel PC, env vars EZAPP_PASSWD must be set to the Devel_Password
+  - Run ```ezsh ls apps```. This should list the contents of the 
+    /data/data/org.sthaid.ezApp/files/apps directory on the Android device.
 
 Create a new miniApp
 ====================
@@ -127,12 +129,10 @@ cd ~/ezApp/files/apps/NewApp
 eztest
 ```
 
-Test 2: runs ezApp on the Linux Devel PC. This is especially helpful when testing
-a miniApp that interacts with a miniSvc.
+Test 2: runs ezApp on the Linux Devel PC.
 ```
 cd ~/ezApp/Linux
 make run
-terminate with ctrl-c
 ```
 
 Run the new miniApp on Android
@@ -149,10 +149,10 @@ cd ~/ezApp/files/apps/NewApp
 ezput
 ```
 
-The NewApp should appear on the Android Device ezApp menu. Tap '>' to page
-through the menu to locate the NewApp.
+NewApp should automatically appear on the Android Device ezApp menu.
+Tap '>' to page through the menu to locate NewApp.
 
-Tap the NewApp to run it.
+Tap NewApp to run it.
 
 APIs available for use by miniApps
 ==================================
@@ -261,7 +261,7 @@ is able to display step count history.
 
 When ezApp starts, the miniSvcs are automatically started:
 - a thread is created for each miniSvc
-- each miniSvc is run by PicoC in the thread created for it
+- each miniSvc is run by PicoC in a thread created for it
 - if a file named 'stopped' exists in the miniSvc directory, that miniSvc is not started
 
 Services can be Started and Stopped from 'Settings' > 'Services'. When a 
@@ -269,8 +269,8 @@ miniSvc has been started, the 'stopped' file is removed. When a miniSvc has been
 stopped, the 'stopped' file is created.
 
 A miniSvc that is running continues to run in the background, even when:
-- ezApp is stopped; i.e. the user has switched to a different Android app
-- the Android device is dozing; note that the miniSvc will run at a reduced rate
+- ezApp is stopped; i.e. the user has switched to a different Android app; or
+- the Android device is dozing; note that the miniSvc will run at a reduced rate when Android is dozing
 
 The miniSvcs provided with ezApp (Altitude, Location, and Steps), each save
 information to a data file. The data file is read, and contents displayed, by a miniApp.

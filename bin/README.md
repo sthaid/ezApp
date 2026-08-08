@@ -45,7 +45,5 @@ Other Scripts
 
 cscope_init: create cscope and tags database files
 
-git_external_diff: referenced by the GIT_EXTERNAL_DIFF env var; this script 
-invokes meld to view git diffs
-
+git_meld_diff: git is configured to run this script to view diffs
 

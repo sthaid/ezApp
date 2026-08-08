@@ -25,14 +25,11 @@ Help:
 Step 1: Install Android SDK
 ---------------------------
 
-xxx reword
-If you haven't already installed the android sdk then do so now.
-- ezApp/bin/install_android_sdk
-- be sure to set environment variables as directed by this script
-- run 'which adb' to confirm the adb program is found in PATH
+The Android SDK should already have been installed by setup_devel_pc.
+Run 'which adb' to confirm the adb program is found in PATH
 
-Step 2: Enable Android Device Developer Mode
---------------------------------------------
+Step 2: Enable Android Device Developer options
+-----------------------------------------------
 
 Note: the location of the Android settings for 'Build number' and
 'Developer options' is device dependent.

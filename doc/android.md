@@ -14,7 +14,7 @@ Table of Contents
 - Connect adb with your Android Device
 - Build ezApp Android APK
 - Install ezApp Android APK
-- Appendix A - adb Commands
+- Appendix A - Some adb Commands
 - Appendix B - Android Version Info
 - Appendix C - Miscellaneous Notes
 
@@ -29,7 +29,7 @@ Build ezApp Android APK
 =======================
 
 This will take a few minutes on the first build.
-Subsequent builds will ususally be faster.
+Subsequent builds will be faster.
 ```
 cd ~/ezApp/android
 make build
@@ -43,10 +43,10 @@ cd ~/ezApp/android
 make install
 ```
 
-Appendix A - adb Commands
-=========================
+If this fails, try first performing ```make uninstall```.
 
-xxx check indenting here
+Appendix A - Some adb Commands
+==============================
 
 General
 - adb help:                show help
@@ -59,7 +59,7 @@ Connecting Devel PC with Android
 - adb disconnect:          disconnect from all devices
 - adb devices:             list connected devices
 
-xxx todo others
+Refer to ezApp/bin/adb_* for more examples.
 
 Appendix B - Android Version Info
 =================================

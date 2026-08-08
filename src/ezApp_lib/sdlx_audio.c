@@ -679,7 +679,7 @@ static int record_mic_thread(void *cx_arg)
     double       silence_secs = 0;
     double       record_secs = 0;
     void        *mp3_cx = NULL;
-    int          consecutive_zero_bytes = 0;  // xxx keep this ?
+    int          consecutive_zero_bytes = 0;
 
     // start audio stream;
     // the audio stream is running even when state is paused, to provide saved audio samples
@@ -699,7 +699,7 @@ static int record_mic_thread(void *cx_arg)
             break;
         }
         if (bytes == 0) {
-            if (++consecutive_zero_bytes > 2500) {
+            if (++consecutive_zero_bytes > 1000) {
                 ERROR("too many consecutive_zero_bytes\n");
                 break;
             }

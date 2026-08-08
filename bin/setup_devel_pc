@@ -1,42 +1,47 @@
 #!/bin/bash
 
-# To get this script (replace 'main' with branch_name)
+# To get this script: 
+# - if working on a branch, replace 'main' with the branch name
 # - wget https://raw.githubusercontent.com/sthaid/ezApp/refs/heads/main/bin/setup_devel_pc  
+# - chmod +x setup_devel_pc
 
-# Before running this script:
+# This script has been tested on
+# - Windows 11 WSL distro Ubuntu-26.04
+# - Ubuntu 26.04, on bare metal
+
+# Prerequisites:
+# - must be running on Ubuntu (preferably 26.04 or newer)
 # - user must be member of sudo group
 # - config values must be set, refer to function config_init
-# - path_to_rsa_key_dir must be set to directory containing id_rsa and id_rsa.pub;
-#     this can be ~/.ssh if the rsa key is already present in that directory
-# - path_to_android_tools must be path to android sdk tools zip file;
-#     which can be downloaded from
-#     https://developer.android.com/studio#command-line-tools-only
-# - if git_clone_using_ssh is true then a github account is required, 
-#     and must be configured with the user's id_rsa.pub
-#   ezapp_device should be set to the IP address of your Android device
-#   ezapp_passwd should be set to the ezApp Devel_Password
-#   accept_sdk_license should be set true to automatically accept the sdk license;
-#     set this true only if you understand and accept the Android SDK license conditions
-#   run_build should be set true if you want this script to also build ezApp
+#   - path_to_rsa_key_dir: must be set to directory containing id_rsa and id_rsa.pub;
+#       this can be ~/.ssh if the rsa key is already present in that directory
+#   - path_to_android_tools: must be path to android sdk tools zip file;
+#       downloaded from https://developer.android.com/studio#command-line-tools-only
+#   - your_name, your_email: these are used when configuring git
+#   - branch_name: usually set to 'main'
+#   - git_clone_using_ssh: if true then a github account is required, 
+#        and must be configured with the user's id_rsa.pub
+#   - create_vimrc: if true a ~/.vimrc file will be created
+#   - ezapp_device: ip address of your Android device
+#   - ezapp_passwd: the ezApp Devel_Password, min length 4 chars
+#   - accept_sdk_license: set true to automatically accept the sdk license;
+#       set this true only if you understand and accept the Android SDK license conditions
+#   - run_build: set true if you want this script to also build ezApp
 
 # This script performs the following steps:
 # - display and validate the config settings
-# - prompts to continue
+# - issues prompt to continue
 # - copies your provided rsa key to ~/.ssh
 # - install and configure git
 # - git clone ezApp
 # - install required linux packages
 # - install android sdk, this creates ~/android/sdk
-# - creates ~/.vimrc
 # - create ~/.bashrc_ezapp, and adds a call to this from ~/.bashrc
-
-# This script has been tested on
-# - Ubuntu 26.04 LTS
-# - Windows 11 WSL distro Ubuntu-26.04
+# - if create_vimrc=true then creates ~/.vimrc
+# - if run_build=true then ezApp and ezApp/android are built
 
 # To execute this script:
-# - modify config values for your needs
-# - chmod 755 setup_devel_pc
+# - ensure prerequisites are met
 # - ./setup_devel_pc
 
 # ######## FUNCTION ########
@@ -46,8 +51,17 @@ HTTPS_REPO_URL=https://github.com/sthaid/ezApp.git
 
 function config_init()
 {
-    # Note: avoid using spaces in the paths, spaces have not been tested.
+    # ensure user understands how to use this script
+    read -p "Have you read the instructions provided at the top of this file, and
+met all the prerequisites (y/n)? " yn
+    if [ "$yn" != y ]; then
+        exit 1
+    fi
+    echo
 
+    # Modify the following config values.
+    # Avoid using spaces in the paths, spaces in the path config values
+    #  have not been tested.
     if [ "$running_on" = ubuntu_wsl ]; then
         path_to_rsa_key_dir=/mnt/c/Users/STEVEN~1/.ssh
         path_to_android_tools=/mnt/c/Users/STEVEN~1/Downloads/commandlinetools-linux-15859902_latest.zip
@@ -58,16 +72,15 @@ function config_init()
         echo "BUG: unexpected value for running_on=$running_on"
         exit 1
     fi
-
     your_name="Steven Haid"
     your_email=stevenhaid@gmail.com
-    branch_name=wsl_devel   # xxx temp
+    branch_name=wsl_devel   # EZAPP_TODO
     git_clone_using_ssh=true
     create_vimrc=true
     ezapp_device=192.168.1.243
     ezapp_passwd=secret
     accept_sdk_licenses=true
-    run_build=true;
+    run_build=false
 
     echo "Config:"
     echo "- path_to_rsa_key_dir    = $path_to_rsa_key_dir"
@@ -83,7 +96,7 @@ function config_init()
     echo "- run_build              = $run_build"
     echo
 
-    # verify user is  member of sudo group
+    # verify user is member of sudo group
     if ! groups |  grep -q "sudo"; then
         echo "ERROR user is not member of sudo group"
         exit 1
@@ -260,7 +273,6 @@ alias ez_svcs='cd ~/ezApp/files/svcs'
 
 # env vars
 export EDITOR=vim
-export GIT_EXTERNAL_DIFF=$HOME/ezApp/bin/git_external_diff
 export ANDROID_HOME=$HOME/android/sdk
 export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.0.12077973
 export ADB_MDNS=0   # disable MDNS device discovery
@@ -335,6 +347,7 @@ fi
 sudo apt install git
 git config --global user.email "$your_email"
 git config --global user.name "$your_name"
+git config --global diff.external ~/ezApp/bin/git_meld_diff
 echo "Installed and configured git"
 echo
 

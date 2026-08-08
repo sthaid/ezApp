@@ -8,7 +8,6 @@
 
 new=$5
 old=$2
-git_file=$1
 
-meld $old $new | cat
+meld $old $new
 
