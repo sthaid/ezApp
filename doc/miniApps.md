@@ -91,20 +91,20 @@ cd ~/ezApp
 make
 ```
 
-* Verification 1: Run a Linux build of ezApp on the Devel PC.
+Verification 1: Run a Linux build of ezApp on the Devel PC.
 ```
-    cd ~/ezApp/linux
-    make run
+cd ~/ezApp/linux
+make run
 ```
 
-* Verification 2: Run the ezsh developer tool.
-  - ezApp must be running on your Android device
-  - Devel_Mode must be enabled, 
-  - Devel_Password set
-  - On Devel PC, env vars EZAPP_DEVICE must be set to Android device IP address
-  - On Devel PC, env vars EZAPP_PASSWD must be set to the Devel_Password
-  - Run ```ezsh ls apps```. This should list the contents of the 
-    /data/data/org.sthaid.ezApp/files/apps directory on the Android device.
+Verification 2: Run the ezsh developer tool.
+- ezApp must be running on your Android device
+- Devel_Mode must be enabled, 
+- Devel_Password set
+- On Devel PC, env vars EZAPP_DEVICE must be set to Android device IP address
+- On Devel PC, env vars EZAPP_PASSWD must be set to the Devel_Password
+- Run ```ezsh ls apps```. This should list the contents of the 
+  /data/data/org.sthaid.ezApp/files/apps directory on the Android device.
 
 Create a new miniApp
 ====================
@@ -299,6 +299,7 @@ ezput
 Appendix A - Using WSL
 ======================
 
+```
 wsl --install                     # install wsl; NOTE reboot required 'shutdown /r /t 0'
 wsl --status                      # should indicate Defaut Version: 2
 wsl --list --online               # lists avail distros
@@ -314,3 +315,4 @@ wsl --update                      # updates wsl
 wsl --version                     # display wsl version
 wsl --status                      # show wsl status
 wsl --unregister Ubuntu-26.04     # unregisters the distro and deletes the root filesystem.
+```
