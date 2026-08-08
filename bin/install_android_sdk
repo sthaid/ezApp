@@ -91,9 +91,9 @@ echo
 sdkmanager=$HOME/android/sdk/cmdline-tools/latest/bin/sdkmanager
 
 # if accept_sdk_licenses = true then accept the licenses
-if [ "$accept_sdk_licenses" = true ];
+if [ "$accept_sdk_licenses" = true ]; then
     echo "Accept sdk licenses"
-    yes | sdkmanager --licenses
+    yes | &sdkmanager --licenses
     echo
 fi
 
