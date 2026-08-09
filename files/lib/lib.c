@@ -9,7 +9,7 @@
 #include <utils.h>
 #include <svcs.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // -----------------  ORIENTATION  --------------------------------
 
@@ -113,7 +113,8 @@ void display_bar_graph(
 
     // display graph x-axis labels
     int len = strlen(x_axis_str);
-    sdlx_render_printf_ex1(graph_x, graph_y_bottom+5, len, COLOR_WHITE, "%s", x_axis_str);
+    sdlx_render_printf_ex(graph_x, graph_y_bottom+5, len, COLOR_WHITE, FLAG_NONE, 
+                          "%s", x_axis_str);
 
     // display graph y-axis labels
     int *y_axis = NULL;
@@ -139,7 +140,7 @@ void display_bar_graph(
             int y = graph_y_bottom - 
                     ((double)y_axis[i] / max_y) * graph_h -
                     sdlx_char_height(FONT_SMALL) / 2;
-            sdlx_render_printf_ex2(graph_x-10, y, 
+            sdlx_render_printf_ex(graph_x-10, y, 
                                    FONT_SMALL, COLOR_WHITE, FLAG_BG_BLACK,
                                    "%d", y_axis[i]);
         }
@@ -426,12 +427,8 @@ void show_file(char *data_dir, char *filename)
         sdlx_register_event(NULL, EVID_MOTION);
         sdlx_display_present();
 
-        // wait for event with 100ms timeout;
-        // if timedout then continue
-        sdlx_get_event(100000, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
+        // wait for event with infinite timeout;
+        sdlx_get_event(-1, &event);
     
         // process the event
         switch (event.event_id) {
@@ -468,18 +465,30 @@ void show_file(char *data_dir, char *filename)
 
 // -----------------  EVENT REGISTRATION  -------------------------
 
-void reg_event(int x, int y, sdlx_color_t color, char *name, int event_id)
+void reg_event_str(int x, int y, sdlx_color_t color, char *event_name, int event_id)
 {
     sdlx_loc_t *loc;
 
-    loc = sdlx_render_printf_ex1(x, y, FONT_NORMAL, color, "%s", name);
+    loc = sdlx_render_printf_ex(x, y, FONT_NORMAL, color, FLAG_NONE, "%s", event_name);
     sdlx_register_event(loc, event_id);
+}
+
+void reg_event_fill_rect(int x, int y, int w, int h, sdlx_color_t color, int event_id)
+{
+    sdlx_loc_t loc;
+
+    sdlx_render_fill_rect(x, y, w, h, color);
+    loc.x = x;
+    loc.y = y;
+    loc.w = w;
+    loc.h = h;
+    sdlx_register_event(&loc, event_id);
 }
 
 void reg_event_show_readme_file(void)
 {
-    reg_event(sdlx_win_width-2*sdlx_char_width(FONT_NORMAL), 0, 
-              COLOR_LIGHT_BLUE, "?", EVID_SHOW_README_FILE);
+    reg_event_str(sdlx_win_width-2*sdlx_char_width(FONT_NORMAL), 0, 
+                  COLOR_LIGHT_BLUE, "?", EVID_SHOW_README_FILE);
 }
 
 // -----------------  SERVICE REQUEST INITIALIZER  ----------------
@@ -503,3 +512,60 @@ svc_req_t *svc_req_init(int req_id, char *data, int data_len)
     return &req;
 }   
 
+// -----------------  DOUBLE LINKED LIST  --------------------------
+
+void add_to_list(node_t *loc, node_t *new_elem)
+{
+    node_t *elem1 = loc;
+    node_t *elem2 = elem1->next;
+
+    elem1->next = new_elem;
+    new_elem->prev = elem1;
+
+    elem2->prev = new_elem;
+    new_elem->next = elem2;
+}
+
+void init_list_head(node_t *head)
+{
+    head->next = head;
+    head->prev = head;
+}
+
+void add_to_list_head(node_t *head, node_t *new_elem)
+{
+    add_to_list(head, new_elem);
+}
+
+void add_to_list_tail(node_t *head, node_t *new_elem)
+{
+    add_to_list(head->prev, new_elem);
+}
+
+void remove_from_list(node_t *remove_elem)
+{
+    node_t *elem1 = remove_elem->prev;
+    node_t *elem2 = remove_elem->next;
+
+    elem1->next = elem2;
+    elem2->prev = elem1;
+
+    remove_elem->next = NULL;
+    remove_elem->prev = NULL;
+}
+
+bool is_list_empty(node_t *head)
+{
+    return head->next == head;
+}
+
+int num_list_elements(node_t *head)
+{
+    int n = 0;
+    node_t *node;
+
+    for (node = head->next; node != head; node = node->next) {
+        n++;
+    }
+    return n;
+}

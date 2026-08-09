@@ -23,10 +23,12 @@ LOCAL_SRC_FILES := \
     sdlx_misc.c \
     sdlx_sensor.c \
     sdlx_video.c \
+    sdlx_haptic.c \
     svcs.c \
     utils.c \
     utils_openssl.c \
-    utils_android.cpp 
+    utils_android.cpp \
+    utils_jpeg_decode.c
 
 LOCAL_CFLAGS := -O2
 

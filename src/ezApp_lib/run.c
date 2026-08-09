@@ -49,14 +49,18 @@ int run(char *name, bool is_svc)
         return 99;
     }
 
-    // if running an app then add apps/lib/lib.c
+    // if running an app then add lib/lib.c
     if (!is_svc) {
-        p += sprintf(p, "%s", "apps/lib/lib.c ");
+        p += sprintf(p, "%s", "lib/lib.c ");
     }
 
     // add progname and data_dir args, which will be passed to the
     // app or svc which will be run by picoc
     p += sprintf(p, " - %s %s", name, dir_path);
+
+    // invalidate cached params, this may be needed if a params 
+    // file is changed as part of a miniApp update
+    util_invalidate_cached_params();
 
     // run the app using the picoc c language interpreter
     INFO("%s: starting, args = %s\n", name, picoc_args);

@@ -12,7 +12,7 @@
 // defines
 // 
 
-#define FONT_FILE_PATH  "FreeMonoBold.ttf"
+#define FONT_FILE_PATH  "fonts/FreeMonoBold.ttf"
 
 #define ONE_MS 1000
 #define TEN_MS 10000
@@ -21,7 +21,7 @@
 #define MAX_FONT_PTSIZE  400
 
 #define LOGICAL_WIN_WIDTH   1000
-#define LOGICAL_WIN_HEIGHT  2350
+#define LOGICAL_WIN_HEIGHT  2150
 
 //
 // typedefs
@@ -51,11 +51,11 @@ int sdlx_char_height_dflt;
 // variables
 //
 
-SDL_Window          *window;  // also used by sdlx_event.c and sdlx_misc.c
+SDL_Window          *window;  // needed by sdlx_misc.c
 
 static SDL_Renderer *renderer;
 static font_t        font[MAX_FONT_PTSIZE];
-sdlx_texture_t      *texture_dflt;
+sdlx_texture_t      *texture_display;
 int                  orientation;
 int                  real_win_width, real_win_height;
 int                  logical_win_width, logical_win_height;
@@ -168,22 +168,21 @@ int sdlx_video_init(void)
 #endif
 
     // Aspect ratio ...
-    // 
     // * Modern android devices use taller aspect ratios, such as:
-    //   - 19.5:9   2.1666
-    //   - 20:9     2.2222
+    //   - 19.5:9   2.1666   (most common, my device)
+    //   - 20:9     2.2222   (most common)
     //   - 20.5:9   2.2777
-    // * This program was developed on an Android device with 
+    // * ezApp was developed on an Android device with 
     //   display size of WxH = 1080 x 2340   (aspect_ratio = 2.1666).
-    // * For best results this program should be run on a device with
+    // * For best results ezApp should be run on a device with
     //   one of these taller aspect ratios.
-    // * This program scales the display size to 1000x2350; aspect ratio 2.35
-    // * 150 pixels at the bottom of the display are reserved space for master controls.
-    // * Apps that run within this program should assume a fixed logical
-    //   display size of 1000 x 2200. This size excludes the master control area.
+    // * ezApp scales the display size to WxH = 1000x2150; aspect ratio 2.15
+    // * 150 pixels at the bottom of the display are reserved space for the master controls.
+    // * miniApps that run within ezApp should assume a fixed logical
+    //   display size of 1000 x 2000. This size excludes the master control area.
     //
-    // When landscape mode is selected the logical display area becomes 2200 x 1000.
-    // Note that the orientation is selected by apps when calling sdlx_display_init().
+    // When landscape mode is selected the logical display area becomes 2000 x 1000.
+    // The orientation is selected by apps when calling sdlx_display_init().
     // Since apps call sdlx_display_init periodically, the apps can dynamically change
     // screen orientation.
     //
@@ -191,13 +190,14 @@ int sdlx_video_init(void)
     // These varaibles are initialized by the sdlx_display_init routine, to 
     // the following values:
     //                   PORTRAIT   LANDSCAPE
-    // sdlx_win_width  =  1000        2200
-    // sdlx_win_height =  2200        1000
+    // sdlx_win_width  =  1000        2000
+    // sdlx_win_height =  2000        1000
 
     // get real windows size and aspect ratio
     SDL_GetWindowSize(window, &real_win_width, &real_win_height);
     INFO("real    win_width x height = %d %d  aspect = %f\n", 
-         real_win_width, real_win_height, (double)real_win_height / real_win_width);
+         real_win_width, real_win_height, 
+         (double)real_win_height / real_win_width);
 
     // sanity check
     SDL_GetCurrentRenderOutputSize(renderer, &w, &h);
@@ -219,7 +219,8 @@ int sdlx_video_init(void)
     sdlx_win_width     = logical_win_width;
     sdlx_win_height    = logical_win_height - CONTROL_AREA_SIZE;
     INFO("logical win_width x height = %d %d  aspect = %f\n", 
-         logical_win_width, logical_win_height, (double)logical_win_height / logical_win_width);
+         logical_win_width, logical_win_height, 
+         (double)logical_win_height / logical_win_width);
 
     // init scale factors used by sdlx_event.c
     scale_events_x = (double)real_win_width / logical_win_width;
@@ -323,43 +324,41 @@ void sdlx_display_init(sdlx_color_t color, int orientation_arg)
     // set global display orientation variable
     orientation = orientation_arg;
 
-    // if default rendering texture has not yet been allocated, or
+    // if the display rendering texture has not yet been allocated, or
     // the display orientation has changed, then ...
-    if (!texture_dflt || (texture_orientation != orientation)) {
-        // destroy the current default rendering texture
-        sdlx_destroy_texture(texture_dflt);
-        texture_dflt = NULL;
+    if (!texture_display || (texture_orientation != orientation)) {
+        // destroy the current display rendering texture
+        sdlx_destroy_texture(texture_display);
+        texture_display = NULL;
 
         // based on new display orientation:
-        // - set the logical width/height to: 
-        //   . landscape = 1000/2200
-        //   . portrait  = 2200/1000
-        // - create new default rendering texture with size equal to the 
+        // - set the logical width/height variables
+        // - create new display rendering texture with size equal to the 
         //   logical_win_width/height
         // - init the sdlx_win_width/height; this is the same as the 
         //   logical_win_width/height, except for not including the CONTROL_AREA_SIZE
         if (orientation == PORTRAIT) {
             logical_win_width = logical_win_width_portrait;
             logical_win_height = logical_win_height_portrait;
-            texture_dflt = sdlx_create_texture(logical_win_width, logical_win_height);
+            texture_display = sdlx_create_texture(logical_win_width, logical_win_height);
             texture_orientation = PORTRAIT;
             sdlx_win_width  = logical_win_width;
             sdlx_win_height = logical_win_height - CONTROL_AREA_SIZE;
         } else {
             logical_win_width = logical_win_width_landscape;
             logical_win_height = logical_win_height_landscape;
-            texture_dflt = sdlx_create_texture(logical_win_width, logical_win_height);
+            texture_display = sdlx_create_texture(logical_win_width, logical_win_height);
             texture_orientation = LANDSCAPE;
             sdlx_win_width  = logical_win_width - CONTROL_AREA_SIZE;
             sdlx_win_height = logical_win_height;
         }
     }
 
-    // set the textrue_dflt as the rendering target
-    SDL_SetRenderTarget(renderer, (SDL_Texture*)texture_dflt);
+    // set texture_display as the rendering target
+    SDL_SetRenderTarget(renderer, (SDL_Texture*)texture_display);
 
-    // clear the texture_dflt to the caller supplied color
-    sdlx_clear_texture(texture_dflt, color);
+    // clear the texture_display to the caller supplied color
+    sdlx_clear_texture(texture_display, color);
 }
 
 void sdlx_display_present(void)
@@ -367,15 +366,14 @@ void sdlx_display_present(void)
     // set rendering target to the display
     SDL_SetRenderTarget(renderer, NULL);
 
-    // render the texture_dflt to the display;
-    // when orientation is landscpe, the texture_dflt is rotated by 90 degrees
+    // render the texture_display to the display;
+    // when orientation is landscpe, the texture_display is rotated by 90 degrees
     if (orientation == PORTRAIT) {
-        sdlx_render_texture_ex1(texture_dflt, 0, 0, real_win_width, real_win_height);
+        sdlx_render_texture(texture_display, NULL, NULL);
     } else {
-        sdlx_render_texture_ex3(texture_dflt,
-                                0, 0, real_win_height, real_win_width,
-                                90,
-                                real_win_width/2, real_win_width/2);
+        sdlx_loc_t dest = {0, 0, real_win_height, real_win_width};
+        sdlx_point_t center = {real_win_width/2, real_win_width/2};
+        sdlx_render_texture_rotated(texture_display, NULL, &dest, 90, &center, FLIP_NONE);
     }
 
     // present the display
@@ -777,19 +775,7 @@ sdlx_loc_t *sdlx_render_printf(int x, int y, char * fmt, ...)
     return render_text(x, y, print_dflt.fontid, print_dflt.color, 0, str);
 }
 
-sdlx_loc_t *sdlx_render_printf_ex1(int x, int y, int fontid, sdlx_color_t color, char * fmt, ...)
-{
-    char str[1000];
-    va_list ap;
-
-    va_start(ap, fmt);
-    vsnprintf(str, sizeof(str), fmt, ap);
-    va_end(ap);
-
-    return render_text(x, y, fontid, color, 0, str);
-}
-
-sdlx_loc_t *sdlx_render_printf_ex2(int x, int y, int fontid, sdlx_color_t color, unsigned int flags, char *fmt, ...)
+sdlx_loc_t *sdlx_render_printf_ex(int x, int y, int fontid, sdlx_color_t color, unsigned int flags, char *fmt, ...)
 {
     char str[1000];
     va_list ap;
@@ -1312,94 +1298,75 @@ unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w_arg, int *h_arg)
     SDL_SetRenderTarget(renderer, initial_render_target);
 
     // return w, h, and pixels; caller must free pixels
-    *w_arg = w;
-    *h_arg = h;
+    if (w_arg) *w_arg = w;
+    if (h_arg) *h_arg = h;
     return pixels;
 }
 
 // - - - - - - render texture - - - - - 
 
-void sdlx_render_texture(sdlx_texture_t *texture, int x, int y)
+void sdlx_render_texture(sdlx_texture_t *texture, sdlx_loc_t *srcrect, sdlx_loc_t *dstrect)
 {
-    int w, h;
-    SDL_FRect dest;
+    SDL_FRect src, *Src=NULL;
+    SDL_FRect dst, *Dst=NULL;
 
     if (texture == NULL) {
         return;
     }
+    
+    if (srcrect != NULL) {
+        src.x = srcrect->x;
+        src.y = srcrect->y;
+        src.w = srcrect->w;
+        src.h = srcrect->h;
+        Src = &src;
+    }
 
-    sdlx_query_texture(texture, &w, &h);
+    if (dstrect != NULL) {
+        dst.x = dstrect->x;
+        dst.y = dstrect->y;
+        dst.w = dstrect->w;
+        dst.h = dstrect->h;
+        Dst = &dst;
+    }
 
-    dest.x = x;
-    dest.y = y;
-    dest.w = w;
-    dest.h = h;
-
-    SDL_RenderTexture(renderer, (SDL_Texture*)texture, NULL, &dest);
+    SDL_RenderTexture(renderer, (SDL_Texture*)texture, Src, Dst);
 }
 
-void sdlx_render_texture_ex1(sdlx_texture_t *texture, int x, int y, int w, int h)
+void sdlx_render_texture_rotated(sdlx_texture_t *texture, sdlx_loc_t *srcrect, sdlx_loc_t *dstrect,
+                                 double angle, sdlx_point_t *center, int flip) 
 {
-    SDL_FRect dest;
+    SDL_FRect src, *Src=NULL;
+    SDL_FRect dst, *Dst=NULL;
+    SDL_FPoint ctr, *Ctr=NULL;
 
     if (texture == NULL) {
         return;
     }
-
-    dest.x = x;
-    dest.y = y;
-    dest.w = w;
-    dest.h = h;
-
-    SDL_RenderTexture(renderer, (SDL_Texture*)texture, NULL, &dest);
-}
-
-void sdlx_render_texture_ex2(sdlx_texture_t *texture, int x, int y, int w, int h, double angle)
-{
-    SDL_FRect dest;
-
-    if (texture == NULL) {
-        return;
+    
+    if (srcrect != NULL) {
+        src.x = srcrect->x;
+        src.y = srcrect->y;
+        src.w = srcrect->w;
+        src.h = srcrect->h;
+        Src = &src;
     }
 
-    dest.x = x;
-    dest.y = y;
-    dest.w = w;
-    dest.h = h;
-
-    SDL_RenderTextureRotated(renderer,
-                             (SDL_Texture*)texture, 
-                             NULL,      // source, NULL means the entire texture
-                             &dest,     // dest rectangle
-                             angle,     // rotation angle
-                             NULL,      // point around which dest will be rotated
-                             SDL_FLIP_NONE);
-}
-
-void sdlx_render_texture_ex3(sdlx_texture_t *texture, int x, int y, int w, int h, double angle, int xctr, int yctr)
-{
-    SDL_FRect dest;
-    SDL_FPoint ctr;
-
-    if (texture == NULL) {
-        return;
+    if (dstrect != NULL) {
+        dst.x = dstrect->x;
+        dst.y = dstrect->y;
+        dst.w = dstrect->w;
+        dst.h = dstrect->h;
+        Dst = &dst;
     }
 
-    dest.x = x;
-    dest.y = y;
-    dest.w = w;
-    dest.h = h;
+    if (center != NULL) {
+        ctr.x = center->x;
+        ctr.y = center->y;
+        Ctr = &ctr;
+    }
 
-    ctr.x = xctr;
-    ctr.y = yctr;
-
-    SDL_RenderTextureRotated(renderer,
-                             (SDL_Texture*)texture, 
-                             NULL,      // source, NULL means the entire texture
-                             &dest,     // dest rectangle
-                             angle,     // rotation angle
-                             &ctr,      // point around which dest will be rotated
-                             SDL_FLIP_NONE);
+    SDL_RenderTextureRotated(renderer, (SDL_Texture*)texture, Src, Dst, angle, Ctr, flip);
 }
 
 // - - - - - - set render target - - - - - - - - 
@@ -1409,7 +1376,7 @@ void sdlx_set_render_target(sdlx_texture_t *t)
     bool succ;
 
     if (t == NULL) {
-        succ = SDL_SetRenderTarget(renderer, (SDL_Texture*)texture_dflt);
+        succ = SDL_SetRenderTarget(renderer, (SDL_Texture*)texture_display);
     } else {
         succ = SDL_SetRenderTarget(renderer, (SDL_Texture*)t);
     }

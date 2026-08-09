@@ -1,11 +1,11 @@
 # --- build ---
 
 APPS := $(sort $(dir $(wildcard files/apps/*/.)))
-APPS := $(filter-out files/apps/lib/, $(APPS))
 SVCS := $(sort $(dir $(wildcard files/svcs/*/.)))
 
 build: clone_sdl bin/src linux test_build_apps_and_svcs
 
+# the SDL checkouts are from Sep 13, 2026
 clone_sdl:
 	@if [ ! -d src/SDL -o ! -d src/SDL_ttf -o ! -d src/SDL_mixer ]; then \
             SRC=$$PWD/src; \
@@ -17,9 +17,9 @@ clone_sdl:
             git clone https://github.com/libsdl-org/SDL_ttf; \
             git clone https://github.com/libsdl-org/SDL_mixer; \
             echo "checkout branches"; \
-            cd $$SRC/SDL;       git checkout -q release-3.4.0; \
-            cd $$SRC/SDL_ttf;   git checkout -q 0165849a0061d91c51d4a3fa8bcda5b5fcf53cc9; \
-            cd $$SRC/SDL_mixer; git checkout -q 092fafa4d820c45e3f05b59b7be75807ef3eefe8; \
+            cd $$SRC/SDL;       git checkout -q 33b4a9d915947d2482366622fc4f97c944254775; \
+            cd $$SRC/SDL_ttf;   git checkout -q 65df5b20d7f6497f24cdf78e583205d53e5c96a1; \
+            cd $$SRC/SDL_mixer; git checkout -q 9edf53e092202ecc41118057d73eca6ad4ea1138; \
             echo "download external repos"; \
             cd $$SRC/SDL_ttf/external;   ./download.sh; \
             cd $$SRC/SDL_mixer/external; ./download.sh; \

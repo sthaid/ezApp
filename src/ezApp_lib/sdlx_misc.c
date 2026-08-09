@@ -21,6 +21,7 @@ extern SDL_Window *window;
 static int video_init_count;
 static int audio_init_count;
 static int sensor_init_count;
+static int haptic_init_count;
 
 // -----------------  SDLX INIT / QUIT  -----------------------
 
@@ -67,6 +68,18 @@ int sdlx_init(int subsys)
         sensor_init_count++;
     }
 
+    if (subsys & SUBSYS_HAPTIC) {
+        if (haptic_init_count == 0) {
+            rc = sdlx_haptic_init();
+            if (rc != 0) {
+                ERROR("failed to init haptic\n");
+                SDL_Quit();
+                return -1;
+            }
+        }
+        haptic_init_count++;
+    }
+
     return 0;
 }
 
@@ -90,9 +103,16 @@ void sdlx_quit(int subsys)
         }
     }
 
+    if (subsys & SUBSYS_HAPTIC) {
+        if (--haptic_init_count == 0) {
+            sdlx_haptic_quit();
+        }
+    }
+
     if (video_init_count <= 0 && 
         audio_init_count <= 0 &&
-        sensor_init_count <= 0)
+        sensor_init_count <= 0 &&
+        haptic_init_count <= 0)
     {
         SDL_Quit();
     }
@@ -147,21 +167,21 @@ char *sdlx_get_input_str(char *prompt, bool numeric_keybd, char *dflt_input_str)
         row = 0;
         if (prompt && prompt[0] != '\0') {
             row += 1;
-            loc = sdlx_render_printf_ex2(0, ROW2Y(1), FONT_NORMAL, COLOR_WHITE, 0, "%s", prompt);
+            loc = sdlx_render_printf_ex(0, ROW2Y(1), FONT_NORMAL, COLOR_WHITE, FLAG_NONE, "%s", prompt);
             row += nearbyint((double)loc->h / sdlx_char_height_dflt);
         }
 
         // display input value string
         row += 1;
-        loc = sdlx_render_printf_ex2(0, ROW2Y(row), FONT_NORMAL, COLOR_WHITE, 0, "? %s", input);
+        loc = sdlx_render_printf_ex(0, ROW2Y(row), FONT_NORMAL, COLOR_WHITE, FLAG_NONE, "? %s", input);
         if ((util_microsec_timer() / 500000) & 1) {
-            sdlx_render_printf_ex2(loc->x+loc->w, loc->y, FONT_NORMAL, COLOR_WHITE, 0, "%s", "_");
+            sdlx_render_printf_ex(loc->x+loc->w, loc->y, FONT_NORMAL, COLOR_WHITE, FLAG_NONE, "%s", "_");
         }
 
         // register cancel event;
         // this event is needed to deal with the keybd being dismissed
         row += 2;
-        loc = sdlx_render_printf_ex2(0, ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, 0, "Cancel");
+        loc = sdlx_render_printf_ex(0, ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "Cancel");
         sdlx_register_event(loc, EVID_QUIT);
 
         // register for keyboard events
@@ -178,7 +198,7 @@ char *sdlx_get_input_str(char *prompt, bool numeric_keybd, char *dflt_input_str)
 
         // process sdlx events EVID_KEYBD and EVID_QUIT
         if (event.event_id == EVID_KEYBD) {
-            int ch = event.u.data.bytes[0];
+            int ch = event.u.private_keybd.keycode;
 
             if (ch >= 0x20 && ch < 0x7f) {
                 // add the printable char to the input array

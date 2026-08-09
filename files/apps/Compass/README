@@ -6,8 +6,7 @@ Compass displays either Magnetic or
 True heading.
 
 When Show is enabled the magnetic 
-declination is displayed, and a blue dot
-is displayed at true north.
+declination is displayed.
 
 On first use, or if location has
 substantially changed, the magnetic
@@ -25,16 +24,16 @@ was downloaded in png format. Png format
 supports transparent background.
 
 The image was then resized, using the
-imagemagick convert program.  Resizing 
+imagemagick convert program. Resizing 
 is peformed to reduce the size of the 
 image file. The resizing does not affect
 the size of the image displayed by the 
 compass program.
 
-Install imagemagick:
+To install imagemagick:
   sudo apt install imagemagick
 
-Resize image:
+To resize image:
   convert AdobeStock_1094425893.png \
     -resize 1000x1000 compass.png
 

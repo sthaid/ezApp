@@ -70,10 +70,17 @@ int sdlx_sensor_init(void);
 void sdlx_sensor_quit(void);
 
 // --------------------
+// sdlx_haptic.c
+// --------------------
+
+int sdlx_haptic_init(void);
+void sdlx_haptic_quit(void);
+
+// --------------------
 // sdlx_event.c
 // --------------------
 
-#define EVID_KEYBD   10002
+#define EVID_KEYBD        2000000000
 #define CONTROL_AREA_SIZE 150
 
 void sdlx_reset_events(void);
@@ -86,6 +93,7 @@ void sdlx_event_box_ctrl(bool event_box_enable);
 #define SUBSYS_VIDEO  1
 #define SUBSYS_AUDIO  2
 #define SUBSYS_SENSOR 4
+#define SUBSYS_HAPTIC 8
 
 int sdlx_init(int subsys);
 void sdlx_quit(int subsys);
@@ -109,12 +117,12 @@ int num_svcs_running(void);
 
 void util_android_utils_init(void);
 void util_android_utils_destroy(void);
-void util_start_foreground(void);
-void util_stop_foreground(void);
+int util_start_foreground(void);
+int util_stop_foreground(void);
 bool util_is_foreground_enabled(void);
 
 // ----------------------
-// utils.c  openssl support
+// utils.c openssl
 // ----------------------
 
 #define SSL_TEXTLEN 128
@@ -128,6 +136,12 @@ typedef struct {
 unsigned char *ssl_keygen(char *password);
 int ssl_encrypt(unsigned char *key, char *plaintext, ssl_payload_t *payload);
 int ssl_decrypt(unsigned char *key, ssl_payload_t *payload, char **plaintext);
+
+// ----------------------
+// utils.c misc
+// ----------------------
+
+void util_invalidate_cached_params(void);
 
 // --------------------
 // run.c

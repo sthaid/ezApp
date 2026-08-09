@@ -1,7 +1,4 @@
 
-Thanks to the following for providing
-permiissive licensed software.
-
 * SDL, SDL_mixer, SDL_ttf - Simple
   DirectMedia Layer (SDL) is a cross-
   platform development library designed
@@ -40,9 +37,6 @@ permiissive licensed software.
 
   https://github.com/zlargon/lame
 
-Thanks to the following for providing
-free or public domain content.
-
 * geoapify - Provides locations of cities,
   towns, and villages.
 
@@ -71,5 +65,7 @@ free or public domain content.
   . Jingle Bells
   . Frere Jacques
 
-Thanks also to Wikipedia and
-Google AI Powered Search.
+* Google AI Powered Search
+
+* Wikipedia
+

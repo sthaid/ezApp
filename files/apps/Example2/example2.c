@@ -4,7 +4,7 @@
 #include <sdlx.h>
 #include <utils.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // defines
 #define EVID_SET_COLOR_WHITE 1
@@ -23,11 +23,11 @@ int main(int argc, char **argv)
     sdlx_event_t event;
 
     // save args
-    progname = argv[0];
     if (argc != 2) {
-        printf("E %s: data_dir arg expected\n", progname);
+        printf("E %s: argc=%d is not 2\n", "Example2", argc);
         return 1;
     }
+    progname = argv[0];
     data_dir = argv[1];
     printf("I %s: starting, data_dir=%s\n", progname, data_dir);
 
@@ -54,9 +54,6 @@ int main(int argc, char **argv)
 
         // wait for event, with infinite timeout
         sdlx_get_event(-1, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
 
         // process events
         switch (event.event_id) {

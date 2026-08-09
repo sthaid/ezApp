@@ -6,7 +6,7 @@
 #include <sdlx.h>
 #include <svcs.h>
 
-#include "svcs/Template/template.h"
+#include "svcs/Example/example.h"
 
 // program args
 char *progname;
@@ -19,7 +19,7 @@ bool end_program = false;
 void process_req(svc_req_t *req);
 void periodic_processing(void);
 
-// -----------------  TEMPLATE SERVICE  --------------------------------------
+// -----------------  EXAMPLE SERVICE  --------------------------------------
 
 int main(int argc, char **argv)
 {
@@ -69,7 +69,7 @@ void process_req(svc_req_t *req)
         svc_req_completed(progname, req, 0);
         end_program = true;
         break;
-    case SVC_TEMPLATE_REQ_ADD_ONE:
+    case SVC_EXAMPLE_REQ_ADD_ONE:
         *(int*)(&req->data[0]) = *(int*)(&req->data[0]) + 1;
         svc_req_completed(progname, req, 0);
         break;
@@ -84,6 +84,7 @@ void process_req(svc_req_t *req)
 
 void periodic_processing(void)
 {
+#if 0
     // print interval since last call
     static time_t t_last_call;
     time_t t_now = time(NULL);
@@ -91,4 +92,5 @@ void periodic_processing(void)
         printf("I %s: periodic interval = %ld secs\n", progname, t_now-t_last_call);
     }
     t_last_call = t_now;
+#endif
 }

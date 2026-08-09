@@ -7,7 +7,7 @@
 #include <sdlx.h>
 #include <utils.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 //
 // defines
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
             sdlx_color_t color;
 
             // if all filenames will fit on the display then disable scrolling
-            if (max_filename <= 14) {
+            if (max_filename <= 12) {
                 y = y_top;
             }
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
             }
 
             // display the friendly filename in the color determined above
-            loc = sdlx_render_printf_ex1(0, y2, FONT_CUSTOM, color, "%s", friendlyname[idx]);
+            loc = sdlx_render_printf_ex(0, y2, FONT_CUSTOM, color, FLAG_NONE, "%s", friendlyname[idx]);
             if (color == COLOR_LIGHT_BLUE || color == COLOR_GREEN) {
                 sdlx_register_event(loc, EVID_PLAY+idx);
             }
@@ -138,13 +138,13 @@ int main(int argc, char **argv)
             //   register stop event, to stop the inprogress playback or record
             // endif
             if (color == COLOR_LIGHT_BLUE) {
-                loc = sdlx_render_printf_ex1(COL2X(16.5), y2, FONT_CUSTOM, COLOR_LIGHT_BLUE, "%s", "+");
+                loc = sdlx_render_printf_ex(COL2X(16.5), y2, FONT_CUSTOM, COLOR_LIGHT_BLUE, FLAG_NONE, "%s", "+");
                 sdlx_register_event(loc, EVID_APPEND+idx);
 
-                loc = sdlx_render_printf_ex1(COL2X(21), y2, FONT_CUSTOM, COLOR_LIGHT_BLUE, "%s", "X");
+                loc = sdlx_render_printf_ex(COL2X(21), y2, FONT_CUSTOM, COLOR_LIGHT_BLUE, FLAG_NONE, "%s", "X");
                 sdlx_register_event(loc, EVID_DELETE+idx);
             } else {
-                loc = sdlx_render_printf_ex1(COL2X(15.5), y2, FONT_CUSTOM, COLOR_LIGHT_BLUE, "%s", "STOP");
+                loc = sdlx_render_printf_ex(COL2X(15.5), y2, FONT_CUSTOM, COLOR_LIGHT_BLUE, FLAG_NONE, "%s", "STOP");
                 sdlx_register_event(loc, EVID_STOP);
             }
         }

@@ -9,7 +9,7 @@
 #include <sdlx.h>
 #include <utils.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 //
 // defines
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
         //   display log
         // endif
         if (state == LOG_NOT_LOADED || state == LOG_LOAD_FAILED) {
-            sdlx_render_printf_ex2(sdlx_win_width/2, sdlx_win_height/2, 
+            sdlx_render_printf_ex(sdlx_win_width/2, sdlx_win_height/2, 
                                    FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                                    "%s",
                                    state == LOG_NOT_LOADED ?  "Loading" : "Load Failed");
@@ -130,8 +130,8 @@ int main(int argc, char **argv)
             init_xy_to_end_of_log();
         }
 
-        // wait for event, with 50 ms timeout
-        sdlx_get_event(50000, &event);
+        // wait for event, with 100 ms timeout
+        sdlx_get_event(100000, &event);
         if (event.event_id == -1) {
             continue;
         }

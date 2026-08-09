@@ -93,7 +93,9 @@ echo
 
 # create the backup on the android device
 echo "creating $backup_filename on android device"
-$EZSH "find apps svcs -type f \( -name "*.mp3" -o -name "*.dat" -o -name "params" \) -print0 | tar --null -cvf $backup_filename -T -"
+$EZSH "find apps svcs -type f \
+    \( -name "*.mp3" -o -name "*.dat" -o -name "*.jpg" -o -name "*.meta" -o -name "params" \) \
+    -print0 | tar --null -cvf $backup_filename -T -"
 if [ $? -ne 0 ]; then
     echo "ERROR: ezsh failed to create $backup_filename"
     exit 1

@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     bool             okay = false;
 
     // init sdl video
-    rc = sdlx_init(SUBSYS_VIDEO);
+    rc = sdlx_init(SUBSYS_VIDEO, DEFAULT_ASPECT_RATIO);
 
     // create texture of the proposed launcher icon
     t_proposed = sdlx_create_texture(PROPOSED_ICON_SIZE, PROPOSED_ICON_SIZE);

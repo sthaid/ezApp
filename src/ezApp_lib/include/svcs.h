@@ -5,11 +5,11 @@
 extern "C" {
 #endif
 
-// common req id value; the miniSvc must terminate when SVC_REQ_ID_STOP is received
+// the miniSvc must terminate when SVC_REQ_ID_STOP is received
 #define SVC_REQ_ID_STOP 1
 
 // sizeof of req->data
-#define MAX_SVC_REQ_DATA 100
+#define MAX_SVC_REQ_DATA 1000
 
 // Status values returned by svc_make_req.
 #define SVC_REQ_ERROR_FAILURE           -1

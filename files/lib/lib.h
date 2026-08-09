@@ -36,11 +36,25 @@ void str_sanitize(char *s);
 void show_file(char *dir, char *filename);
 
 // event registration
-#define EVID_SHOW_README_FILE 9900
-void reg_event(int x, int y, sdlx_color_t color, char *name, int event_id);
+#define EVID_SHOW_README_FILE 999999999
+void reg_event_str(int x, int y, sdlx_color_t color, char *event_name, int event_id);
+void reg_event_fill_rect(int x, int y, int w, int h, sdlx_color_t color, int event_id);
 void reg_event_show_readme_file(void);
 
 // init service request
 svc_req_t *svc_req_init(int req_id, char *data, int data_len);
+
+// double linked list
+typedef struct node {
+    struct node *next;
+    struct node *prev;
+} node_t;
+
+void init_list_head(node_t *head);
+void add_to_list_head(node_t *head, node_t *new_elem);
+void add_to_list_tail(node_t *head, node_t *new_elem);
+void remove_from_list(node_t *remove_elem);
+bool is_list_empty(node_t *head);
+int num_list_elements(node_t *head);
 
 #endif

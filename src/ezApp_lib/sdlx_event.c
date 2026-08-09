@@ -26,12 +26,11 @@ typedef struct {
 // variables
 //
 
-extern SDL_Window *window;
-
 static event_t event_tbl[MAX_EVENT];
 static int     max_event;
 static bool    evid_motion_registered;
 static bool    evid_keybd_registered;
+static bool    evid_pinch_registered;
 static int     event_quit_rcvd;
 static bool    event_box_enable;
 
@@ -39,12 +38,18 @@ static bool    event_box_enable;
 // prototypes
 //
 
+static void register_event(sdlx_loc_t *loc, int event_id, bool allow_ctrl_event_area);
 static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event);
 static char *event_type_to_str(enum SDL_EventType evtype) ATTRIBUTE_UNUSED;
 
 // -----------------  REGISTER EVENTS  --------------------
 
 void sdlx_register_event(sdlx_loc_t *loc, int event_id)
+{
+    register_event(loc, event_id, false);
+}
+
+static void register_event(sdlx_loc_t *loc, int event_id, bool allow_ctrl_event_area)
 {
     sdlx_loc_t loc2;
 
@@ -61,6 +66,10 @@ void sdlx_register_event(sdlx_loc_t *loc, int event_id)
     }
     if (event_id == EVID_KEYBD) {
         evid_keybd_registered = true;
+        return;
+    }
+    if (event_id == EVID_PINCH) {
+        evid_pinch_registered = true;
         return;
     }
 
@@ -81,6 +90,26 @@ void sdlx_register_event(sdlx_loc_t *loc, int event_id)
         int delta = 150 - loc2.h;
         loc2.h += delta;
         loc2.y -= delta/2;
+    }
+
+    // if loc extends into the control area then 
+    // either shrink the loc, or discard the event 
+    if (!allow_ctrl_event_area) {
+        if (orientation == PORTRAIT) { 
+            if (loc2.y >= sdlx_win_height) {
+                return;
+            }
+            if (loc2.y + loc2.h > sdlx_win_height) {
+                loc2.h = sdlx_win_height - loc2.y;
+            }   
+        } else {
+            if (loc2.x >= sdlx_win_width) {
+                return;
+            }
+            if (loc2.x + loc2.w > sdlx_win_width) {
+                loc2.w = sdlx_win_width - loc2.x;
+            }   
+        }
     }
 
     // event box aids development;
@@ -158,7 +187,7 @@ void sdlx_register_control_events(int evid1, char *evstr1,
                 x = logical_win_width - (strlen(evstr[2]) * chw / 2);
             }
             y = logical_win_height - (CONTROL_AREA_SIZE / 2);
-            loc = sdlx_render_printf_ex2(x, y, FONT_NORMAL, FG_COLOR, FLAG_XY_CTR, "%s", evstr[i]);
+            loc = sdlx_render_printf_ex(x, y, FONT_NORMAL, FG_COLOR, FLAG_XY_CTR, "%s", evstr[i]);
         } else {
             y = (logical_win_height/3/2) + i * (logical_win_height/3);
             if (i == 0 && y < strlen(evstr[0]) * chw / 2) {
@@ -168,12 +197,12 @@ void sdlx_register_control_events(int evid1, char *evstr1,
                 y = logical_win_height - (strlen(evstr[2]) * chw / 2);
             }
             x = logical_win_width - (CONTROL_AREA_SIZE / 2);
-            loc = sdlx_render_printf_ex2(
+            loc = sdlx_render_printf_ex(
                         x, logical_win_height - y,
                         FONT_NORMAL, FG_COLOR, FLAG_XY_CTR|FLAG_ROT_CTR_270, "%s", evstr[i]);
         }
 
-        sdlx_register_event(loc, evid[i]);
+        register_event(loc, evid[i], true);
     }
 }
 
@@ -182,6 +211,7 @@ void sdlx_reset_events(void)
     max_event = 0;
     evid_motion_registered = false;
     evid_keybd_registered = false;
+    evid_pinch_registered = false;
 }
 
 void sdlx_event_box_ctrl(bool enable)
@@ -252,13 +282,31 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
                              ((Y) <  (loc).y + (loc).h))
 
     int i;
+    static double total_motion;
+    static bool pinching;
+    static bool motioning;
+    static int pending_event_id = -1;
+
+    if (pending_event_id != -1) {
+        event->event_id = pending_event_id;
+        pending_event_id = -1;
+        return;
+    }
 
     switch (ev->type) {
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP: {
-        static int last_pressed_x = -1;
-        static int last_pressed_y = -1;
-        int x, y;
+        bool set_pending_event = false;
+
+        if (motioning && ev->type == SDL_EVENT_MOUSE_BUTTON_UP) {
+            event->event_id = EVID_MOTION_END;
+            set_pending_event = true;
+            motioning = false;
+        }
+
+        if (pinching) {
+            break;
+        }
 
         //INFO("MOUSE_BUTTON button=%s state=%s x=%d y=%d\n",
         //        (ev->button.button == SDL_BUTTON_LEFT   ? "LEFT" :
@@ -267,45 +315,72 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         //        (ev->button.down ? "DOWN" : "UP"),
         //        ev->button.x,
         //        ev->button.y);
-        x = ev->button.x / scale_events_x;
-        y = ev->button.y / scale_events_y;
 
         if (ev->button.down) {
-            last_pressed_x = x;
-            last_pressed_y = y;
+            total_motion = 0;
         } else {
+            if (total_motion > 50) {
+                break;
+            }
+
+            int x = ev->button.x / scale_events_x;
+            int y = ev->button.y / scale_events_y;
             for (i = max_event-1; i >= 0; i--) {
                 if (AT_LOC(x, y, event_tbl[i].loc)) {
                     break;
                 }
             }
-            if (i >= 0 && AT_LOC(last_pressed_x, last_pressed_y, event_tbl[i].loc)) {
-                event->event_id = event_tbl[i].event_id;
+
+            if (i >= 0) {
+                if (!set_pending_event) {
+                    event->event_id = event_tbl[i].event_id;
+                } else {
+                    pending_event_id = event_tbl[i].event_id;
+                }
             }
         }
         break; }
 
     case SDL_EVENT_MOUSE_MOTION: {
-        if ((ev->motion.state & SDL_BUTTON_LMASK) && evid_motion_registered) {
+        if ((ev->motion.state & SDL_BUTTON_LMASK) != 0) {
+            total_motion += fabs(ev->motion.xrel/scale_events_x) + fabs(ev->motion.yrel/scale_events_y);
+        }
+
+        // consolidate possible additional MOUSE_MOTION events into this event
+        while (true) {
+            SDL_Event tmp_ev;
+            int rc = SDL_PeepEvents(
+                        &tmp_ev, 1, SDL_GETEVENT,
+                        SDL_EVENT_MOUSE_MOTION, SDL_EVENT_MOUSE_MOTION);
+            if (rc != 1) break;
+            if ((tmp_ev.motion.state & SDL_BUTTON_LMASK) == 0) break;
+
+            total_motion += fabs(tmp_ev.motion.xrel/scale_events_x) + fabs(tmp_ev.motion.yrel/scale_events_y);
+
+            ev->motion.x     = tmp_ev.motion.x;
+            ev->motion.y     = tmp_ev.motion.y;
+            ev->motion.xrel += tmp_ev.motion.xrel;
+            ev->motion.yrel += tmp_ev.motion.yrel;
+        }
+
+        if ((ev->motion.state & SDL_BUTTON_LMASK) && evid_motion_registered && !pinching) {
             //INFO("MOUSE_MOTION x=%f y=%f xrel=%f yrel=%f\n",
             //    ev->motion.x,
             //    ev->motion.y,
             //    ev->motion.xrel,
             //    ev->motion.yrel);
 
-            // consolidate possible additional MOUSE_MOTION events into this event
-            while (true) {
-                SDL_Event tmp_ev;
-                int rc = SDL_PeepEvents(
-                            &tmp_ev, 1, SDL_GETEVENT,
-                            SDL_EVENT_MOUSE_MOTION, SDL_EVENT_MOUSE_MOTION);
-                if (rc != 1) break;
-                if ((tmp_ev.motion.state & SDL_BUTTON_LMASK) == 0) break;
-
-                ev->motion.x    += tmp_ev.motion.x;
-                ev->motion.y    += tmp_ev.motion.y;
-                ev->motion.xrel += tmp_ev.motion.xrel;
-                ev->motion.yrel += tmp_ev.motion.yrel;
+            if (!motioning) {
+                motioning = true;
+                event->event_id = EVID_MOTION_BEGIN;
+                if (orientation == PORTRAIT) {
+                    event->u.motion_begin.x = ev->motion.x / scale_events_x;
+                    event->u.motion_begin.y = ev->motion.y / scale_events_y;
+                } else {
+                    event->u.motion_begin.y = logical_win_height - ev->motion.x / scale_events_x;
+                    event->u.motion_begin.x = ev->motion.y / scale_events_y;
+                }
+                break;
             }
 
             event->event_id = EVID_MOTION;
@@ -333,11 +408,95 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         }
 
         keycode = SDL_GetKeyFromScancode(x->scancode, x->mod, false);
-        //bool shift = (x->mod & SDL_KMOD_SHIFT) != 0;
-        //INFO("GOT keycode 0x%x  shift=%d\n", keycode, shift);
         event->event_id = EVID_KEYBD;
-        event->u.data.bytes[0] = keycode;
+        event->u.private_keybd.keycode = keycode;
         break; }
+
+#ifdef ANDROID
+    case SDL_EVENT_PINCH_BEGIN: {
+        SDL_PinchFingerEvent *x = &ev->pinch;
+
+        pinching = true;
+        if (evid_pinch_registered) {
+            event->event_id = EVID_PINCH_BEGIN;
+            if (orientation == PORTRAIT) {
+                event->u.pinch_begin.span_x = x->span_x / scale_events_x;
+                event->u.pinch_begin.span_y = x->span_y / scale_events_y;
+                event->u.pinch_begin.focus_x = x->focus_x / scale_events_x;
+                event->u.pinch_begin.focus_y = x->focus_y / scale_events_y;
+            } else {
+                event->u.pinch_begin.span_x = x->span_y / scale_events_y;
+                event->u.pinch_begin.span_y = x->span_x / scale_events_x;
+                event->u.pinch_begin.focus_x = x->focus_y / scale_events_y;
+                event->u.pinch_begin.focus_y = logical_win_height - x->focus_x / scale_events_x;
+            }
+        }
+        break; }
+    case SDL_EVENT_PINCH_END:
+        pinching = false;
+        if (evid_pinch_registered) {
+            event->event_id = EVID_PINCH_END;
+        }
+        break;
+    case SDL_EVENT_PINCH_UPDATE: {
+        SDL_PinchFingerEvent *x = &ev->pinch;
+
+        if (!evid_pinch_registered || !pinching) {
+            break;
+        }
+
+        //INFO("SDL_EVENT_PINCH_UPDATE: scale=%f span=%f %f focus=%f %f\n",
+        //     x->scale, x->span_x, x->span_y, x->focus_x, x->focus_y);
+
+        event->event_id = EVID_PINCH;
+        if (orientation == PORTRAIT) {
+            event->u.pinch.scale = x->scale;
+            event->u.pinch.span_x = x->span_x / scale_events_x;
+            event->u.pinch.span_y = x->span_y / scale_events_y;
+            event->u.pinch.focus_x = x->focus_x / scale_events_x;
+            event->u.pinch.focus_y = x->focus_y / scale_events_y;
+        } else {
+            event->u.pinch.scale = x->scale;
+            event->u.pinch.span_x = x->span_y / scale_events_y;
+            event->u.pinch.span_y = x->span_x / scale_events_x;
+            event->u.pinch.focus_x = x->focus_y / scale_events_y;
+            event->u.pinch.focus_y = logical_win_height - x->focus_x / scale_events_x;
+        }
+        break; }
+#else
+    case SDL_EVENT_MOUSE_WHEEL: {
+        if (!evid_pinch_registered) {
+            break;
+        }
+
+        //INFO("SDL_EVENT_MOUSE_WHEEL: y = %f\n", ev->wheel.y);
+
+        event->event_id = EVID_PINCH;
+        event->u.pinch.scale = (ev->wheel.y > 0 ? 1.1 : ev->wheel.y < 0 ? (1/1.1) : 1);
+        event->u.pinch.span_x = 200;
+        event->u.pinch.span_y = 200;
+        event->u.pinch.focus_x = sdlx_win_width/2;
+        event->u.pinch.focus_y = sdlx_win_height/2;
+        break; }
+#endif
+
+    case SDL_EVENT_WINDOW_FOCUS_GAINED:
+        // when Android device exits doze mode this event is generated
+
+        // INFO("SDL_EVENT_WINDOW_FOCUS_GAINED\n");
+
+        event->event_id = EVID_REDRAW;
+        break;
+
+    case SDL_EVENT_SENSOR_UPDATE:
+        // SDL_SensorEvent - not used
+        break;
+
+    case SDL_EVENT_FINGER_DOWN:
+    case SDL_EVENT_FINGER_UP:
+    case SDL_EVENT_FINGER_MOTION:
+        // SDL_TouchFingerEvent - not used
+        break;
 
     case SDL_EVENT_QUIT: {
         // the event_quit_rcvd variable is set so that 
@@ -347,13 +506,6 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         event_quit_rcvd = 10;
         event->event_id = EVID_QUIT;
         break; }
-
-    case SDL_EVENT_FINGER_DOWN:
-    case SDL_EVENT_FINGER_UP:
-    case SDL_EVENT_FINGER_MOTION:
-    case SDL_EVENT_SENSOR_UPDATE:
-        // these occur frequently
-        break;
 
     default: {
         // debug print the events that are not supported
@@ -409,6 +561,10 @@ static char *event_type_to_str(enum SDL_EventType evtype)
     CASE(SDL_EVENT_FINGER_DOWN);
     CASE(SDL_EVENT_FINGER_UP);
     CASE(SDL_EVENT_FINGER_MOTION);
+
+    CASE(SDL_EVENT_PINCH_BEGIN);
+    CASE(SDL_EVENT_PINCH_END);
+    CASE(SDL_EVENT_PINCH_UPDATE);
 
     CASE(SDL_EVENT_KEY_DOWN);
     CASE(SDL_EVENT_KEY_UP);

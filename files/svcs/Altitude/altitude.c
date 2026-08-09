@@ -187,6 +187,6 @@ void periodic_processing(void)
     }
 
     // debug print
-    printf("I %s: ymdh=%d %d %d %d  altitude_ft=%0.0f\n", 
-           progname, year, month, day, hour, altitude_ft);
+    //printf("I %s: ymdh=%d %d %d %d  altitude_ft=%0.0f\n", 
+    //       progname, year, month, day, hour, altitude_ft);
 }

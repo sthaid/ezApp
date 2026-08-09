@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 
     // if running an app then call sdlx_init
     if (strncmp(data_dir, "apps/", 5) == 0) {
-        rc = sdlx_init(SUBSYS_VIDEO|SUBSYS_AUDIO|SUBSYS_SENSOR);
+        rc = sdlx_init(SUBSYS_VIDEO|SUBSYS_AUDIO|SUBSYS_SENSOR|SUBSYS_HAPTIC);
         if (rc != 0) {
             printf("E %s: sdlx_init failed\n", progname);
             return 1;
@@ -37,12 +37,7 @@ int main(int argc, char **argv)
 
     // if running an app then call sdlx_quit
     if (strncmp(data_dir, "apps/", 5) == 0) {
-        sdlx_quit(SUBSYS_VIDEO|SUBSYS_AUDIO|SUBSYS_SENSOR);
-    }
-
-    // if running an app then call sdlx_quit
-    if (strncmp(data_dir, "apps/", 5) == 0) {
-        sdlx_quit(SUBSYS_VIDEO|SUBSYS_AUDIO|SUBSYS_SENSOR);
+        sdlx_quit(SUBSYS_VIDEO|SUBSYS_AUDIO|SUBSYS_SENSOR|SUBSYS_HAPTIC);
     }
 
     // print result and return status

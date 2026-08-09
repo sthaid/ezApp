@@ -10,7 +10,7 @@
 #include <utils.h>
 #include <svcs.h>
 #include "svcs/Location/location.h"
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 #define EVID_SLCT   1
 #define EVID_SHOW   2
@@ -27,7 +27,7 @@ char *data_dir;
 
 int             view = MAGNETIC_COMPASS;
 double          mag_decl_degrees = INVALID_NUMBER;
-char            mag_decl_locname[21];
+char            mag_decl_locname[31];
 sdlx_texture_t *compass;
 bool            show;
 
@@ -46,6 +46,7 @@ int main(int argc, char **argv)
     int          rc, x, y;
     sdlx_event_t event;
     double       mag_heading, true_heading, compass_heading;
+    sdlx_loc_t   dest;
     bool         end_program = false;
 
     // save args
@@ -63,8 +64,6 @@ int main(int argc, char **argv)
         return 1;
     }
     init_mag_decl();
-    view = util_get_numeric_param(data_dir, "view", MAGNETIC_COMPASS);
-    show = util_get_numeric_param(data_dir, "show", false);
 
     // runtime loop
     while (!end_program) {
@@ -108,43 +107,50 @@ int main(int argc, char **argv)
             normalize(&compass_heading);
 
             // draw the compass rotated by compass_heading
-            sdlx_render_texture_ex2(compass, 50, 150, 900, 900, -compass_heading);
+            dest.x = 50;
+            dest.y = 150;
+            dest.w = 900;
+            dest.h = 900;
+            sdlx_render_texture_rotated(compass, NULL, &dest, -compass_heading, NULL, FLIP_NONE);
 
+#if 0
             // if show is enabled then draw a reference point at true north
             if (show && view == MAGNETIC_COMPASS && true_heading != INVALID_NUMBER) {
                 x = 500 + 345 * sin((true_heading + 180) * DEG_TO_RAD);
                 y = 600 + 345 * cos((true_heading + 180) * DEG_TO_RAD);
                 sdlx_render_point(x, y, COLOR_BLUE, MAX_POINT_SIZE);
             }
+#endif
 
             // print the heading and the heading abbreviation below 
             // the area where the compass is displayed
             y = 1100 + 1.0 * sdlx_char_height(FONT_LARGE);
-            sdlx_render_printf_ex2(sdlx_win_width / 2, y,
+            sdlx_render_printf_ex(sdlx_win_width / 2, y,
                                    FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, 
                                    "%s", view == MAGNETIC_COMPASS ? "MAG" : "TRUE");
             y += 1.5 * sdlx_char_height(FONT_LARGE);
-            sdlx_render_printf_ex2(sdlx_win_width / 2, y,
+            sdlx_render_printf_ex(sdlx_win_width / 2, y,
                                    FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, 
                                    "%.0f", compass_heading);
             y += 1.5 * sdlx_char_height(FONT_LARGE);
-            sdlx_render_printf_ex2(sdlx_win_width / 2, y,
+            sdlx_render_printf_ex(sdlx_win_width / 2, y,
                                    FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, 
                                    "%s", abbreviation(compass_heading));
             y += 1.0 * sdlx_char_height(FONT_LARGE);
 
             // if show is enabled and mag_decl_degrees is available then print the mag_decl_degrees
             if (show && mag_decl_degrees != INVALID_NUMBER) {
-                sdlx_render_printf_ex2(sdlx_win_width / 2, y,
-                                       FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
+                y = sdlx_win_height - 2 * sdlx_char_height(FONT_SMALL);
+                sdlx_render_printf_ex(sdlx_win_width / 2, y,
+                                       FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, 
                                        "decl = %0.1f", mag_decl_degrees);
-                y += 1.0 * sdlx_char_height(FONT_NORMAL);
-                sdlx_render_printf_ex2(sdlx_win_width / 2, y,
-                                       FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
+                y += 1.0 * sdlx_char_height(FONT_SMALL);
+                sdlx_render_printf_ex(sdlx_win_width / 2, y,
+                                       FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, 
                                        "%s", mag_decl_locname);
             }
         } else {
-            sdlx_render_printf_ex2(
+            sdlx_render_printf_ex(
                 sdlx_win_width / 2, 500, 
                 FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, 
                 "%s", "NO DATA");
@@ -182,11 +188,9 @@ int main(int argc, char **argv)
             } else {
                 view = MAGNETIC_COMPASS;
             }
-            util_set_numeric_param(data_dir, "view", view);
             break;
         case EVID_SHOW:
             show = !show;
-            util_set_numeric_param(data_dir, "show", show);
             break;
         }
     }
@@ -266,7 +270,7 @@ void init_mag_decl(void)
             // - set global mag_decl_degrees from param value
             mag_decl_degrees = param_mag_decl_degrees;
             // - set global mag_decl_locname from param value
-            str = util_get_str_param(data_dir, "mag_decl_locname", "Loc Not Found");
+            str = util_get_str_param(data_dir, "mag_decl_locname", "");
             strncpy(mag_decl_locname, str, sizeof(mag_decl_locname)-1);
             free(str);
             // - debug print and return
@@ -286,7 +290,7 @@ void init_mag_decl(void)
       latitude, longitude, KEY);
     sprintf(cmd, "curl --silent --max-time 30 --output %s/%s %s",
             data_dir, MAG_DECL_JSON, url);
-    printf("I %s: RUNNING '%s'\n", progname, cmd);
+    printf("I %s: running '%s'\n", progname, cmd);
     rc = system(cmd);
     rc = WEXITSTATUS(rc);
     if (rc != 0) {
@@ -294,57 +298,76 @@ void init_mag_decl(void)
         return;
     }
 
-    // read MAG_DECL_JSON file
+    // extract mag_decl from json
+    // - read MAG_DECL_JSON file
     str = util_read_file(data_dir, MAG_DECL_JSON, &len_ret);
     if (str == NULL) {
         printf("E %s: parse_info, read %s, %s\n", progname, MAG_DECL_JSON, strerror(errno));
+        util_delete_file(data_dir, MAG_DECL_JSON);
         return;
     }
-
-    // init json parser
+    // - init json parser
     json = util_json_parse(str, &end_ptr);
     if (json == NULL) {
         printf("E %s: json parse failed\n", progname);
         free(str);
+        util_delete_file(data_dir, MAG_DECL_JSON);
         return;
     }
-
-    // read the declination from the json
+    // - read the declination from the json
     value = util_json_get_value(json, "result", "0", "declination", NULL);
     if (value->type != JSON_TYPE_NUMBER) {
         printf("E %s: declination value type=%d is not a number\n", progname, value->type);
         free(str);
         util_json_free(json);
+        util_delete_file(data_dir, MAG_DECL_JSON);
         return;
     }
-
-    // set global mag_decl variable to the value obtained from the json
+    // - set global mag_decl variable to the value obtained from the json
     mag_decl_degrees = value->u.number;
-    printf("I %s: got new mag_decl = %0.3f\n", progname, mag_decl_degrees);
+    // - cleanup
+    free(str);
+    util_json_free(json);
+    util_delete_file(data_dir, MAG_DECL_JSON);
 
     // get name of nearest city/town, and save in global variable mag_decl_locname
     char req_data[MAX_SVC_REQ_DATA];
     memset(req_data, 0, sizeof(req_data));
     *(double*)(&req_data[0]) = latitude;
     *(double*)(&req_data[8]) = longitude;
-    svc_req_t *req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_NAME_FROM_LAT_LONG, req_data, sizeof(req_data));
+    svc_req_t *req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_INFO, req_data, sizeof(req_data));
     rc = svc_make_req("Location", req, 5);
     if (rc == 0) {
-        strncpy(mag_decl_locname, req->data, sizeof(mag_decl_locname)-1);
+        char *newline, *city, *state;
+
+        // for safety, in case the response from the Location svc is malformed
+        req_data[MAX_SVC_REQ_DATA-5] = '\n';
+        req_data[MAX_SVC_REQ_DATA-4] = '\n';
+        req_data[MAX_SVC_REQ_DATA-3] = '\n';
+        req_data[MAX_SVC_REQ_DATA-2] = '\n';
+        req_data[MAX_SVC_REQ_DATA-1] = '\0';
+
+        // extract city and state from the response, and copy the city & state to mag_decl_locname
+        city = req->data;
+        newline = strchr(city, '\n'); *newline = '\0';
+        state = newline + 1;
+        newline = strchr(state, '\n'); *newline = '\0';
+
+        snprintf(mag_decl_locname, sizeof(mag_decl_locname), "%s %s", city, state);
     } else {
-        strncpy(mag_decl_locname, "Loc Not Found", sizeof(mag_decl_locname)-1);
+        snprintf(mag_decl_locname, sizeof(mag_decl_locname), "%0.4f %0.4f", latitude, longitude);
     }
 
-    // save mag_decl in params
+    // save mag_decl info to params
     util_set_numeric_param(data_dir, "mag_decl_lat",     latitude);
     util_set_numeric_param(data_dir, "mag_decl_long",    longitude);
     util_set_numeric_param(data_dir, "mag_decl_degrees", mag_decl_degrees);
     util_set_str_param(data_dir,     "mag_decl_locname", mag_decl_locname);
-
-    // cleanup and return
-    util_json_free(json);
-    free(str);
-    util_delete_file(data_dir, MAG_DECL_JSON);
+    printf("I %s: new mag decl info ...\n", progname);
+    printf("I %s:   mag_decl_degrees = %0.2f\n", progname, mag_decl_degrees);
+    printf("I %s:   mag_decl_lat     = %0.2f\n", progname, latitude);
+    printf("I %s:   mag_decl_long    = %0.2f\n", progname, longitude);
+    printf("I %s:   mag_decl_locname = %s\n", progname, mag_decl_locname);
 }
 
 void cleanup(void)

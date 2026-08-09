@@ -8,7 +8,7 @@
 #include <utils.h>
 
 #include "apps/ColrOrgn/common.h"
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 //
 // defines
@@ -176,18 +176,18 @@ void color_organ_display(void)
     if (show_controls) {
         if (orientation == PORTRAIT) {
             int y_controls = COH_P + LINE_SPACING;
-            reg_event(COL2X(11), y_controls, COLOR_LIGHT_BLUE,
-                    color_organ_name[which_color_organ], EVID_COLOR_ORGAN_SLCT);
-            reg_event(COL2X(16), y_controls, COLOR_LIGHT_BLUE, 
-                    filter_name[which_filter], EVID_FILTER_SLCT);
+            reg_event_str(COL2X(11), y_controls, COLOR_LIGHT_BLUE,
+                          color_organ_name[which_color_organ], EVID_COLOR_ORGAN_SLCT);
+            reg_event_str(COL2X(16), y_controls, COLOR_LIGHT_BLUE, 
+                          filter_name[which_filter], EVID_FILTER_SLCT);
         } else {
             int x_controls = sdlx_win_width - 8*sdlx_char_width_dflt;
             int y_controls = 3 * LINE_SPACING;
-            reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE,
-                    color_organ_name[which_color_organ], EVID_COLOR_ORGAN_SLCT);
+            reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE,
+                          color_organ_name[which_color_organ], EVID_COLOR_ORGAN_SLCT);
             y_controls += LINE_SPACING;
-            reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, 
-                    filter_name[which_filter], EVID_FILTER_SLCT);
+            reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, 
+                          filter_name[which_filter], EVID_FILTER_SLCT);
         }
     }
 }
@@ -243,7 +243,7 @@ void color_organ_display_bars(float *fft)
 
         // display scale factor
         if (disp_scale_factor) {
-            sdlx_render_printf_ex2(x+w/2, coh/2,
+            sdlx_render_printf_ex(x+w/2, coh/2,
                                    FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                                    "%d", band_scale[band]);
         }
@@ -255,6 +255,7 @@ void color_organ_display_circles(float *fft)
     int          first_bin, last_bin;
     float        raw_new_vol;
     static float filtered_vol[3];
+    sdlx_loc_t   dest;
 
     // loop over the 3 bands
     for (int band = 0; band < 3; band++) {
@@ -302,7 +303,12 @@ void color_organ_display_circles(float *fft)
             band_volume = 1;
         }
         sdlx_color_mod_texture(t, band_volume, band_volume, band_volume);
-        sdlx_render_texture_ex1(t, x_ctr-radius, y_ctr-radius, 2*radius, 2*radius);
+
+        dest.x = x_ctr-radius;
+        dest.y = y_ctr-radius;
+        dest.w = 2*radius;
+        dest.h = 2*radius;
+        sdlx_render_texture(t, NULL, &dest);
 
         // register events to adjust scale factor
         init_loc(&loc, x_ctr - radius/2, y_ctr-radius, radius, radius);
@@ -316,7 +322,7 @@ void color_organ_display_circles(float *fft)
 
         // display scale factor
         if (disp_scale_factor) {
-            sdlx_render_printf_ex2(x_ctr, y_ctr,
+            sdlx_render_printf_ex(x_ctr, y_ctr,
                                    FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                                    "%d", band_scale[band]);
         }
@@ -372,7 +378,7 @@ void color_organ_display_fft(float *fft)
 
     // display scale factor
     if (disp_scale_factor) {
-        sdlx_render_printf_ex2(x+cow/2, coh/2,
+        sdlx_render_printf_ex(x+cow/2, coh/2,
                                FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                                "%d", fft_scale);
     }
@@ -556,23 +562,23 @@ void color_organ_settings(void)
         y += 2*sdlx_char_height_dflt;
 
         // register events
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "RESET");
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "RESET");
         sdlx_register_event(loc, EVID_SETTINGS_RESET);
         y += 2*sdlx_char_height_dflt;
 
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "CREATE_TEST_FILES");
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "CREATE_TEST_FILES");
         sdlx_register_event(loc, EVID_SETTINGS_CREATE_TEST_FILES);
         y += 2*sdlx_char_height_dflt;
 
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "EXP_FLTR_K");
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "EXP_FLTR_K");
         sdlx_register_event(loc, EVID_SETTINGS_EXP_FLTR_K);
         y += 2*sdlx_char_height_dflt;
 
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "SNAP_FLTR_DECAY");
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "SNAP_FLTR_DECAY");
         sdlx_register_event(loc, EVID_SETTINGS_SNAP_FLTR_DECAY);
         y += 2*sdlx_char_height_dflt;
 
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "DEBUG_FLAGS");
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "DEBUG_FLAGS");
         sdlx_register_event(loc, EVID_SETTINGS_DEBUG_FLAGS);
         y += 2*sdlx_char_height_dflt;
 
@@ -586,9 +592,6 @@ void color_organ_settings(void)
 
         // wait for event, with infinite timeout
         sdlx_get_event(-1, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
 
         // process event
         switch (event.event_id) {

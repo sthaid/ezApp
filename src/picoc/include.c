@@ -22,6 +22,7 @@ void IncludeInit(Picoc *pc)
     IncludeRegister(pc, "unistd.h", &UnistdSetupFunc, &UnistdFunctions[0], UnistdDefs);
 # endif
     IncludeRegister(pc, "libgen.h", NULL, &LibgenFunctions[0], NULL);
+    IncludeRegister(pc, "fcntl.h", &FcntlSetupFunc, &FcntlFunctions[0], NULL);
 }
 
 /* clean up space used by the include system */

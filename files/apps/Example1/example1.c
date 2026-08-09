@@ -4,7 +4,7 @@
 #include <sdlx.h>
 #include <utils.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // event ids
 #define EVID_TAPME 1
@@ -22,13 +22,11 @@ int main(int argc, char **argv)
     int          tapme_count = 0;
     bool         end_program = false;
 
-    // verify arg count
+    // save args
     if (argc != 2) {
-        printf("E %s: argc=%d is not 2\n", "Template", argc);
+        printf("E %s: argc=%d is not 2\n", "Example1", argc);
         return 1;
     }
-
-    // save args
     progname = argv[0];
     data_dir = argv[1];
     printf("I %s: starting, data_dir=%s\n", progname, data_dir);
@@ -39,18 +37,18 @@ int main(int argc, char **argv)
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
         // display 'Hello World'
-        sdlx_render_printf_ex2(sdlx_win_width/2, sdlx_win_height*0.25,
+        sdlx_render_printf_ex(sdlx_win_width/2, sdlx_win_height*0.25,
                                FONT_LARGE, COLOR_PURPLE, FLAG_XY_CTR, 
                                "%s", "Hello\nWorld");
 
         // display "TAPME" in COLOR_LIGHT_BLUE; and register EVID_TAPME event
-        loc = sdlx_render_printf_ex1(300, 1600, 
-                                     FONT_NORMAL, COLOR_LIGHT_BLUE, 
+        loc = sdlx_render_printf_ex(300, 1600, 
+                                    FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                      "TAPME-%d", tapme_count);
         sdlx_register_event(loc, EVID_TAPME);
 
         // register EVID_SHOW_README_FILE event; 
-        // note: the reg_event_show_readme_file routine is defined in apps/lib/lib.c,
+        // note: the reg_event_show_readme_file routine is defined in lib/lib.c,
         //       which is automatically included in miniApps
         reg_event_show_readme_file();
 
@@ -64,9 +62,6 @@ int main(int argc, char **argv)
 
         // wait for event, with infinite timeout
         sdlx_get_event(-1, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
 
         // process events
         switch (event.event_id) {

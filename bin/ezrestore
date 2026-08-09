@@ -63,21 +63,30 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# if no arg provided then list available backup files
-if [ $# -eq 0 ]; then
-    echo "Available backup files:"
-    ls -l
-    exit 1
-fi
-
 # if num args > 1 then error
 if [ $# -gt 1 ]; then
     echo "ERROR: just one arg expected"
     exit 1
 fi
 
+# if no arg provided then 
+#   list available backup files, and prompt for filename
+# else
+#   set backup_filename to arg1
+# endif
+if [ $# -eq 0 ]; then
+    echo "Available backup files:"
+    ls -l
+    echo
+    read -p "Enter backup_filename: " backup_filename
+    if [ -z "$backup_filename" ]; then
+        exit 1
+    fi
+else
+    backup_filename=$1
+fi
+
 # get backup_filename from arg1, and verify it exists
-backup_filename=$1
 if [ ! -f $backup_filename ]; then
     echo "ERROR: $backup_filename does not exist"
     exit 1

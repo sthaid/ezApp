@@ -123,11 +123,13 @@ void util_text_to_speech_stop(void) {
 }
 
 // foreground service
-void util_start_foreground(void) {
-    call_java1("start_foreground");
+int util_start_foreground(void) {
+    int rc = call_java1("start_foreground");
+    return rc == 0 ? 0 : -1;    
 }
-void util_stop_foreground(void) {
-    call_java1("stop_foreground");
+int util_stop_foreground(void) {
+    int rc = call_java1("stop_foreground");
+    return rc == 0 ? 0 : -1;    
 }
 bool util_is_foreground_enabled(void) {
     return call_java1("is_foreground_enabled") == 1;
@@ -158,14 +160,72 @@ int util_get_playbackcapture_audio(float *array, int num_array_elements) {
     return call_java3("get_playbackcapture_audio", array, num_array_elements);
 }
 
+// camera
+int util_take_photo(void) 
+{
+    int rc;
+    sdlx_event_t ev;
+    char tmp[] = "tmp";
+    char photo_jpg[] = "photo.jpg";
+
+    // values copied from _SDLActivity.java
+    #define RESULT_OK                         -1
+    #define RESULT_CANCELLED                  0
+    #define RESULT_FAILED                     1
+    #define RESULT_NO_CAMERA                  2
+    #define RESULT_FAILED_TO_CREATE_PHOTO_JPG 3;
+    #define RESULT_NOT_SET                    99
+
+    // remove existing tmp/photo.jpg file
+    util_delete_file(tmp, photo_jpg);
+
+    // take the photo
+    rc = call_java1("take_photo");
+    if (rc != 0) {
+        ERROR("take_photo failed, rc=%d\n", rc);
+        return -1;
+    }
+
+    // wait for taking the photo to be completed
+    while (true) {
+        // This call to sdlx_get_event ensures that after taking the
+        // photo has completed, and the Android camera code has 
+        // finished with the display, the ezApp display becomes visible.
+        // Reason why this is needed is not known.
+        sdlx_get_event(100000, &ev);
+
+        // check if the taking of the photo has completed
+        rc = call_java1("take_photo_complete");
+
+        // if result has been set then break out of loop, 
+        // otherwise print that polling continues
+        if (rc != RESULT_NOT_SET) {
+            break;
+        }
+        INFO("polling for take_photo_complete\n");
+    }
+
+    // if rc is not RESULT_OK then return error
+    if (rc != RESULT_OK) {
+        ERROR("rc = %d\n", rc);
+        return -1;
+    }
+
+    // if photo.jpg does not exist then return error
+    if (!util_file_exists(tmp, photo_jpg)) {
+        ERROR("tmp/photo.jpg does not exist\n");
+        return -1;
+    }
+
+    // return success
+    return 0;
+}
+
 // -----------------  COMMON ROUTINES TO CALL JAVA METHOD  -------------------------
 
 // returns:
 // - INVALID_NUMBER, when failed, or
-// - method specific result value, such as:
-//   - latitude, longitude, or altitude_ft
-//   - 0 or 1 for boolean
-//   - 0 for success
+// - method specific result value
 
 // call method 'double proc()'
 static double call_java1(const char *method_name)
@@ -316,7 +376,10 @@ double call_java3(const char *method_name, float *caller_array, int num_array_el
 #include <utils.h>
 #include <private.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
+#include <string.h>
 
 void util_android_utils_init(void) { }
 
@@ -324,29 +387,34 @@ void util_android_utils_destroy(void) { }
 
 void util_get_location(double *latitude, double *longitude, double *altitude, bool *alt_is_wgs84)
 {
-    #define BOLTON_MASS_LATITUDE     42.4334
-    #define BOLTON_MASS_LONGITUDE   -71.6078
-    #define BOLTON_MASS_ALTITUDE_FT  450.0
-
-    static time_t tstart;
+    #define TEST_LATITUDE     42.4222
+    #define TEST_LONGITUDE   -71.6226
+    #define TEST_ALTITUDE_FT  454.0
 
     if (latitude) {
-        *latitude = BOLTON_MASS_LATITUDE;
+        *latitude = TEST_LATITUDE;
     }
     if (longitude) {
-        // simulate velocity in west direction, for testing
+#if 1
+        *longitude = TEST_LONGITUDE;
+#else
+        static time_t tstart;
+
+        // for testing, 
+        // simulate velocity in west direction
         if (tstart == 0) {
             tstart = time(NULL);
         }
 
         #define RATE 600.0  // mph
         #define COS_LAT 0.738
-        *longitude = BOLTON_MASS_LONGITUDE - 
+        *longitude = TEST_LONGITUDE - 
                      (RATE * (time(NULL) - tstart) / 3600.) / 
                      (COS_LAT * 69.) ;
+#endif
     }
     if (altitude) {
-        *altitude = BOLTON_MASS_ALTITUDE_FT;
+        *altitude = TEST_ALTITUDE_FT;
     }
     if (alt_is_wgs84) {
         *alt_is_wgs84 = false;
@@ -356,8 +424,8 @@ void util_get_location(double *latitude, double *longitude, double *altitude, bo
 void util_text_to_speech(char *text) { }
 void util_text_to_speech_stop(void) { }
 
-void util_start_foreground(void) { }
-void util_stop_foreground(void) { }
+int util_start_foreground(void) { return -1; }
+int util_stop_foreground(void) { return -1; }
 bool util_is_foreground_enabled(void) { return false; }
 
 void util_turn_flashlight_on(void) { }
@@ -365,8 +433,73 @@ void util_turn_flashlight_off(void) { }
 void util_toggle_flashlight(void) { }
 bool util_is_flashlight_on(void) { return false; }
 
-int util_start_playbackcapture(void) { return -1; }
+int util_start_playbackcapture(void) { ERROR("this routine only supported on Android\n"); return -1; }
 void util_stop_playbackcapture(void) { }
 int util_get_playbackcapture_audio(float *array, int num_array_elements) { return INVALID_NUMBER; }
+
+static void remove_trailing_newline(char *s)
+{
+    int len = strlen(s);
+    if (len > 0 && s[len-1] == '\n') {
+        s[len-1] = '\0';
+    }
+}
+
+// This rouitne simulates taking a photo by creating a copy of 
+// a test photo that is found in the $HOME/ezApp_test_photos/ directory.
+int util_take_photo(void)
+{
+    #define MAX_JPG_FILES 10
+    static bool first_call = true;
+    static char *jpg_files[MAX_JPG_FILES];
+    static int max_jpg_files;
+    static int idx;
+
+    char *file;
+    char  cmd[200];
+    int   rc;
+
+    // on first call make list of test jpg files that are in dir $HOME/ezApp_test_photos
+    if (first_call) {
+        FILE *fp;
+        char s[200];
+
+        first_call = false;
+
+        fp = popen(" find $HOME/ezApp_test_photos/ -type f -name \"*.jpg\"", "r");
+        while (fgets(s, sizeof(s), fp) != NULL) {
+            remove_trailing_newline(s);
+            jpg_files[max_jpg_files++] = strdup(s);
+            if (max_jpg_files == MAX_JPG_FILES) {
+                break;
+            }
+        }
+        pclose(fp);
+
+        //for (int i = 0; i < max_jpg_files; i++) {
+        //    INFO("jpg test file: %s\n", jpg_files[i]);
+        //}
+    }
+
+    // return error if there are no jpg test files found
+    if (max_jpg_files == 0) {
+        ERROR("no jpg test files\n");
+        return -1;
+    }
+
+    // copy one of the jpg test files to tmp/photos.jpg;
+    // advance idx so that the next call will copy a different jpg test file
+    file = jpg_files[idx++ % max_jpg_files];
+    INFO("file %s\n", file);
+    sprintf(cmd, "cp %s tmp/photo.jpg", file);
+    rc = system(cmd);
+    rc = WEXITSTATUS(rc);
+    if (rc != 0) {
+        return -1;
+    }
+
+    // success
+    return 0;
+}
 
 #endif

@@ -8,7 +8,7 @@
 #include <utils.h>
 
 #include "apps/Clock/common.h"
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // defines
 #define XCTR_CLOCK 500
@@ -74,13 +74,13 @@ int main(int argc, char **argv)
         //   13:30:00 EDT
         //   Wed Oct 21 2025
         y = YCTR_CLOCK + H_CLOCK / 2 + 1.5 * sdlx_char_height_dflt;
-        sdlx_render_printf_ex2(
+        sdlx_render_printf_ex(
                 sdlx_win_width/2, y,
                 FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                 "%02d:%02d:%02d %s",
                 tm.tm_hour, tm.tm_min, tm.tm_sec, tm.tm_zone);
         y += 1.5 * sdlx_char_height_dflt;
-        sdlx_render_printf_ex2(
+        sdlx_render_printf_ex(
                 sdlx_win_width/2, y, 
                 FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                 "%s %s %d %d",
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         y += 1.5 * sdlx_char_height_dflt;
 
         // display daytime length
-        sdlx_render_printf_ex2(sdlx_win_width/2, y, FONT_NORMAL, COLOR_WHITE,
+        sdlx_render_printf_ex(sdlx_win_width/2, y, FONT_NORMAL, COLOR_WHITE,
                                FLAG_X_CTR, 
                                "DayTime %s", daytime_calc);
     
@@ -166,7 +166,7 @@ static void draw_analog_clock_face(void)
     for (hour = 1; hour <= 12; hour++) {
         x = XCTR_CLOCK + 400 * sin(hour * 30 * (M_PI / 180));
         y = YCTR_CLOCK - 400 * cos(hour * 30 * (M_PI / 180));
-        sdlx_render_printf_ex2(
+        sdlx_render_printf_ex(
             x, y, 
             FONT_NORMAL, COLOR_BLACK, FLAG_XY_CTR, 
             "%d", hour);
@@ -197,8 +197,10 @@ static void draw_analog_clock_hands(struct tm *tm)
 {
     static bool first_call = true;
 
-    double hour_hand_angle, minute_hand_angle, second_hand_angle;
-    long   secs;
+    double       hour_hand_angle, minute_hand_angle, second_hand_angle;
+    long         secs;
+    sdlx_loc_t   dest;
+    sdlx_point_t center;
 
     if (first_call) {
         hour_hand = create_rectangle_texture(W_HH, H_HH, COLOR_BLACK);
@@ -213,23 +215,29 @@ static void draw_analog_clock_hands(struct tm *tm)
     minute_hand_angle = secs * (360. / 3600);
     second_hand_angle = secs * (360. / 60);
 
-    sdlx_render_texture_ex3(hour_hand,                                   // texture
-                            XCTR_CLOCK-(W_HH/2), YCTR_CLOCK-H_HH+O_HH,   // x,y
-                            W_HH, H_HH,                                  // w,h
-                            hour_hand_angle,                             // angle
-                            W_HH/2, H_HH-O_HH);                          // rotation center
+    dest.x = XCTR_CLOCK-(W_HH/2);
+    dest.y = YCTR_CLOCK-H_HH+O_HH;
+    dest.w = W_HH;
+    dest.h = H_HH;
+    center.x = W_HH/2;
+    center.y = H_HH-O_HH;
+    sdlx_render_texture_rotated(hour_hand, NULL, &dest, hour_hand_angle, &center, FLIP_NONE);
 
-    sdlx_render_texture_ex3(minute_hand,
-                            XCTR_CLOCK-(W_MH/2), YCTR_CLOCK-H_MH+O_MH, 
-                            W_MH, H_MH, 
-                            minute_hand_angle, 
-                            W_MH/2, H_MH-O_MH);
+    dest.x = XCTR_CLOCK-(W_MH/2);
+    dest.y = YCTR_CLOCK-H_MH+O_MH;
+    dest.w = W_MH;
+    dest.h = H_MH;
+    center.x = W_MH/2;
+    center.y = H_MH-O_MH;
+    sdlx_render_texture_rotated(minute_hand, NULL, &dest, minute_hand_angle, &center, FLIP_NONE);
 
-    sdlx_render_texture_ex3(second_hand,
-                            XCTR_CLOCK-(W_SH/2), YCTR_CLOCK-H_SH+O_SH, 
-                            W_SH, H_SH, 
-                            second_hand_angle,
-                            W_SH/2, H_SH-O_SH);
+    dest.x = XCTR_CLOCK-(W_SH/2);
+    dest.y = YCTR_CLOCK-H_SH+O_SH;
+    dest.w = W_SH;
+    dest.h = H_SH;
+    center.x = W_SH/2;
+    center.y = H_SH-O_SH;
+    sdlx_render_texture_rotated(second_hand, NULL, &dest, second_hand_angle, &center, FLIP_NONE);
 
     sdlx_render_point(XCTR_CLOCK, YCTR_CLOCK, COLOR_RED, 9);
 }

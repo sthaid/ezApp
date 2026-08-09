@@ -23,11 +23,11 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut,
 void Sdlx_init(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    int subsys = (int)Param[0]->Val->Integer;
+    int subsys = Param[0]->Val->Integer;
+    int rc;
 
-    int retval;
-    retval = sdlx_init(subsys);
-    ReturnValue->Val->Integer = retval;
+    rc = sdlx_init(subsys);
+    ReturnValue->Val->Integer = rc;
 }
 
 void Sdlx_quit(struct ParseState *Parser, struct Value *ReturnValue,
@@ -157,27 +157,7 @@ void Sdlx_char_height(struct ParseState *Parser, struct Value *ReturnValue,
     ReturnValue->Val->Integer = retval;
 }
 
-void Sdlx_render_printf_ex1(struct ParseState *Parser, struct Value *ReturnValue,
-        struct Value **Param, int NumArgs)
-{
-    int          x      = (int)Param[0]->Val->Integer;
-    int          y      = (int)Param[1]->Val->Integer;
-    int          fontid = (int)Param[2]->Val->Integer;
-    sdlx_color_t color  = (sdlx_color_t)Param[3]->Val->UnsignedInteger;
-    char *       fmt    = (char *)Param[4]->Val->Pointer;
-
-    struct StdVararg PrintfArgs;
-    char             str[500] = "";
-    PrintfArgs.Param = Param + 4;
-    PrintfArgs.NumArgs = NumArgs - 5;
-    StdioBasePrintf(Parser, NULL, str, sizeof(str), fmt, &PrintfArgs);
-
-    sdlx_loc_t *loc;
-    loc = sdlx_render_printf_ex1(x, y, fontid, color, "%s", str);
-    ReturnValue->Val->Pointer = loc;
-}
-
-void Sdlx_render_printf_ex2(struct ParseState *Parser, struct Value *ReturnValue,
+void Sdlx_render_printf_ex(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
     int          x      = (int)Param[0]->Val->Integer;
@@ -194,7 +174,7 @@ void Sdlx_render_printf_ex2(struct ParseState *Parser, struct Value *ReturnValue
     StdioBasePrintf(Parser, NULL, str, sizeof(str), fmt, &PrintfArgs);
 
     sdlx_loc_t *loc;
-    loc = sdlx_render_printf_ex2(x, y, fontid, color, flags, "%s", str);
+    loc = sdlx_render_printf_ex(x, y, fontid, color, flags, "%s", str);
     ReturnValue->Val->Pointer = loc;
 }
 
@@ -386,51 +366,24 @@ void Sdlx_get_texture_pixels(struct ParseState *Parser, struct Value *ReturnValu
 void Sdlx_render_texture(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    sdlx_texture_t * t = (sdlx_texture_t *)Param[0]->Val->Pointer;
-    int              x = (int)Param[1]->Val->Integer;
-    int              y = (int)Param[2]->Val->Integer;
+    sdlx_texture_t * t    = (sdlx_texture_t *)Param[0]->Val->Pointer;
+    sdlx_loc_t *     src  = (sdlx_loc_t *)Param[1]->Val->Pointer;
+    sdlx_loc_t *     dest = (sdlx_loc_t *)Param[2]->Val->Pointer;
 
-    sdlx_render_texture(t, x, y);
+    sdlx_render_texture(t, src, dest);
 }
 
-void Sdlx_render_texture_ex1(struct ParseState *Parser, struct Value *ReturnValue,
+void Sdlx_render_texture_rotated(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    sdlx_texture_t * t = (sdlx_texture_t *)Param[0]->Val->Pointer;
-    int              x = (int)Param[1]->Val->Integer;
-    int              y = (int)Param[2]->Val->Integer;
-    int              w = (int)Param[3]->Val->Integer;
-    int              h = (int)Param[4]->Val->Integer;
+    sdlx_texture_t * t      = (sdlx_texture_t *)Param[0]->Val->Pointer;
+    sdlx_loc_t *     src    = (sdlx_loc_t *)Param[1]->Val->Pointer;
+    sdlx_loc_t *     dest   = (sdlx_loc_t *)Param[2]->Val->Pointer;
+    double           angle  = Param[3]->Val->FP;
+    sdlx_point_t   * center = (sdlx_point_t *)Param[4]->Val->Pointer;
+    int              flip   = Param[5]->Val->Integer;
 
-    sdlx_render_texture_ex1(t, x, y, w, h);
-}
-
-void Sdlx_render_texture_ex2(struct ParseState *Parser, struct Value *ReturnValue,
-        struct Value **Param, int NumArgs)
-{
-    sdlx_texture_t * t     = (sdlx_texture_t *)Param[0]->Val->Pointer;
-    int              x     = (int)Param[1]->Val->Integer;
-    int              y     = (int)Param[2]->Val->Integer;
-    int              w     = (int)Param[3]->Val->Integer;
-    int              h     = (int)Param[4]->Val->Integer;
-    double           angle = (double)Param[5]->Val->FP;
-
-    sdlx_render_texture_ex2(t, x, y, w, h, angle);
-}
-
-void Sdlx_render_texture_ex3(struct ParseState *Parser, struct Value *ReturnValue,
-        struct Value **Param, int NumArgs)
-{
-    sdlx_texture_t * texture = (sdlx_texture_t *)Param[0]->Val->Pointer;
-    int              x       = (int)Param[1]->Val->Integer;
-    int              y       = (int)Param[2]->Val->Integer;
-    int              w       = (int)Param[3]->Val->Integer;
-    int              h       = (int)Param[4]->Val->Integer;
-    double           angle   = (double)Param[5]->Val->FP;
-    int              xctr    = (int)Param[6]->Val->Integer;
-    int              yctr    = (int)Param[7]->Val->Integer;
-
-    sdlx_render_texture_ex3(texture, x, y, w, h, angle, xctr, yctr);
+    sdlx_render_texture_rotated(t, src, dest, angle, center, flip);
 }
 
 void Sdlx_set_render_target(struct ParseState *Parser, struct Value *ReturnValue,
@@ -440,6 +393,7 @@ void Sdlx_set_render_target(struct ParseState *Parser, struct Value *ReturnValue
 
     sdlx_set_render_target(t);
 }
+
 
 //
 // audio
@@ -726,6 +680,15 @@ void Sdlx_get_input_str(struct ParseState *Parser, struct Value *ReturnValue,
     ReturnValue->Val->Pointer = retval;
 }
 
+void Sdlx_vibrate(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    double strength    = Param[0]->Val->FP;
+    int    duration_ms = Param[1]->Val->Integer;
+
+    sdlx_vibrate(strength, duration_ms);
+}
+
 // -----------------  SDL REGISTRATION  ---------------------------------
 
 void SdlSetupFunction(Picoc *pc)
@@ -762,8 +725,7 @@ struct LibraryFunction SdlFunctions[] = {
     { Sdlx_render_printf,            "sdlx_loc_t *sdlx_render_printf(int x, int y, char *fmt, ...) ;" },
     { Sdlx_char_width,               "int sdlx_char_width(int fontid);" },
     { Sdlx_char_height,              "int sdlx_char_height(int fontid);" },
-    { Sdlx_render_printf_ex1,        "sdlx_loc_t *sdlx_render_printf_ex1(int x, int y, int fontid, sdlx_color_t color, char * fmt, ...);" },
-    { Sdlx_render_printf_ex2,        "sdlx_loc_t *sdlx_render_printf_ex2(int x, int y, int fontid, sdlx_color_t color, unsigned int flags, char *fmt, ...);" },
+    { Sdlx_render_printf_ex,         "sdlx_loc_t *sdlx_render_printf_ex(int x, int y, int fontid, sdlx_color_t color, unsigned int flags, char *fmt, ...);" },
     { Sdlx_render_multiline_text,    "void sdlx_render_multiline_text(int x, int y, int y_top, int y_bottom, int fontid, char **lines, sdlx_color_t *colors, int num_lines);" },
 
     // video - render rectangle, lines, circles, points
@@ -784,10 +746,9 @@ struct LibraryFunction SdlFunctions[] = {
     { Sdlx_color_mod_texture,        "void sdlx_color_mod_texture(sdlx_texture_t *t, float r, float g, float b);" },
     { Sdlx_set_texture_pixels,       "void sdlx_set_texture_pixels(sdlx_texture_t *t, unsigned int *pixels);" },
     { Sdlx_get_texture_pixels,       "unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w, int *h);" },
-    { Sdlx_render_texture,           "void sdlx_render_texture(sdlx_texture_t *t, int x, int y);" },
-    { Sdlx_render_texture_ex1,       "void sdlx_render_texture_ex1(sdlx_texture_t *t, int x, int y, int w, int h);" },
-    { Sdlx_render_texture_ex2,       "void sdlx_render_texture_ex2(sdlx_texture_t *t, int x, int y, int w, int h, double angle);" },
-    { Sdlx_render_texture_ex3,       "void sdlx_render_texture_ex3(sdlx_texture_t *texture, int x, int y, int w, int h, double angle, int xctr, int yctr);" },
+    { Sdlx_render_texture,           "void sdlx_render_texture(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_t *dest);" },
+    { Sdlx_render_texture_rotated,   "void sdlx_render_texture_rotated(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_t *dest, double angle, sdlx_point_t *center, int flip);" },
+
     { Sdlx_set_render_target,        "void sdlx_set_render_target(sdlx_texture_t *t);" },
 
     // audio
@@ -823,6 +784,7 @@ struct LibraryFunction SdlFunctions[] = {
     // misc
     { Sdlx_show_toast,               "void sdlx_show_toast(char *message);" },
     { Sdlx_get_input_str,            "char *sdlx_get_input_str(char *prompt, bool numeric_keybd, char *dflt_input_str);" },
+    { Sdlx_vibrate,                  "void sdlx_vibrate(double strength, int duration_ms);" },
 
     { NULL, NULL } };
 
@@ -834,6 +796,8 @@ const char SdlDefs[] = "\
 #define SUBSYS_VIDEO  1 \n\
 #define SUBSYS_AUDIO  2 \n\
 #define SUBSYS_SENSOR 4 \n\
+#define SUBSYS_HAPTIC 8 \n\
+#define DEFAULT_ASPECT_RATIO 2.167\n\
 \n\
 /* video typedefs  */ \n\
 typedef unsigned int sdlx_color_t; \n\
@@ -879,6 +843,7 @@ typedef struct { \n\
 #define FONT_LARGE    10 \n\
 #define ROW2Y(r)      ((r) * sdlx_char_height_dflt) \n\
 #define COL2X(c)      ((c) * sdlx_char_width_dflt) \n\
+#define FLAG_NONE          0x00000000 \n\
 #define FLAG_WRAP_MASK     0x00000fff \n\
 #define FLAG_X_CTR         0x00001000 \n\
 #define FLAG_Y_CTR         0x00002000 \n\
@@ -888,6 +853,11 @@ typedef struct { \n\
 #define FLAG_BG_BLACK      0x00020000 \n\
 #define FLAG_BG_WHITE      0x00040000 \n\
 #define FLAG_XY_CTR        (FLAG_X_CTR | FLAG_Y_CTR) \n\
+/* video sdlx_render_texture_rotated, flip arg values */ \n\
+#define FLIP_NONE                     0 \n\
+#define FLIP_HORIZONTAL               1 \n\
+#define FLIP_VERTICAL                 2 \n\
+#define FLIP_HORIZONTAL_AND_VERTICAL  3 \n\
 /* video misc */ \n\
 #define MAX_POINT_SIZE 9 \n\
 \n\
@@ -925,11 +895,21 @@ typedef struct { \n\
 } sdlx_sensor_info_t; \n\
 \n\
 /* events */ \n\
-#define EVID_MOTION  10000 \n\
-#define EVID_QUIT    10001 \n\
+#define EVID_MOTION_BEGIN  1000000000 \n\
+#define EVID_MOTION        1000000001 \n\
+#define EVID_MOTION_END    1000000002 \n\
+#define EVID_PINCH_BEGIN   1000000003 \n\
+#define EVID_PINCH         1000000004 \n\
+#define EVID_PINCH_END     1000000005 \n\
+#define EVID_QUIT          1000000006 \n\
+#define EVID_REDRAW        1000000007 \n\
 typedef struct { \n\
     int event_id; \n\
     union { \n\
+        struct { \n\
+            double x; \n\
+            double y; \n\
+        } motion_begin; \n\
         struct { \n\
             double x; \n\
             double y; \n\
@@ -937,8 +917,18 @@ typedef struct { \n\
             double yrel; \n\
         } motion; \n\
         struct { \n\
-            int ch; \n\
-        } keybd; \n\
+            double span_x; \n\
+            double span_y; \n\
+            double focus_x; \n\
+            double focus_y; \n\
+        } pinc_begin; \n\
+        struct { \n\
+            double span_x; \n\
+            double span_y; \n\
+            double focus_x; \n\
+            double focus_y; \n\
+            double scale; \n\
+        } pinch; \n\
     } u; \n\
 } sdlx_event_t; \n\
 ";
@@ -1022,6 +1012,17 @@ void Util_rename_file(struct ParseState *Parser, struct Value *ReturnValue,
     char * new_fn  = (char *)Param[3]->Val->Pointer;
 
     util_rename_file(old_dir, old_fn, new_dir, new_fn);
+}
+
+void Util_copy_file(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    char * src_dir = (char *)Param[0]->Val->Pointer;
+    char * src_fn  = (char *)Param[1]->Val->Pointer;
+    char * eest_dir = (char *)Param[2]->Val->Pointer;
+    char * eest_fn  = (char *)Param[3]->Val->Pointer;
+
+    util_copy_file(src_dir, src_fn, eest_dir, eest_fn);
 }
 
 void Util_file_exists (struct ParseState *Parser, struct Value *ReturnValue,
@@ -1426,6 +1427,33 @@ void Util_get_playbackcapture_audio(struct ParseState *Parser, struct Value *Ret
     util_get_playbackcapture_audio(array, num_elements);
 }
 
+//
+// utils camera support
+//
+
+void Util_take_photo(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    int rc;
+
+    rc = util_take_photo();
+    ReturnValue->Val->Integer = rc;
+}
+
+void Util_decode_jpeg_to_raw(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    char          *dir         = Param[0]->Val->Pointer;
+    char          *file        = Param[1]->Val->Pointer;
+    int           *out_width   = Param[2]->Val->Pointer;
+    int           *out_height  = Param[3]->Val->Pointer;
+    unsigned int **out_pixels  = Param[4]->Val->Pointer;
+    int            rc;
+
+    rc = util_decode_jpeg_to_raw(dir, file, out_width, out_height, out_pixels);
+    ReturnValue->Val->Integer = rc;
+}
+
 // -----------------  UTILS REGISTRATION  -------------------------------
 
 void UtilsSetupFunction(Picoc *pc)
@@ -1442,6 +1470,7 @@ struct LibraryFunction UtilsFunctions[] = {
     { Util_read_file,        "void *util_read_file(char *dir, char *fn, int *len);" },
     { Util_delete_file,      "void *util_delete_file(char *dir, char *fn);" },
     { Util_rename_file,      "void util_rename_file(char *old_dir, char *old_fn, char *new_dir, char *new_fn);" },
+    { Util_copy_file,        "void util_copy_file(char *src_dir, char *src_fn, char *dest_dir, char *dest_fn);" },
     { Util_file_exists,      "bool util_file_exists(char *dir, char *fn);" },
     { Util_file_mtime,       "long util_file_mtime(char *dir, char *fn);" },
     { Util_file_size,        "long util_file_size(char *dir, char *fn);" },
@@ -1487,6 +1516,9 @@ struct LibraryFunction UtilsFunctions[] = {
     { Util_start_playbackcapture,     "void util_start_playbackcapture(void);" },
     { Util_stop_playbackcapture,      "void util_stop_playbackcapture(void);" },
     { Util_get_playbackcapture_audio, "void util_get_playbackcapture_audio(float *array, int num_array_elements);" },
+    // camera support
+    { Util_take_photo,          "int util_take_photo(void);" },
+    { Util_decode_jpeg_to_raw,  "int util_decode_jpeg_to_raw(char *dir, char *file, int* out_width, int* out_height, unsigned int** out_pixels);" },
 
     { NULL, NULL } };
 

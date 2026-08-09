@@ -124,8 +124,8 @@ public class ezApp_utils {
                     }
                         
                     // debug print location/altitude result
-                    Log.i(TAG, String.format("lat/long/alt = %.4f %.4f %.0f msl %.0f wgs84",
-                                  latitude, longitude, altitude_ft_msl, altitude_ft_wgs84));
+                    //Log.i(TAG, String.format("lat/long/alt = %.4f %.4f %.0f msl %.0f wgs84",
+                    //              latitude, longitude, altitude_ft_msl, altitude_ft_wgs84));
                 }
             }
         };

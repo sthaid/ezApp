@@ -8,7 +8,7 @@
 #include <sdlx.h>
 #include <utils.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 //
 // defines
@@ -95,6 +95,7 @@ int main(int argc, char **argv)
     int          serving_delay = 0;
     sdlx_event_t event;
     long         start_us, timeout_us;
+    sdlx_loc_t   dest;
     bool         end_program = false;
 
     // save args
@@ -122,10 +123,10 @@ int main(int argc, char **argv)
     // - y range of display for the full court,
     //   includes court area above and below the paddles
     y_top             = 0;
-    y_bottom          = sdlx_win_height - 200;
+    y_bottom          = sdlx_win_height;
     // - location of the centers of the paddles
     human_paddle_x    = sdlx_win_width/2;
-    human_paddle_y    = y_bottom - 200;
+    human_paddle_y    = y_bottom - 300;
     computer_paddle_x = sdlx_win_width/2;
     computer_paddle_y = y_top + 200;
     // - size of the court, between the paddles
@@ -182,17 +183,23 @@ int main(int argc, char **argv)
         }
 
         // display scores
-        sdlx_render_printf_ex1(0, 0, FONT_LARGE, COLOR_WHITE, "%d", computer_score);
-        sdlx_render_printf_ex1(sdlx_win_width-2*sdlx_char_width(FONT_LARGE), 0,
-                               FONT_LARGE, COLOR_WHITE, "%2d", human_score);
+        sdlx_render_printf_ex(0, 0, FONT_LARGE, COLOR_WHITE, FLAG_NONE, "%d", computer_score);
+        sdlx_render_printf_ex(sdlx_win_width-2*sdlx_char_width(FONT_LARGE), 0,
+                               FONT_LARGE, COLOR_WHITE, FLAG_NONE, "%2d", human_score);
 
         // display ball speed, and skill setting
-        sdlx_render_printf_ex2(sdlx_win_width/2, sdlx_char_height(FONT_NORMAL),
+        sdlx_render_printf_ex(sdlx_win_width/2, sdlx_char_height(FONT_NORMAL),
                                FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                                "%0.2f %s", ball_speed_court_per_sec, short_skill_str[param_skill]);
 
-        // display the ball and paddles
-        sdlx_render_texture(ball, x-BALL_RADIUS, y-BALL_RADIUS);
+        // display the ball
+        dest.x = x - BALL_RADIUS;
+        dest.y = y - BALL_RADIUS;
+        dest.w = 2 * BALL_RADIUS;
+        dest.h = 2 * BALL_RADIUS;
+        sdlx_render_texture(ball, NULL, &dest);
+
+        // display the paddles
         sdlx_render_fill_rect(human_paddle_x-PADDLE_W/2, human_paddle_y-PADDLE_H/2, PADDLE_W, PADDLE_H, COLOR_WHITE);
         sdlx_render_fill_rect(computer_paddle_x-PADDLE_W/2, computer_paddle_y-PADDLE_H/2, PADDLE_W, PADDLE_H, COLOR_WHITE);
 
@@ -484,15 +491,15 @@ void settings(void)
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
         // display values, and register events to change the values
-        loc = sdlx_render_printf_ex1(0, ROW2Y(2), FONT_NORMAL, COLOR_LIGHT_BLUE, "autonomous = %s", param_autonomous ? "ON" : "OFF");
+        loc = sdlx_render_printf_ex(0, ROW2Y(2), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "autonomous = %s", param_autonomous ? "ON" : "OFF");
         sdlx_register_event(loc, EVID_AUTONOMOUS);
-        loc = sdlx_render_printf_ex1(0, ROW2Y(4), FONT_NORMAL, COLOR_LIGHT_BLUE, "sound = %s", param_sound ? "ON" : "OFF");
+        loc = sdlx_render_printf_ex(0, ROW2Y(4), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "sound = %s", param_sound ? "ON" : "OFF");
         sdlx_register_event(loc, EVID_SOUND);
-        loc = sdlx_render_printf_ex1(0, ROW2Y(6), FONT_NORMAL, COLOR_LIGHT_BLUE, "min_speed = %G", param_min_ball_speed);
+        loc = sdlx_render_printf_ex(0, ROW2Y(6), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "min_speed = %G", param_min_ball_speed);
         sdlx_register_event(loc, EVID_MIN_BALL_SPEED);
-        loc = sdlx_render_printf_ex1(0, ROW2Y(8), FONT_NORMAL, COLOR_LIGHT_BLUE, "max_speed = %G", param_max_ball_speed);
+        loc = sdlx_render_printf_ex(0, ROW2Y(8), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "max_speed = %G", param_max_ball_speed);
         sdlx_register_event(loc, EVID_MAX_BALL_SPEED);
-        loc = sdlx_render_printf_ex1(0, ROW2Y(10), FONT_NORMAL, COLOR_LIGHT_BLUE, "%s", skill_str[param_skill]);
+        loc = sdlx_render_printf_ex(0, ROW2Y(10), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "%s", skill_str[param_skill]);
         sdlx_register_event(loc, EVID_SKILL);
 
         // register control event to exit the settings screen
