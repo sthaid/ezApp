@@ -28,6 +28,12 @@
         android:name="android.hardware.type.pc"
         android:required="false" />
 
+    <!-- Audio recording support -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+
     <!-- Camera support -->
     <!-- if you want to record video, uncomment this. -->
     <!--
@@ -46,10 +52,10 @@
     <!-- Allow access to the vibrator -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- EZAPP vvvvvv -->
-
     <!-- Allow access to Internet -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- EZAPP vvvvvv -->
 
     <!-- Allows an application to recognize physical activity. -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
@@ -66,10 +72,6 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.flash" android:required="false"/>
-
-    <!-- Audio recording support -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <!--Foreground Service Permissions-->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -99,12 +101,10 @@
         <meta-data android:name="SDL_ENV.SDL_ANDROID_TRAP_BACK_BUTTON" android:value="0"/>
          -->
 
-        <activity 
-            android:name="EzappActivity"
-            android:screenOrientation="portrait"
+        <activity android:name="EzappActivity"
             android:label="@string/app_name"
             android:alwaysRetainTaskState="true"
-            android:launchMode="singleInstance"
+            android:launchMode="singleTop"
             android:configChanges="layoutDirection|locale|grammaticalGender|fontScale|fontWeightAdjustment|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation"
             android:preferMinimalPostProcessing="true"
             android:exported="true"

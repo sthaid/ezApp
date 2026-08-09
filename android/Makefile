@@ -68,6 +68,5 @@ clean:
 	rm -rf assets 
 	rm -rf setup_files/orig
 	rm -f  ../src/ezApp/version.h
-	make -C ../src/openssl clean
 
 .PHONY: clean
