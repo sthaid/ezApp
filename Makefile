@@ -17,9 +17,9 @@ clone_sdl:
             git clone https://github.com/libsdl-org/SDL_ttf; \
             git clone https://github.com/libsdl-org/SDL_mixer; \
             echo "checkout branches"; \
-            cd $$SRC/SDL;       git checkout -q release-3.4.0; \
-            cd $$SRC/SDL_ttf;   git checkout -q 0165849a0061d91c51d4a3fa8bcda5b5fcf53cc9; \
-            cd $$SRC/SDL_mixer; git checkout -q 092fafa4d820c45e3f05b59b7be75807ef3eefe8; \
+            cd $$SRC/SDL;       git checkout -q 616b8fb338c55249a4a9d6c2245f0a10410f9aec; \
+            cd $$SRC/SDL_ttf;   git checkout -q a42434b8c96daaf7650dbd0befe480c090d1c2eb; \
+            cd $$SRC/SDL_mixer; git checkout -q 9c12eb245ebbf568b6eb7b838cf350aa9f729497; \
             echo "download external repos"; \
             cd $$SRC/SDL_ttf/external;   ./download.sh; \
             cd $$SRC/SDL_mixer/external; ./download.sh; \
