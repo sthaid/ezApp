@@ -115,7 +115,7 @@ void periodic_processing(void)
     char   name[MAX_NAME];
     double latitude, longitude, miles;
 
-#if 1
+#if 0
     // print interval since last call
     static time_t t_last_call;
     time_t t_now = time(NULL);

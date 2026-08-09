@@ -84,6 +84,7 @@ void process_req(svc_req_t *req)
 
 void periodic_processing(void)
 {
+#if 0
     // print interval since last call
     static time_t t_last_call;
     time_t t_now = time(NULL);
@@ -91,4 +92,5 @@ void periodic_processing(void)
         printf("I %s: periodic interval = %ld secs\n", progname, t_now-t_last_call);
     }
     t_last_call = t_now;
+#endif
 }

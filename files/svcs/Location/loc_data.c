@@ -112,7 +112,7 @@ void find_closest_loc_data(double latitude, double longitude, char *name, double
         if (distance_squared < 0.0625) {
             strcpy(name, save_name);
             *miles = save_miles;
-            printf("I %s: returning saved location %s\n", progname, save_name);
+            //printf("I %s: returning saved location %s\n", progname, save_name);
             return;
         }
     }
