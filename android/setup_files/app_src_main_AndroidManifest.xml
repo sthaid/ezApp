@@ -34,12 +34,9 @@
         android:name="android.hardware.microphone"
         android:required="false" />
 
-    <!-- Camera support -->
-    <!-- if you want to record video, uncomment this. -->
-    <!--
+    <!-- Camera support xxx android.required  -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" />
-    -->
 
     <!-- Allow downloading to the external storage on Android 5.1 and older -->
     <!-- <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="22" /> -->
@@ -68,9 +65,9 @@
     <!-- Required for Android 13 (API 33) and above. Ignored by Android 11. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Flashlight support -->
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <!-- Flashlight support xxx duplicates CAMERA -->
+    <!-- <uses-permission android:name="android.permission.CAMERA"/>  -->
+    <!-- <uses-feature android:name="android.hardware.camera" android:required="false"/>  -->
     <uses-feature android:name="android.hardware.camera.flash" android:required="false"/>
 
     <!--Foreground Service Permissions-->
@@ -139,6 +136,17 @@
             android:enabled="true"
             android:exported="false" 
             android:foregroundServiceType="mediaProjection" />
+
+        <!-- EZAPP xxx -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="org.libsdl.app.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
  
     </application>
 

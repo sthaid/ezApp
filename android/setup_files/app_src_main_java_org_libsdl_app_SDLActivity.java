@@ -70,6 +70,20 @@ import org.libsdl.app.ezApp_media_fgsvc;
 import org.libsdl.app.ezApp_utils;
 import android.os.SystemClock;
 
+// xxx camera
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
+import android.provider.MediaStore;
+import android.widget.Toast;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+
 /**
     SDL Activity
 */
@@ -268,7 +282,11 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     private static ezApp_media_fgsvc mezApp_media_fgsvc;
     private static boolean           mezApp_media_fgsvc_isbound = false;
     private static int               mezApp_media_start_result;
+    private static int               mezApp_image_capture_result;  //xxx cleanup
     private static final int         MEDIA_RECORD_REQUEST_CODE = 1234;
+
+    private static final int         REQUEST_IMAGE_CAPTURE = 1235;
+
     private static final int         RESULT_NOT_SET = Activity.RESULT_FIRST_USER;
 
     public static SDLGenericMotionListener_API14 getMotionListener() {
@@ -744,6 +762,87 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         return 0;
     }
 
+    // EZAPP utils camera
+    // xxx
+    public double take_picture() {
+
+      mSingleton.runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+
+
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File currentPhotoFile;
+        Uri photoURI;
+
+        if (takePictureIntent.resolveActivity(mSingleton.getPackageManager()) != null) {
+            currentPhotoFile = null;
+            try {
+                // Generate file path inside /data/data/org.sthaid.ezApp/files/
+                String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+                String imageFileName = "JPEG_" + timeStamp + "_";
+                File storageDir = mSingleton.getFilesDir();
+
+                currentPhotoFile = File.createTempFile(imageFileName, ".jpg", storageDir);
+                Log.i(EZAPP_TAG, "currentPhotoFile " + currentPhotoFile);
+            } catch (IOException ex) {
+                //xxx Toast.makeText(activity, "Error creating file container", Toast.LENGTH_SHORT).show();
+            }
+
+            if (currentPhotoFile != null) {
+                Log.i(EZAPP_TAG, "PhotoFile != NULL");
+                photoURI = FileProvider.getUriForFile(mSingleton,
+                        //"org.sthaid.ezApp.fileprovider",
+                        "org.libsdl.app.fileprovider",
+                        currentPhotoFile);
+                Log.i(EZAPP_TAG, "  LINE 1");
+
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                takePictureIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+                // Force the camera app to run in a standalone window sandbox
+                //takePictureIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                //takePictureIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+
+                Log.i(EZAPP_TAG, "  LINE 2");
+
+                // LEGACY METHOD: Executes from any generic Activity context
+                Log.i(EZAPP_TAG, "request image capture");
+                mezApp_image_capture_result = RESULT_NOT_SET;
+                mSingleton.startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+/*
+                while (mezApp_image_capture_result == RESULT_NOT_SET) {
+                    //Log.i(EZAPP_TAG, "  SLEEP 100 ");
+                    SystemClock.sleep(100);
+                }
+                Log.i(EZAPP_TAG, "request image capture after wait");
+*/
+
+                //getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                //getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                // Force the root view to request layout
+                //getWindow().getDecorView().requestLayout();
+
+            }
+        } else {
+            //xxx Toast.makeText(activity, "No camera application found", Toast.LENGTH_SHORT).show();
+        }
+
+        }
+    });
+    return 0;
+    }
+
+    public double take_picture_complete() {
+        if (mezApp_image_capture_result != RESULT_NOT_SET) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+
     // ---- EZAPP END ----
 
     protected void pauseNativeThread() {
@@ -1074,6 +1173,18 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
             } else {
                 Log.e(EZAPP_TAG, "start media record permission failed, resultCode = " + resultCode);
                 mezApp_media_start_result = RESULT_CANCELED;
+            }
+        }
+
+        // EZAPP
+        if (requestCode == REQUEST_IMAGE_CAPTURE) {
+            Log.i(EZAPP_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+            if (resultCode == RESULT_OK) {
+                Log.i(EZAPP_TAG, "REQUEST_IMAGE_CAPTURE okay, resoltCode = " + resultCode);
+                mezApp_image_capture_result = RESULT_OK;
+            } else {
+                Log.e(EZAPP_TAG, "REQUEST_IMAGE_CAPTURE failed, resoltCode = " + resultCode);
+                mezApp_image_capture_result = RESULT_CANCELED;
             }
         }
 

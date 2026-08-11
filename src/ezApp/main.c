@@ -61,6 +61,7 @@ typedef struct {
     bool access_fine_location;
     bool activity_recognition;
     bool record_audio;
+    bool camera; //xxx dont call camera routine if no perm
 } perm_granted_t;
 
 //
@@ -150,6 +151,7 @@ static int init(void)
     GET_PERMISSION("ACCESS_FINE_LOCATION", perm_granted.access_fine_location);
     GET_PERMISSION("ACTIVITY_RECOGNITION", perm_granted.activity_recognition);
     GET_PERMISSION("RECORD_AUDIO", perm_granted.record_audio);
+    GET_PERMISSION("CAMERA", perm_granted.camera);  // xxx test without permission
 
     // init android utils, which provide support for:
     // - text to speech

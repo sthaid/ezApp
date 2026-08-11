@@ -26,7 +26,10 @@ typedef struct {
 // variables
 //
 
-extern SDL_Window *window;
+//xxx delete these here; do these need to be public
+//extern SDL_Window *window;
+//extern SDL_Renderer *renderer;
+
 
 static event_t event_tbl[MAX_EVENT];
 static int     max_event;
@@ -351,9 +354,34 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
     case SDL_EVENT_FINGER_DOWN:
     case SDL_EVENT_FINGER_UP:
     case SDL_EVENT_FINGER_MOTION:
+        // SDL_TouchFingerEvent
+        break;
+
+    case SDL_EVENT_PINCH_BEGIN:
+    case SDL_EVENT_PINCH_UPDATE:
+    case SDL_EVENT_PINCH_END: {
+        SDL_PinchFingerEvent *x = &ev->pinch;
+
+        INFO("%s: scale=%f span=%f %f focus=%f %f\n",
+             (ev->type == SDL_EVENT_PINCH_BEGIN  ? "PINCH_BEGIN" :
+              ev->type == SDL_EVENT_PINCH_UPDATE ? "PINCH_BEGIN" :
+                                                   "PINCH_END"),
+            x->scale, x->span_x, x->span_y, x->focus_x, x->focus_y);
+        break; }
+
     case SDL_EVENT_SENSOR_UPDATE:
         // these occur frequently
         break;
+
+#if 0  //xxx
+    case SDL_EVENT_RENDER_DEVICE_RESET:
+        printf("XXXXXXXXXXXXXXXXXX GOT SDL_EVENT_RENDER_DEVICE_RESET\n");
+        break;
+
+    case SDL_EVENT_WINDOW_FOCUS_GAINED:
+        printf("XXXXXXXXXXXXXXXXXX GOT SDL_EVENT_WINDOW_FOCUS_GAINED\n");
+        break;
+#endif
 
     default: {
         // debug print the events that are not supported

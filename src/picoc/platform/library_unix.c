@@ -1426,6 +1426,13 @@ void Util_get_playbackcapture_audio(struct ParseState *Parser, struct Value *Ret
     util_get_playbackcapture_audio(array, num_elements);
 }
 
+// camera
+void Util_take_picture(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    util_take_picture();
+}
+
 // -----------------  UTILS REGISTRATION  -------------------------------
 
 void UtilsSetupFunction(Picoc *pc)
@@ -1483,6 +1490,7 @@ struct LibraryFunction UtilsFunctions[] = {
     { Util_turn_flashlight_off, "void util_turn_flashlight_off(void);" },
     { Util_toggle_flashlight,   "void util_toggle_flashlight(void);" },
     { Util_is_flashlight_on,    "bool util_is_flashlight_on(void);" },
+    { Util_take_picture,        "bool util_take_picture(void);" },
     // call java: playbackcapture
     { Util_start_playbackcapture,     "void util_start_playbackcapture(void);" },
     { Util_stop_playbackcapture,      "void util_stop_playbackcapture(void);" },

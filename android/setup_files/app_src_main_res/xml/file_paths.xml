@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://github.com">
+    <!-- Points directly to your internal app storage root folder -->
+    <files-path name="internal_images" path="." />
+</paths>
+

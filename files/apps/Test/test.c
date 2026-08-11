@@ -76,6 +76,9 @@ static void page_13_init(void);
 static void page_13_draw(void);
 static void page_13_exit(void);
 
+static void page_14_draw(void);
+static void page_14_process_event(sdlx_event_t *event);
+
 // -----------------  MAIN  ------------------------------------------
 
 int main(int argc, char **argv)
@@ -147,6 +150,7 @@ char *page_title[] = {     // Page
         "Text Rotate",     //  11
         "Landscape",       //  12
         "SvcMakeReq",      //  13
+        "Camera",          //  14
             };
 static int pagenum = 0;
 
@@ -194,6 +198,7 @@ static void page_hndlr()
         case 11: page_11_draw(); break;
         case 12: page_12_draw(); break;
         case 13: page_13_draw(); break;
+        case 14: page_14_draw(); break;
         default:
             printf("E %s: invalid pagenum %d\n", progname, pagenum);
             end_program = true;
@@ -258,6 +263,7 @@ static void page_hndlr()
         case 8: page_8_process_event(&event); break;
         case 11: page_11_process_event(&event); break;
         case 12: page_12_process_event(&event); break;
+        case 14: page_14_process_event(&event); break;
         }
     }
 
@@ -1417,3 +1423,26 @@ static void page_13_draw(void)
                            "ADD1 %d -> %d", test, result);
 }
 
+// -----------------  PAGE 14: CAMERA  ------------------------
+
+// xxx decode and display and pinch image here
+
+#define EVID_TAKE_PICTURE 10
+
+static void page_14_draw(void)
+{
+    sdlx_loc_t *loc = sdlx_render_printf_ex1(0, sdlx_win_height-2*sdlx_char_height_dflt, 
+                                             FONT_NORMAL, COLOR_LIGHT_BLUE, "TAKE_PICTURE");
+    sdlx_register_event(loc, EVID_TAKE_PICTURE);
+}
+
+static void page_14_process_event(sdlx_event_t *ev)
+{
+    switch (ev->event_id) {
+    case EVID_TAKE_PICTURE:
+        printf("I %s: calling take_picture\n", progname);
+        util_take_picture();
+        printf("I %s: back from take_picture\n", progname);
+        break;
+    }
+}

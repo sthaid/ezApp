@@ -216,6 +216,9 @@ void util_turn_flashlight_off(void);
 bool util_is_flashlight_on(void);
 void util_toggle_flashlight(void);
 
+// Camera xxx more comments needed
+void util_take_picture(void);
+
 // Capture device audio:
 // 1) call util_start_playbackcapture
 // 2) repeatedly call util_get_playbackcapture_audio to obtain raw audio samples.

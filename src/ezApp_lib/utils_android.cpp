@@ -147,6 +147,23 @@ bool util_is_flashlight_on(void) {
     return call_java1("is_flashlight_on") == 1;
 }
 
+// camera
+void util_take_picture(void) {
+    double rc;
+    rc = call_java1("take_picture");
+    INFO("rc = %f\n", rc);
+
+    while (true) { // xxx timeout?
+        rc = call_java1("take_picture_complete");
+        if (rc == 1) {
+            INFO("GOT COMPLETE\n");
+            break;
+        }
+        INFO("POLLING\n");
+        sleep(1);
+    }
+}
+
 // playbackcapture
 int util_start_playbackcapture(void) {
     return call_java1("start_playbackcapture");
@@ -368,5 +385,7 @@ bool util_is_flashlight_on(void) { return false; }
 int util_start_playbackcapture(void) { return -1; }
 void util_stop_playbackcapture(void) { }
 int util_get_playbackcapture_audio(float *array, int num_array_elements) { return INVALID_NUMBER; }
+
+void util_take_picture(void) { }
 
 #endif
