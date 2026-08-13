@@ -552,7 +552,7 @@ typedef struct {
         } motion;
         struct {
             double scale, span_x, span_y, focus_x, focus_y;
-        } finger;
+        } pinch;
         struct {
             unsigned char bytes[40];  //xxx is bytes needed, compare struct size with picoc
         } data;

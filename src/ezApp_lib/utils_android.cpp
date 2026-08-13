@@ -148,19 +148,23 @@ bool util_is_flashlight_on(void) {
 }
 
 // camera
-void util_take_picture(void) {
-    double rc;
-    rc = call_java1("take_picture");
-    INFO("rc = %f\n", rc);
+void util_take_picture(void) 
+{
+    int rc;
+    sdlx_event_t ev;
 
-    while (true) { // xxx timeout?
+    call_java1("take_picture_start");
+
+    call_java1("take_picture");
+
+    while (true) { // xxx timeout here?
+        sdlx_get_event(100000, &ev);
         rc = call_java1("take_picture_complete");
         if (rc == 1) {
-            INFO("GOT COMPLETE\n");
+            INFO("take picture is complete\n");
             break;
         }
-        INFO("POLLING\n");
-        sleep(1);
+        INFO("take picture is not yet complete\n");
     }
 }
 

@@ -384,11 +384,11 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
 
         // xxx handle landscape
         event->event_id = EVID_PINCH;
-        event->u.finger.scale = x->scale;
-        event->u.finger.span_x = x->span_x;
-        event->u.finger.span_y = x->span_y;
-        event->u.finger.focus_x = x->focus_x;
-        event->u.finger.focus_y = x->focus_y;
+        event->u.pinch.scale = x->scale;
+        event->u.pinch.span_x = x->span_x;
+        event->u.pinch.span_y = x->span_y;
+        event->u.pinch.focus_x = x->focus_x;
+        event->u.pinch.focus_y = x->focus_y;
 
         break; }
 

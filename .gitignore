@@ -28,6 +28,8 @@ files/apps/Memo/*.mp3
 files/apps/ColrOrgn/files/*.mp3
 params
 
+files/tmp/*
+
 bin/ezsh
 bin/src/ezlogfilter
 bin/adb_connect_last

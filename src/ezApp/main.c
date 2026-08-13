@@ -282,12 +282,14 @@ static void create_files(int action)
         } else {
             INFO("not extracting\n");
         }
+
+        system("rm -rf tmp/*");
             
     // remove existing apps and svcs, and recreate
     } else if (action ==  CREATE_FILES_RESET_APPS_AND_SVCS) {
         svcs_stop_all();
-        system("rm -rf apps svcs");
-        system("tar -xvf files.tar apps svcs");
+        system("rm -rf apps svcs tmp");
+        system("tar -xvf files.tar apps svcs tmp");
         svcs_start_all();
     } else {
         ERROR("invalid arg, action %d\n", action);

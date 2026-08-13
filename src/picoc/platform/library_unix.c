@@ -956,7 +956,7 @@ typedef struct { \n\
             double span_y; \n\
             double focus_x; \n\
             double focus_y; \n\
-        } finger; \n\
+        } pinch; \n\
         struct { \n\
             unsigned char bytes[40]; \n\
         } data; \n\

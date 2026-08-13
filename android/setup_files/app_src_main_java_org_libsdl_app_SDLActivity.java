@@ -287,7 +287,8 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
 
     private static final int         REQUEST_IMAGE_CAPTURE = 1235;
 
-    private static final int         RESULT_NOT_SET = Activity.RESULT_FIRST_USER;
+    //private static final int         RESULT_NOT_SET = Activity.RESULT_FIRST_USER;  // xxx check this
+    private static final int         RESULT_NOT_SET = 999;
 
     public static SDLGenericMotionListener_API14 getMotionListener() {
         if (mMotionListener == null) {
@@ -762,6 +763,13 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         return 0;
     }
 
+    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+    public double take_picture_start() {
+        mezApp_image_capture_result = RESULT_NOT_SET;
+        return 0;
+    }
+
     // EZAPP utils camera
     // xxx
     public double take_picture() {
@@ -770,60 +778,54 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         @Override
         public void run() {
 
-
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        File currentPhotoFile;
         Uri photoURI;
 
+        // xxx put this in start
         if (takePictureIntent.resolveActivity(mSingleton.getPackageManager()) != null) {
-            currentPhotoFile = null;
-            try {
-                // Generate file path inside /data/data/org.sthaid.ezApp/files/
-                String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-                String imageFileName = "JPEG_" + timeStamp + "_";
-                File storageDir = mSingleton.getFilesDir();
+            // 1. Get internal files directory and append "tmp"
+            File baseDir = mSingleton.getFilesDir();
+            File tmpDirectory = new File(baseDir, "tmp");
+            File file = new File(tmpDirectory, "photo.jpg");
 
-                currentPhotoFile = File.createTempFile(imageFileName, ".jpg", storageDir);
-                Log.i(EZAPP_TAG, "currentPhotoFile " + currentPhotoFile);
-            } catch (IOException ex) {
-                //xxx Toast.makeText(activity, "Error creating file container", Toast.LENGTH_SHORT).show();
+            try {
+                // 2. Ensure the /files/tmp/ directory exists
+                if (!tmpDirectory.exists()) {
+                    tmpDirectory.mkdirs();
+                }
+
+                // 3. Force recreation if it already exists
+                if (file.exists()) {
+                    file.delete();
+                }
+
+                // 4. Create the brand new file
+                if (file.createNewFile()) {
+                    // File successfully created
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
 
-            if (currentPhotoFile != null) {
+            if (file != null) {
                 Log.i(EZAPP_TAG, "PhotoFile != NULL");
                 photoURI = FileProvider.getUriForFile(mSingleton,
                         //"org.sthaid.ezApp.fileprovider",
                         "org.libsdl.app.fileprovider",
-                        currentPhotoFile);
+                        file);
                 Log.i(EZAPP_TAG, "  LINE 1");
 
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 takePictureIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 
-                // Force the camera app to run in a standalone window sandbox
-                //takePictureIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                //takePictureIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-
                 Log.i(EZAPP_TAG, "  LINE 2");
 
                 // LEGACY METHOD: Executes from any generic Activity context
                 Log.i(EZAPP_TAG, "request image capture");
-                mezApp_image_capture_result = RESULT_NOT_SET;
                 mSingleton.startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
-/*
-                while (mezApp_image_capture_result == RESULT_NOT_SET) {
-                    //Log.i(EZAPP_TAG, "  SLEEP 100 ");
-                    SystemClock.sleep(100);
-                }
-                Log.i(EZAPP_TAG, "request image capture after wait");
-*/
 
-                //getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                //getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                // Force the root view to request layout
-                //getWindow().getDecorView().requestLayout();
-
+                Log.i(EZAPP_TAG, "  LINE 3");
             }
         } else {
             //xxx Toast.makeText(activity, "No camera application found", Toast.LENGTH_SHORT).show();
@@ -831,13 +833,17 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
 
         }
     });
+
     return 0;
     }
 
     public double take_picture_complete() {
+        Log.i(EZAPP_TAG, "  COMPLETE TOP");
         if (mezApp_image_capture_result != RESULT_NOT_SET) {
+            Log.i(EZAPP_TAG, "  IS COMPLETE " + mezApp_image_capture_result);
             return 1;
         } else {
+            Log.i(EZAPP_TAG, "  IS NOT COMPLETE " + mezApp_image_capture_result);
             return 0;
         }
     }

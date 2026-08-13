@@ -1431,8 +1431,6 @@ static void page_13_draw(void)
 
 // -----------------  PAGE 14: CAMERA  ------------------------
 
-// xxx decode and display and pinch image here
-
 #define EVID_TAKE_PICTURE 10
 
 sdlx_texture_t *t;
@@ -1456,9 +1454,6 @@ static void page_14_draw(void)
     sdlx_loc_t src, dest;
 
     if (t) {
-        //sdlx_render_texture(t, 0, 0);
-        //sdlx_render_texture_ex1(t, x, y, 3000, 4000);
-
         src.x = 0;
         src.y = 0;
         src.w = 3000;
@@ -1487,11 +1482,16 @@ static void page_14_process_event(sdlx_event_t *ev)
 
     switch (ev->event_id) {
     case EVID_TAKE_PICTURE:
+        if (!t) {
+            printf("E %s: t is NULL\n", progname);
+            break;
+        }
+
         printf("I %s: calling take_picture\n", progname);
-        util_take_picture();
+        util_take_picture();  // xxx return status
         printf("I %s: back from take_picture\n", progname);
 
-        fd = open("JPEG_20260811_071538_7771443156521582505.jpg", 0, 0);
+        fd = open("tmp/photo.jpg", 0, 0);
         if (fd == -1) {
             printf("E %s: failed to open jpeg file, %s\n", progname, strerror(errno));
             break;
@@ -1499,18 +1499,11 @@ static void page_14_process_event(sdlx_event_t *ev)
 
         rc = util_decode_jpeg_to_raw(fd, &out_width, &out_height, &out_pixels);
         if (rc != 0) {
-            printf("E %s: failed to open jpeg file, %s\n", progname, strerror(errno));
+            printf("E %s: failed to decode jpeg file, %s\n", progname, strerror(errno));
             close(fd);
             break;
         }
         printf("I %s: decode_jpeg okay, w/h=%d,%d\n", progname, out_width, out_height);
-
-        if (!t) { // xxx check this first
-            printf("E %s: t is NULL\n", progname);
-            close(fd);
-            free(out_pixels);
-            break;
-        }
 
         sdlx_set_texture_pixels(t, out_pixels);
         printf("I %s: after call to sdlx_set_texture_pixels\n", progname);
@@ -1524,7 +1517,7 @@ static void page_14_process_event(sdlx_event_t *ev)
         printf("I %s: motion x,y = %f %f\n", progname, x, y);
         break;
     case EVID_PINCH:
-        printf("i %s: scale %f\n", progname, ev->pinch.scale);
+        printf("i %s: scale %f\n", progname, ev->u.pinch.scale);
         break;
     }
 }
