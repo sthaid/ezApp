@@ -7,6 +7,8 @@
 #include <ctype.h>
 #include <math.h>
 #include <libgen.h>
+#include <errno.h>
+//#include <fcntl.h> //xxx temp
 
 #include <sdlx.h>
 #include <utils.h>
@@ -76,8 +78,10 @@ static void page_13_init(void);
 static void page_13_draw(void);
 static void page_13_exit(void);
 
+static void page_14_init(void);
 static void page_14_draw(void);
 static void page_14_process_event(sdlx_event_t *event);
+static void page_14_exit(void);
 
 // -----------------  MAIN  ------------------------------------------
 
@@ -172,6 +176,7 @@ static void page_hndlr()
     case 8: page_8_init(); break;
     case 9: page_9_init(); break;
     case 13: page_13_init(); break;
+    case 14: page_14_init(); break;
     }
 
     while (true) {
@@ -274,6 +279,7 @@ static void page_hndlr()
     case 7: page_7_exit(); break;
     case 8: page_8_exit(); break;
     case 13: page_13_exit(); break;
+    case 14: page_14_exit(); break;
     }
 
     // update pagenum
@@ -1429,20 +1435,96 @@ static void page_13_draw(void)
 
 #define EVID_TAKE_PICTURE 10
 
+sdlx_texture_t *t;
+double x, y;
+
+static void page_14_init(void)
+{
+    t = sdlx_create_texture(3000, 4000);
+}
+
+static void page_14_exit(void)
+{
+    if (t) {
+        sdlx_destroy_texture(t);
+        t = NULL;
+    }
+}
+
 static void page_14_draw(void)
 {
+    sdlx_loc_t src, dest;
+
+    if (t) {
+        //sdlx_render_texture(t, 0, 0);
+        //sdlx_render_texture_ex1(t, x, y, 3000, 4000);
+
+        src.x = 0;
+        src.y = 0;
+        src.w = 3000;
+        src.h = 4000;
+
+        dest.x = 0;
+        dest.y = 0;
+        dest.w = 1000;
+        dest.h = 1333;
+
+        sdlx_render_texture_new(t, &src, &dest);
+    }
+
     sdlx_loc_t *loc = sdlx_render_printf_ex1(0, sdlx_win_height-2*sdlx_char_height_dflt, 
                                              FONT_NORMAL, COLOR_LIGHT_BLUE, "TAKE_PICTURE");
     sdlx_register_event(loc, EVID_TAKE_PICTURE);
+    sdlx_register_event(NULL, EVID_MOTION);
+    sdlx_register_event(NULL, EVID_PINCH);
 }
 
 static void page_14_process_event(sdlx_event_t *ev)
 {
+    int fd, rc;
+    int out_width, out_height;
+    void *out_pixels;
+
     switch (ev->event_id) {
     case EVID_TAKE_PICTURE:
         printf("I %s: calling take_picture\n", progname);
         util_take_picture();
         printf("I %s: back from take_picture\n", progname);
+
+        fd = open("JPEG_20260811_071538_7771443156521582505.jpg", 0, 0);
+        if (fd == -1) {
+            printf("E %s: failed to open jpeg file, %s\n", progname, strerror(errno));
+            break;
+        }
+
+        rc = util_decode_jpeg_to_raw(fd, &out_width, &out_height, &out_pixels);
+        if (rc != 0) {
+            printf("E %s: failed to open jpeg file, %s\n", progname, strerror(errno));
+            close(fd);
+            break;
+        }
+        printf("I %s: decode_jpeg okay, w/h=%d,%d\n", progname, out_width, out_height);
+
+        if (!t) { // xxx check this first
+            printf("E %s: t is NULL\n", progname);
+            close(fd);
+            free(out_pixels);
+            break;
+        }
+
+        sdlx_set_texture_pixels(t, out_pixels);
+        printf("I %s: after call to sdlx_set_texture_pixels\n", progname);
+
+        free(out_pixels);
+        close(fd);
+        break;
+    case EVID_MOTION:
+        x += ev->u.motion.xrel;
+        y += ev->u.motion.yrel;
+        printf("I %s: motion x,y = %f %f\n", progname, x, y);
+        break;
+    case EVID_PINCH:
+        printf("i %s: scale %f\n", progname, ev->pinch.scale);
         break;
     }
 }

@@ -1317,6 +1317,36 @@ unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w_arg, int *h_arg)
     return pixels;
 }
 
+// - - - - - - render texture xxx new - - - - - 
+
+void sdlx_render_texture_new(sdlx_texture_t *texture, sdlx_loc_t *src_arg, sdlx_loc_t *dest_arg)
+{
+    SDL_FRect src, dest;
+    SDL_FRect *Src=NULL, *Dest=NULL;
+
+    if (texture == NULL) {
+        return;
+    }
+    
+    if (src_arg != NULL) {
+        src.x = src_arg->x;
+        src.y = src_arg->y;
+        src.w = src_arg->w;
+        src.h = src_arg->h;
+        Src = &src;
+    }
+
+    if (dest_arg != NULL) {
+        dest.x = dest_arg->x;
+        dest.y = dest_arg->y;
+        dest.w = dest_arg->w;
+        dest.h = dest_arg->h;
+        Dest = &dest;
+    }
+
+    SDL_RenderTexture(renderer, (SDL_Texture*)texture, Src, Dest);
+}
+
 // - - - - - - render texture - - - - - 
 
 void sdlx_render_texture(sdlx_texture_t *texture, int x, int y)

@@ -35,6 +35,7 @@ static event_t event_tbl[MAX_EVENT];
 static int     max_event;
 static bool    evid_motion_registered;
 static bool    evid_keybd_registered;
+static bool    evid_pinch_registered;
 static int     event_quit_rcvd;
 static bool    event_box_enable;
 
@@ -64,6 +65,10 @@ void sdlx_register_event(sdlx_loc_t *loc, int event_id)
     }
     if (event_id == EVID_KEYBD) {
         evid_keybd_registered = true;
+        return;
+    }
+    if (event_id == EVID_PINCH) {
+        evid_pinch_registered = true;
         return;
     }
 
@@ -185,6 +190,7 @@ void sdlx_reset_events(void)
     max_event = 0;
     evid_motion_registered = false;
     evid_keybd_registered = false;
+    evid_pinch_registered = false;
 }
 
 void sdlx_event_box_ctrl(bool enable)
@@ -296,6 +302,7 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
             //    ev->motion.xrel,
             //    ev->motion.yrel);
 
+#if 1 // xxx consider not doing this;  or do the same for pinch
             // consolidate possible additional MOUSE_MOTION events into this event
             while (true) {
                 SDL_Event tmp_ev;
@@ -310,6 +317,7 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
                 ev->motion.xrel += tmp_ev.motion.xrel;
                 ev->motion.yrel += tmp_ev.motion.yrel;
             }
+#endif
 
             event->event_id = EVID_MOTION;
             if (orientation == PORTRAIT) {
@@ -339,7 +347,9 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         //bool shift = (x->mod & SDL_KMOD_SHIFT) != 0;
         //INFO("GOT keycode 0x%x  shift=%d\n", keycode, shift);
         event->event_id = EVID_KEYBD;
-        event->u.data.bytes[0] = keycode;
+        event->u.data.bytes[0] = keycode; // xxx should have a keybd eventdata, but not in picoc
+            // xxx check where bytes is used   - maybe delete bytes
+            // xxx need to keep the structure the same size in picoc
         break; }
 
     case SDL_EVENT_QUIT: {
@@ -362,11 +372,24 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
     case SDL_EVENT_PINCH_END: {
         SDL_PinchFingerEvent *x = &ev->pinch;
 
-        INFO("%s: scale=%f span=%f %f focus=%f %f\n",
+        if (!evid_pinch_registered) {
+            break;
+        }
+
+        INFO("%s: scale=%f span=%f %f focus=%f %f\n", // xxx add to event_type_to_str
              (ev->type == SDL_EVENT_PINCH_BEGIN  ? "PINCH_BEGIN" :
-              ev->type == SDL_EVENT_PINCH_UPDATE ? "PINCH_BEGIN" :
+              ev->type == SDL_EVENT_PINCH_UPDATE ? "PINCH_UPDATE" :
                                                    "PINCH_END"),
             x->scale, x->span_x, x->span_y, x->focus_x, x->focus_y);
+
+        // xxx handle landscape
+        event->event_id = EVID_PINCH;
+        event->u.finger.scale = x->scale;
+        event->u.finger.span_x = x->span_x;
+        event->u.finger.span_y = x->span_y;
+        event->u.finger.focus_x = x->focus_x;
+        event->u.finger.focus_y = x->focus_y;
+
         break; }
 
     case SDL_EVENT_SENSOR_UPDATE:

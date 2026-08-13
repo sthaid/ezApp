@@ -218,6 +218,7 @@ void util_toggle_flashlight(void);
 
 // Camera xxx more comments needed
 void util_take_picture(void);
+int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_pixels);
 
 // Capture device audio:
 // 1) call util_start_playbackcapture

@@ -77,13 +77,14 @@ Some examples:
     Codename        Version     SDK / API Level   Year
     --------        -------     ---------------   ----
     Baklava           16             36           2025
+    Red Velvet Cake   11             30           2020
     Nougat            7.0            24           2016
     Lollipop          5              21           2015
 ```
 
 From Google AI ...
 
-Android SDK Version (minSdkVersion, targetSdkVersion)
+Android SDK Version (minSdkVersion, targetSdkVersion, compileSdkVersion)
 - These are attributes used in your app's main build configuration 
   (like a Gradle file in Android Studio) to declare compatibility
   with specific API levels. 
@@ -95,6 +96,9 @@ Android SDK Version (minSdkVersion, targetSdkVersion)
 - compileSdkVersion: The API level of the Android platform version you
   compile your app against. You should always use the latest stable 
   version for this to access new features and improvements. 
+- compileSdkVersion and targetSdkVersion should match in almost all
+  circumstances to ensure your app behaves consistently and uses the 
+  latest Android features securely
 
 APP_PLATFORM 
 - a variable used specifically within the Android NDK (Native Development
@@ -106,12 +110,14 @@ APP_PLATFORM
 - If not specified in Application.mk, ndk-build typically defaults to a
   minimum API level supported by the NDK itself or tries to infer it from
   your minSdkVersion set in the app's manifest/Gradle file. 
+- APP_PLATFORM in Application.mk (or -DANDROID_PLATFORM in CMake) should 
+  generally match your minSdkVersion.
 
 NDK Version:
 - explicit configuration, in build.gradle:
         android {
             ...
-            ndkVersion "23.1.7779620"
+            ndkVersion "23.1.7779620"  xxx
         }
 - Automatic Selection:
   If you do not specify an ndkVersion, the Android Gradle Plugin (AGP)

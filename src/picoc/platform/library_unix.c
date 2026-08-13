@@ -441,6 +441,17 @@ void Sdlx_set_render_target(struct ParseState *Parser, struct Value *ReturnValue
     sdlx_set_render_target(t);
 }
 
+// xxx new
+void Sdlx_render_texture_new(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    sdlx_texture_t * t    = (sdlx_texture_t *)Param[0]->Val->Pointer;
+    sdlx_loc_t *     src  = (sdlx_loc_t *)Param[1]->Val->Pointer;
+    sdlx_loc_t *     dest = (sdlx_loc_t *)Param[2]->Val->Pointer;
+
+    sdlx_render_texture_new(t, src, dest);
+}
+
 //
 // audio
 //
@@ -788,6 +799,8 @@ struct LibraryFunction SdlFunctions[] = {
     { Sdlx_render_texture_ex1,       "void sdlx_render_texture_ex1(sdlx_texture_t *t, int x, int y, int w, int h);" },
     { Sdlx_render_texture_ex2,       "void sdlx_render_texture_ex2(sdlx_texture_t *t, int x, int y, int w, int h, double angle);" },
     { Sdlx_render_texture_ex3,       "void sdlx_render_texture_ex3(sdlx_texture_t *texture, int x, int y, int w, int h, double angle, int xctr, int yctr);" },
+    // xxx new
+    { Sdlx_render_texture_new,       "void sdlx_render_texture_new(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_t *dest);" },
     { Sdlx_set_render_target,        "void sdlx_set_render_target(sdlx_texture_t *t);" },
 
     // audio
@@ -926,7 +939,8 @@ typedef struct { \n\
 \n\
 /* events */ \n\
 #define EVID_MOTION  10000 \n\
-#define EVID_QUIT    10001 \n\
+#define EVID_PINCH   10001 \n\
+#define EVID_QUIT    10009 \n\
 typedef struct { \n\
     int event_id; \n\
     union { \n\
@@ -937,11 +951,20 @@ typedef struct { \n\
             double yrel; \n\
         } motion; \n\
         struct { \n\
-            int ch; \n\
-        } keybd; \n\
+            double scale; \n\
+            double span_x; \n\
+            double span_y; \n\
+            double focus_x; \n\
+            double focus_y; \n\
+        } finger; \n\
+        struct { \n\
+            unsigned char bytes[40]; \n\
+        } data; \n\
     } u; \n\
 } sdlx_event_t; \n\
 ";
+
+// xxx maybe pad struct so entire length is 64
 
 // -----------------  UTILS PLATFORM ROUTINES  --------------------------
 
@@ -1433,6 +1456,19 @@ void Util_take_picture(struct ParseState *Parser, struct Value *ReturnValue,
     util_take_picture();
 }
 
+void Util_decode_jpeg_to_raw(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    int    fd          = Param[0]->Val->Integer;
+    int   *out_width   = Param[1]->Val->Pointer;
+    int   *out_height  = Param[2]->Val->Pointer;
+    void **out_pixels  = Param[3]->Val->Pointer;
+    int    rc;
+
+    rc = util_decode_jpeg_to_raw(fd, out_width, out_height, out_pixels);
+    ReturnValue->Val->Integer = rc;
+}
+
 // -----------------  UTILS REGISTRATION  -------------------------------
 
 void UtilsSetupFunction(Picoc *pc)
@@ -1491,6 +1527,7 @@ struct LibraryFunction UtilsFunctions[] = {
     { Util_toggle_flashlight,   "void util_toggle_flashlight(void);" },
     { Util_is_flashlight_on,    "bool util_is_flashlight_on(void);" },
     { Util_take_picture,        "bool util_take_picture(void);" },
+    { Util_decode_jpeg_to_raw,  "int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_pixels);" },
     // call java: playbackcapture
     { Util_start_playbackcapture,     "void util_start_playbackcapture(void);" },
     { Util_stop_playbackcapture,      "void util_stop_playbackcapture(void);" },

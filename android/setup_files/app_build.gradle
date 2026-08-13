@@ -6,22 +6,24 @@ def buildWithCMake = project.hasProperty('BUILD_WITH_CMAKE');
 
 android {
     namespace = "org.sthaid.ezApp"
-    compileSdkVersion 35
+    compileSdkVersion 35 // EZAPP - when tried setting this to 36, got the following build warning ...
+                         // WARNING: We recommend using a newer Android Gradle plugin to use compileSdk = 36
+                         // This Android Gradle plugin (8.7.3) was tested up to compileSdk = 35.
     ndkVersion = "28.2.13676358"
     defaultConfig {
-        minSdkVersion 29  // EZAPP - API 29 needed for getifaddrs
-        targetSdkVersion 35
+        minSdkVersion 30     // EZAPP - API 29 needed for getifaddrs, and 30 needed for xxx jped decode
+        targetSdkVersion 36  // EZAOO - the API level tested against
         versionCode 1
         versionName "1.0"
         externalNativeBuild {
             ndkBuild {
-                arguments "APP_PLATFORM=android-29"  // EZAPP
+                arguments "APP_PLATFORM=android-30"  // EZAPP
                 // arguments "V=1"  // EZAPP uncomment to enable verbose build output
                 // abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
                 abiFilters 'arm64-v8a'
             }
             cmake {
-                arguments "-DANDROID_PLATFORM=android-29", "-DANDROID_STL=c++_static", "-DAPP_SUPPORT_FLEXIBLE_PAGE_SIZES=true"  // EZAPP
+                arguments "-DANDROID_PLATFORM=android-30", "-DANDROID_STL=c++_static", "-DAPP_SUPPORT_FLEXIBLE_PAGE_SIZES=true"  // EZAPP
                 // abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
                 abiFilters 'arm64-v8a'
             }

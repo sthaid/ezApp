@@ -26,7 +26,8 @@ LOCAL_SRC_FILES := \
     svcs.c \
     utils.c \
     utils_openssl.c \
-    utils_android.cpp 
+    utils_android.cpp \
+    utils_jpeg_decode.c
 
 LOCAL_CFLAGS := -O2
 

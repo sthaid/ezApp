@@ -232,7 +232,7 @@ void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int
 // Video: Textures
 // ---------------
 
-// Textures are GPU memory buffers that can be selected as render target.
+// Textures are xxx GPU memory buffers that can be selected as render target.
 // Once set as render target, the texture is the current_texture.
 // Subsequent rendering occurs to the current_texture.
 
@@ -278,7 +278,7 @@ void sdlx_set_texture_pixels(sdlx_texture_t *t, unsigned int *pixels);
 // Caller must free the returned pixels array.
 unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w, int *h);
 
-// Copy entire texture to location x,y of the current_texture.
+// Copy entire texture to location x,y of the current_texture.   xxx or doc 'copy to current rendering target'
 void sdlx_render_texture(sdlx_texture_t *t, int x, int y);
 // Copy entire texture to location x,y,w,h of the current_texture.
 // The texture is scaled to fit w X h.
@@ -288,6 +288,10 @@ void sdlx_render_texture_ex2(sdlx_texture_t *t, int x, int y, int w, int h, doub
 // Same as above, except the xctr, yctr args specify the point around which the 
 // texture is rotated. This is equivalent to the previous routine when xctr=w/2 and yctr=h/2.
 void sdlx_render_texture_ex3(sdlx_texture_t *texture, int x, int y, int w, int h, double angle, int xctr, int yctr);
+
+// xxx new
+void sdlx_render_texture_new(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_t *dest);
+
 
 // Set current_texture to 't'.
 // It t==NULL, the current_texture is set to the default_texture.
@@ -526,11 +530,13 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 // - EVID_MOTION: This event occurs when the display is tapped and dragged.
 //                The current x,y coordinates; and the relative motion in the x,y
 //                directions are returned by the call to sdlx_get_event.
+// - EVID_PINCH:  xxx
 // - EVID_QUIT:   This event is usually registered by calling 
 //                  sdlx_register_control_events(..., EVID_QUIT, "X");
 //                When the "X" is tapped, the EVID_QUIT event occurs.
 #define EVID_MOTION  10000
-#define EVID_QUIT    10001
+#define EVID_PINCH   10001
+#define EVID_QUIT    10009
 
 // This structure returns the event that occurred, by call to sdlx_get_event.
 // When the display is tapped at a location associated with a registered
@@ -545,10 +551,16 @@ typedef struct {
             double x, y, xrel, yrel;
         } motion;
         struct {
-            unsigned char bytes[32];
+            double scale, span_x, span_y, focus_x, focus_y;
+        } finger;
+        struct {
+            unsigned char bytes[40];  //xxx is bytes needed, compare struct size with picoc
         } data;
     } u;
 } sdlx_event_t;
+
+// xxx keybd
+// xxx what are bytes for?
 
 // Events: Registration
 // --------------------
