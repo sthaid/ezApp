@@ -216,10 +216,6 @@ void util_turn_flashlight_off(void);
 bool util_is_flashlight_on(void);
 void util_toggle_flashlight(void);
 
-// Camera xxx more comments needed
-void util_take_picture(void);
-int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_pixels);
-
 // Capture device audio:
 // 1) call util_start_playbackcapture
 // 2) repeatedly call util_get_playbackcapture_audio to obtain raw audio samples.
@@ -227,6 +223,11 @@ int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_
 int util_start_playbackcapture(void);
 void util_stop_playbackcapture(void);
 int util_get_playbackcapture_audio(float *array, int num_array_elements);
+
+
+// Camera xxx more comments needed
+int util_take_picture(void);
+int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_pixels); //xxx move or update comment
 
 #ifdef __cplusplus
 }

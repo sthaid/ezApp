@@ -1,4 +1,7 @@
-// xxx clean up
+// -----------------  NOT ANDROID - TEST CODE  ---------------------------
+// xxx cleanup
+
+#ifdef ANDROID
 
 #include <std_hdrs.h>
     
@@ -77,3 +80,19 @@ int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_
     return 0; // Success
 }
 
+#else
+
+// -----------------  NOT ANDROID - TEST CODE  ---------------------------
+
+#include <std_hdrs.h>
+
+#include <utils.h>
+#include <private.h>
+
+int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_pixels) 
+{
+    ERROR("this routine only supported on Android\n");
+    return -1;
+}
+
+#endif

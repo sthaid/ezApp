@@ -147,15 +147,28 @@ bool util_is_flashlight_on(void) {
     return call_java1("is_flashlight_on") == 1;
 }
 
+// playbackcapture
+int util_start_playbackcapture(void) {
+    return call_java1("start_playbackcapture");
+}
+void util_stop_playbackcapture(void) {
+    call_java1("stop_playbackcapture");
+}
+int util_get_playbackcapture_audio(float *array, int num_array_elements) {
+    return call_java3("get_playbackcapture_audio", array, num_array_elements);
+}
+
 // camera
-void util_take_picture(void) 
+int util_take_picture(void) 
 {
     int rc;
     sdlx_event_t ev;
 
+    // xxx remove photo file
+
     call_java1("take_picture_start");
 
-    call_java1("take_picture");
+    call_java1("take_picture"); // xxx check return codes
 
     while (true) { // xxx timeout here?
         sdlx_get_event(100000, &ev);
@@ -166,17 +179,10 @@ void util_take_picture(void)
         }
         INFO("take picture is not yet complete\n");
     }
-}
 
-// playbackcapture
-int util_start_playbackcapture(void) {
-    return call_java1("start_playbackcapture");
-}
-void util_stop_playbackcapture(void) {
-    call_java1("stop_playbackcapture");
-}
-int util_get_playbackcapture_audio(float *array, int num_array_elements) {
-    return call_java3("get_playbackcapture_audio", array, num_array_elements);
+    // xxx check that the file was created
+
+    return 0;
 }
 
 // -----------------  COMMON ROUTINES TO CALL JAVA METHOD  -------------------------
@@ -390,6 +396,7 @@ int util_start_playbackcapture(void) { return -1; }
 void util_stop_playbackcapture(void) { }
 int util_get_playbackcapture_audio(float *array, int num_array_elements) { return INVALID_NUMBER; }
 
-void util_take_picture(void) { }
+// xxx why no error when return -1 omitted
+int util_take_picture(void) { ERROR("this routine only supported on Android\n"); return -1; }
 
 #endif
