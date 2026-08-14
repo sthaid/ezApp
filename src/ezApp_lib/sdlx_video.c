@@ -51,7 +51,7 @@ int sdlx_char_height_dflt;
 // variables
 //
 
-SDL_Window          *window;  // also used by sdlx_event.c and sdlx_misc.c  xxx ??
+SDL_Window          *window;  // needed by sdlx_misc.c
 
 static SDL_Renderer *renderer;
 static font_t        font[MAX_FONT_PTSIZE];

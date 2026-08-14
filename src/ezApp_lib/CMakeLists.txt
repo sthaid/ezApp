@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 
 project(ezApp_lib)
 
-set(CMAKE_C_FLAGS "-O2 -Wall -Werror -Wno-unused-result -g")
-
 set(LIB_SRCS
     sdlx_audio.c
     sdlx_event.c
@@ -33,8 +31,10 @@ include_directories(. ./include ${INCLUDE_PATH})
 
 add_library(ezApp_lib STATIC ${LIB_SRCS} ${LIB_HEADERS})
 
+# this applies the core flags to BOTH C and C++ files in this library
+target_compile_options(ezApp_lib PRIVATE -Wall -Werror -Wno-unused-result -g -O2)
+
 install(FILES include/sdlx.h include/svcs.h include/utils.h include/private.h
         DESTINATION include)
-
 install(TARGETS ezApp_lib ARCHIVE DESTINATION lib)
 

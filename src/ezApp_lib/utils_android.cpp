@@ -392,11 +392,10 @@ void util_turn_flashlight_off(void) { }
 void util_toggle_flashlight(void) { }
 bool util_is_flashlight_on(void) { return false; }
 
-int util_start_playbackcapture(void) { return -1; }
+int util_start_playbackcapture(void) { ERROR("this routine only supported on Android\n"); return -1; }
 void util_stop_playbackcapture(void) { }
 int util_get_playbackcapture_audio(float *array, int num_array_elements) { return INVALID_NUMBER; }
 
-// xxx why no error when return -1 omitted
 int util_take_picture(void) { ERROR("this routine only supported on Android\n"); return -1; }
 
 #endif
