@@ -8,7 +8,7 @@
 #include <math.h>
 #include <libgen.h>
 #include <errno.h>
-//#include <fcntl.h> //xxx temp
+#include <fcntl.h>
 
 #include <sdlx.h>
 #include <utils.h>
@@ -1434,7 +1434,7 @@ static void page_13_draw(void)
 #define EVID_TAKE_PICTURE 10
 
 sdlx_texture_t *t;
-double x, y;
+double xc=3000/2, yc=4000/2, scale=1;
 
 static void page_14_init(void)
 {
@@ -1454,10 +1454,11 @@ static void page_14_draw(void)
     sdlx_loc_t src, dest;
 
     if (t) {
-        src.x = 0;
-        src.y = 0;
+        src.x = xc - (scale * 3000) / 2;
+        src.y = yc - (scale * 4000) / 2;
         src.w = 3000;
         src.h = 4000;
+        printf("SRC %d %d %d %d - SCALE %f\n", src.x, src.y, src.w, src.h, scale);
 
         dest.x = 0;
         dest.y = 0;
@@ -1488,10 +1489,15 @@ static void page_14_process_event(sdlx_event_t *ev)
         }
 
         printf("I %s: calling take_picture\n", progname);
-        util_take_picture();  // xxx return status
-        printf("I %s: back from take_picture\n", progname);
+        rc = util_take_picture();  // xxx return status
+        if (rc != 0) {
+            printf("E %s: util_take_picture failed\n", progname);
+            break;
+        }
 
-        fd = open("tmp/photo.jpg", 0, 0);
+        printf("I %s: back from take_picture, rc=%d\n", progname, rc);
+
+        fd = open("tmp/photo.jpg", O_RDONLY, 0);
         if (fd == -1) {
             printf("E %s: failed to open jpeg file, %s\n", progname, strerror(errno));
             break;
@@ -1510,14 +1516,24 @@ static void page_14_process_event(sdlx_event_t *ev)
 
         free(out_pixels);
         close(fd);
+
+        xc = 3000 / 2;
+        yc = 4000 / 2;
+        scale = 1;
         break;
     case EVID_MOTION:
-        x += ev->u.motion.xrel;
-        y += ev->u.motion.yrel;
-        printf("I %s: motion x,y = %f %f\n", progname, x, y);
+        xc -= ev->u.motion.xrel;
+        yc -= ev->u.motion.yrel;
+        //printf("I %s: motion x,y = %f %f\n", progname, xc, yc);
         break;
     case EVID_PINCH:
-        printf("i %s: scale %f\n", progname, ev->u.pinch.scale);
+        if (ev->u.pinch.scale == 0) break;
+        scale *= ev->u.pinch.scale;
+        //printf("i %s: scale %f\n", progname, ev->u.pinch.scale);
         break;
     }
 }
+
+// -----------------  PAGE 15: PINCH  -------------------------
+
+// xxx
