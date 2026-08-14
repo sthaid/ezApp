@@ -17,11 +17,13 @@ add_executable(ezApp
         )
 
 target_link_libraries(ezApp PRIVATE 
+    -Wl,--start-group
     ${LIB_PATH}/libezApp_lib.a
+    ${LIB_PATH}/libpicoc.a
+    -Wl,--end-group
     ${LIB_PATH}/libSDL3.so
     ${LIB_PATH}/libSDL3_ttf.so
     ${LIB_PATH}/libSDL3_mixer.so
-    ${LIB_PATH}/libpicoc.a
     ${LIB_PATH}/libmp3lame.a
     ${LIB_PATH}/libkissfft-float.a
     ${LIB_PATH}/libcJSON.a
