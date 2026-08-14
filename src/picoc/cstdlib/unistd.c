@@ -495,18 +495,6 @@ void UnistdWrite(struct ParseState *Parser, struct Value *ReturnValue,
         Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
-// xxx move to fcntl.c
-void UnistdOpen(struct ParseState *Parser, struct Value *ReturnValue,
-    struct Value **Param, int NumArgs)
-{
-    char *path  = Param[0]->Val->Pointer;
-    int   flags = Param[1]->Val->Integer;
-    int   mode  = Param[2]->Val->Integer;
-    int   rc;
-
-    rc = open(path, flags, mode);
-    ReturnValue->Val->Integer = rc;
-}
 
 /* handy structure definitions */
 const char UnistdDefs[] = "\
@@ -621,7 +609,6 @@ struct LibraryFunction UnistdFunctions[] =
     {UnistdUsleep, "int usleep(useconds_t);"},
     {UnistdVfork, "pid_t vfork(void);"},
     {UnistdWrite, "ssize_t write(int, void*, size_t);"},
-    {UnistdOpen, "int open(char*, int, int);"},
     {NULL, NULL}
 };
 

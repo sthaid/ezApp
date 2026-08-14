@@ -758,4 +758,8 @@ extern void UnistdSetupFunc(Picoc *pc);
 /* libgen.c */
 extern struct LibraryFunction LibgenFunctions[];
 
+/* fcntl.c */
+extern struct LibraryFunction FcntlFunctions[];
+extern void FcntlSetupFunc(Picoc *pc);
+
 #endif /* INTERPRETER_H */

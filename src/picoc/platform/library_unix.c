@@ -964,7 +964,7 @@ typedef struct { \n\
 } sdlx_event_t; \n\
 ";
 
-// xxx maybe pad struct so entire length is 64
+// xxx maybe pad struct so entire length is 64   OR dont pad at all,  AND keybd
 
 // -----------------  UTILS PLATFORM ROUTINES  --------------------------
 
@@ -1449,11 +1449,17 @@ void Util_get_playbackcapture_audio(struct ParseState *Parser, struct Value *Ret
     util_get_playbackcapture_audio(array, num_elements);
 }
 
-// camera
+//
+// utils camera support
+//
+
 void Util_take_picture(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    util_take_picture();
+    int rc;
+
+    rc = util_take_picture();
+    ReturnValue->Val->Integer = rc;
 }
 
 void Util_decode_jpeg_to_raw(struct ParseState *Parser, struct Value *ReturnValue,
@@ -1526,12 +1532,13 @@ struct LibraryFunction UtilsFunctions[] = {
     { Util_turn_flashlight_off, "void util_turn_flashlight_off(void);" },
     { Util_toggle_flashlight,   "void util_toggle_flashlight(void);" },
     { Util_is_flashlight_on,    "bool util_is_flashlight_on(void);" },
-    { Util_take_picture,        "bool util_take_picture(void);" },
-    { Util_decode_jpeg_to_raw,  "int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_pixels);" },
     // call java: playbackcapture
     { Util_start_playbackcapture,     "void util_start_playbackcapture(void);" },
     { Util_stop_playbackcapture,      "void util_stop_playbackcapture(void);" },
     { Util_get_playbackcapture_audio, "void util_get_playbackcapture_audio(float *array, int num_array_elements);" },
+    // camera support
+    { Util_take_picture,        "int util_take_picture(void);" },
+    { Util_decode_jpeg_to_raw,  "int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_pixels);" },
 
     { NULL, NULL } };
 

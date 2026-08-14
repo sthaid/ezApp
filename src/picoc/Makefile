@@ -4,7 +4,7 @@ SRCS =  picoc.c table.c lex.c parse.c expression.c heap.c type.c \
 	platform/platform_unix.c platform/library_unix.c \
 	cstdlib/stdio.c cstdlib/math.c cstdlib/string.c cstdlib/stdlib.c \
 	cstdlib/time.c cstdlib/errno.c cstdlib/ctype.c cstdlib/stdbool.c \
-	cstdlib/unistd.c cstdlib/libgen.c \
+	cstdlib/unistd.c cstdlib/libgen.c cstdlib/fcntl.c \
         picoc_ezApp.c
 
 LIBS = -L../../linux/local/lib -lezApp_lib -lmp3lame -llodepng -lcJSON -lkissfft-float -lSDL3 -lSDL3_ttf -lSDL3_mixer -lm \

@@ -32,6 +32,7 @@ set(LIB_SRCS
     cstdlib/time.c 
     cstdlib/unistd.c 
     cstdlib/libgen.c 
+    cstdlib/fcntl.c 
     platform/library_unix.c 
     platform/platform_unix.c
 )
