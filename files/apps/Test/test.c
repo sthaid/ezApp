@@ -26,6 +26,7 @@
 //
 
 static bool  end_program;
+static int   orientation;
 
 //
 // prototypes
@@ -83,6 +84,11 @@ static void page_14_draw(void);
 static void page_14_process_event(sdlx_event_t *event);
 static void page_14_exit(void);
 
+static void page_15_init(void);
+static void page_15_draw(void);
+static void page_15_process_event(sdlx_event_t *event);
+static void page_15_exit(void);
+
 // -----------------  MAIN  ------------------------------------------
 
 int main(int argc, char **argv)
@@ -105,10 +111,10 @@ int main(int argc, char **argv)
     test1_proc();
 
     // test calling lib proc
-    int orient = get_device_orientation();
+    orientation = get_device_orientation();
     printf("I %s: orientation is %s\n",
            progname,
-           (orient == PORTRAIT ? "PORTRAIT" : "LANDSCAPE"));
+           (orientation == PORTRAIT ? "PORTRAIT" : "LANDSCAPE"));
 
     // test reading a file in the 'data_dir' dir
     int file_len;
@@ -155,6 +161,7 @@ char *page_title[] = {     // Page
         "Landscape",       //  12
         "SvcMakeReq",      //  13
         "Camera",          //  14
+        "Pinch",           //  15
             };
 static int pagenum = 0;
 
@@ -177,11 +184,21 @@ static void page_hndlr()
     case 9: page_9_init(); break;
     case 13: page_13_init(); break;
     case 14: page_14_init(); break;
+    case 15: page_15_init(); break;
     }
 
     while (true) {
         // init the backbuffer, and print font/color
-        sdlx_display_init(COLOR_BLACK, pagenum == 12 ? LANDSCAPE : PORTRAIT);
+        // xxx comments
+        if ((pagenum == 12) || 
+            (pagenum == 15 && get_device_orientation() == LANDSCAPE))
+        {
+            orientation = LANDSCAPE;
+        } else {
+            orientation = PORTRAIT;
+        }
+
+        sdlx_display_init(COLOR_BLACK, orientation);
         sdlx_print_set_default(FONT_NORMAL, COLOR_WHITE);
 
         // draw title line
@@ -204,6 +221,7 @@ static void page_hndlr()
         case 12: page_12_draw(); break;
         case 13: page_13_draw(); break;
         case 14: page_14_draw(); break;
+        case 15: page_15_draw(); break;
         default:
             printf("E %s: invalid pagenum %d\n", progname, pagenum);
             end_program = true;
@@ -269,6 +287,7 @@ static void page_hndlr()
         case 11: page_11_process_event(&event); break;
         case 12: page_12_process_event(&event); break;
         case 14: page_14_process_event(&event); break;
+        case 15: page_15_process_event(&event); break;
         }
     }
 
@@ -280,6 +299,7 @@ static void page_hndlr()
     case 8: page_8_exit(); break;
     case 13: page_13_exit(); break;
     case 14: page_14_exit(); break;
+    case 15: page_15_exit(); break;
     }
 
     // update pagenum
@@ -1536,4 +1556,66 @@ static void page_14_process_event(sdlx_event_t *ev)
 
 // -----------------  PAGE 15: PINCH  -------------------------
 
-// xxx
+#define RADIUS 500
+
+double pg15_scale, pg15_focus_x, pg15_focus_y, pg15_span_x, pg15_span_y;
+int pg15_orientation_save;
+
+static void page_15_init(void)
+{
+    pg15_scale = 1;
+    pg15_focus_x = sdlx_win_width/2;
+    pg15_focus_y = sdlx_win_height/2;
+    pg15_span_x = 0;
+    pg15_span_y = 0;
+    pg15_orientation_save = orientation;
+}
+
+static void page_15_exit(void)
+{
+    // nothing needed
+}
+
+static void page_15_draw(void)
+{
+    if (orientation != pg15_orientation_save) {
+        page_15_init();
+    }
+
+    sdlx_render_fill_circle(pg15_focus_x, pg15_focus_y, RADIUS*pg15_scale, COLOR_YELLOW);
+    sdlx_render_fill_rect(pg15_focus_x-pg15_span_x/2, pg15_focus_y-25, pg15_span_x, 50, COLOR_BLUE);
+    sdlx_render_fill_rect(pg15_focus_x-25, pg15_focus_y-pg15_span_y/2, 50, pg15_span_y, COLOR_BLUE);
+
+    sdlx_render_printf_ex2(sdlx_win_width/2, sdlx_win_height-sdlx_char_height(FONT_NORMAL)/2, 
+                           FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, "Scale = %0.3f", pg15_scale);
+
+    sdlx_register_event(NULL, EVID_PINCH);
+    sdlx_register_event(NULL, EVID_MOTION);
+}
+
+static void page_15_process_event(sdlx_event_t *ev)
+{
+    switch(ev->event_id) {
+    case EVID_PINCH:
+        printf("I %s: PINCH scale=%0.3f  focus=%0.0f %0.0f  span=%0.0f %0.0f\n",
+               progname,
+               ev->u.pinch.scale,
+               ev->u.pinch.focus_x, ev->u.pinch.focus_y,
+               ev->u.pinch.span_x, ev->u.pinch.span_y);
+
+        pg15_scale  *= ev->u.pinch.scale;
+        pg15_focus_x = ev->u.pinch.focus_x;
+        pg15_focus_y = ev->u.pinch.focus_y;
+        pg15_span_x  = ev->u.pinch.span_x;
+        pg15_span_y  = ev->u.pinch.span_y;
+        break;
+    case EVID_MOTION:
+        printf("I %s: MOTION xy=%0.0f %0.0f  xyrel=%0.0f %0.0f\n", 
+               progname, 
+               ev->u.motion.x, ev->u.motion.y,
+               ev->u.motion.xrel, ev->u.motion.yrel);
+        pg15_focus_x += ev->u.motion.xrel;
+        pg15_focus_y += ev->u.motion.yrel;
+        break;
+    }
+}

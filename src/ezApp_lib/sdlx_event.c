@@ -256,6 +256,7 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
                              ((Y) <  (loc).y + (loc).h))
 
     int i;
+    static bool pinching;
 
     switch (ev->type) {
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -264,6 +265,10 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         static int last_pressed_y = -1;
         int x, y;
 
+        if (pinching) {
+            break;
+        }
+
         //INFO("MOUSE_BUTTON button=%s state=%s x=%d y=%d\n",
         //        (ev->button.button == SDL_BUTTON_LEFT   ? "LEFT" :
         //         ev->button.button == SDL_BUTTON_MIDDLE ? "MIDDLE" :
@@ -271,6 +276,7 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         //        (ev->button.down ? "DOWN" : "UP"),
         //        ev->button.x,
         //        ev->button.y);
+
         x = ev->button.x / scale_events_x;
         y = ev->button.y / scale_events_y;
 
@@ -290,14 +296,13 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         break; }
 
     case SDL_EVENT_MOUSE_MOTION: {
-        if ((ev->motion.state & SDL_BUTTON_LMASK) && evid_motion_registered) {
+        if ((ev->motion.state & SDL_BUTTON_LMASK) && evid_motion_registered && !pinching) {
             //INFO("MOUSE_MOTION x=%f y=%f xrel=%f yrel=%f\n",
             //    ev->motion.x,
             //    ev->motion.y,
             //    ev->motion.xrel,
             //    ev->motion.yrel);
 
-#if 1 // xxx consider not doing this;  or do the same for pinch
             // consolidate possible additional MOUSE_MOTION events into this event
             while (true) {
                 SDL_Event tmp_ev;
@@ -307,12 +312,11 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
                 if (rc != 1) break;
                 if ((tmp_ev.motion.state & SDL_BUTTON_LMASK) == 0) break;
 
-                ev->motion.x    += tmp_ev.motion.x;
-                ev->motion.y    += tmp_ev.motion.y;
+                ev->motion.x     = tmp_ev.motion.x;
+                ev->motion.y     = tmp_ev.motion.y;
                 ev->motion.xrel += tmp_ev.motion.xrel;
                 ev->motion.yrel += tmp_ev.motion.yrel;
             }
-#endif
 
             event->event_id = EVID_MOTION;
             if (orientation == PORTRAIT) {
@@ -343,33 +347,21 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         //INFO("GOT keycode 0x%x  shift=%d\n", keycode, shift);
         event->event_id = EVID_KEYBD;
         event->u.data.bytes[0] = keycode; // xxx should have a keybd eventdata, but not in picoc
-            // xxx check where bytes is used   - maybe delete bytes
-            // xxx need to keep the structure the same size in picoc
+        // xxx check where bytes is used   - maybe delete bytes
+        // xxx need to keep the structure the same size in picoc
         break; }
-
-    case SDL_EVENT_QUIT: {
-        // the event_quit_rcvd variable is set so that 
-        // this routine will repeat returning EVID_QUIT, so that
-        // a running app will first process the EVID_QUIT, and 
-        // finally main will process EVID_QUIT
-        event_quit_rcvd = 10;
-        event->event_id = EVID_QUIT;
-        break; }
-
-    case SDL_EVENT_FINGER_DOWN:
-    case SDL_EVENT_FINGER_UP:
-    case SDL_EVENT_FINGER_MOTION:
-        // SDL_TouchFingerEvent
-        break;
 
     case SDL_EVENT_PINCH_BEGIN:
-    case SDL_EVENT_PINCH_UPDATE:
-    case SDL_EVENT_PINCH_END: {
+        pinching = true;
+        break;
+    case SDL_EVENT_PINCH_END:
+        // xxx maybe discard motion events or mouse events that occur shortly after pinch end
+        pinching = false;
+        break;
+    case SDL_EVENT_PINCH_UPDATE: {
         SDL_PinchFingerEvent *x = &ev->pinch;
 
-        // xxx just the UPDATE event should return EVID_PINCH
-
-        if (!evid_pinch_registered) {
+        if (!evid_pinch_registered || !pinching) {
             break;
         }
 
@@ -379,19 +371,40 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         //                                           "PINCH_END"),
         //    x->scale, x->span_x, x->span_y, x->focus_x, x->focus_y);
 
-        // xxx handle landscape
         event->event_id = EVID_PINCH;
-        event->u.pinch.scale = x->scale;
-        event->u.pinch.span_x = x->span_x;
-        event->u.pinch.span_y = x->span_y;
-        event->u.pinch.focus_x = x->focus_x;
-        event->u.pinch.focus_y = x->focus_y;
-
+        if (orientation == PORTRAIT) {
+            event->u.pinch.scale = x->scale;
+            event->u.pinch.span_x = x->span_x / scale_events_x;
+            event->u.pinch.span_y = x->span_y / scale_events_y;
+            event->u.pinch.focus_x = x->focus_x / scale_events_x;
+            event->u.pinch.focus_y = x->focus_y / scale_events_y;
+        } else {
+            event->u.pinch.scale = x->scale;
+            event->u.pinch.span_x = x->span_y / scale_events_y;
+            event->u.pinch.span_y = x->span_x / scale_events_x;
+            event->u.pinch.focus_x = x->focus_y / scale_events_y;
+            event->u.pinch.focus_y = logical_win_height - x->focus_x / scale_events_x;
+        }
         break; }
 
     case SDL_EVENT_SENSOR_UPDATE:
-        // these occur frequently
+        // SDL_SensorEvent - not used
         break;
+
+    case SDL_EVENT_FINGER_DOWN:
+    case SDL_EVENT_FINGER_UP:
+    case SDL_EVENT_FINGER_MOTION:
+        // SDL_TouchFingerEvent - not used
+        break;
+
+    case SDL_EVENT_QUIT: {
+        // the event_quit_rcvd variable is set so that 
+        // this routine will repeat returning EVID_QUIT, so that
+        // a running app will first process the EVID_QUIT, and 
+        // finally main will process EVID_QUIT
+        event_quit_rcvd = 10;
+        event->event_id = EVID_QUIT;
+        break; }
 
     default: {
         // debug print the events that are not supported
@@ -447,6 +460,10 @@ static char *event_type_to_str(enum SDL_EventType evtype)
     CASE(SDL_EVENT_FINGER_DOWN);
     CASE(SDL_EVENT_FINGER_UP);
     CASE(SDL_EVENT_FINGER_MOTION);
+
+    CASE(SDL_EVENT_PINCH_BEGIN);
+    CASE(SDL_EVENT_PINCH_END);
+    CASE(SDL_EVENT_PINCH_UPDATE);
 
     CASE(SDL_EVENT_KEY_DOWN);
     CASE(SDL_EVENT_KEY_UP);

@@ -25,10 +25,10 @@ void FcntlSetupFunc(Picoc *pc)
     static int O_RDONLY_value = O_RDONLY;
     static int O_RDWR_value   = O_RDWR;
 
+    // xxx add more flags
     VariableDefinePlatformVar(pc, NULL, "O_RDONLY", &pc->IntType,
         (union AnyValue *)&O_RDONLY_value, false);
     VariableDefinePlatformVar(pc, NULL, "O_RDWR", &pc->IntType,
         (union AnyValue *)&O_RDWR_value, false);
 }
-
 
