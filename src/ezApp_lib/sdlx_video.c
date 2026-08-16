@@ -21,7 +21,9 @@
 #define MAX_FONT_PTSIZE  400
 
 #define LOGICAL_WIN_WIDTH   1000
-#define LOGICAL_WIN_HEIGHT  2350
+//#define LOGICAL_WIN_HEIGHT  2350
+// xxx make a setting for aspect ratio, and default to 2.166  or 2.167
+#define LOGICAL_WIN_HEIGHT  2166
 
 //
 // typedefs

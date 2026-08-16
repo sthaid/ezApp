@@ -191,7 +191,9 @@ static void page_hndlr()
         // init the backbuffer, and print font/color
         // xxx comments
         if ((pagenum == 12) || 
-            (pagenum == 15 && get_device_orientation() == LANDSCAPE))
+            (pagenum == 14 && get_device_orientation() == LANDSCAPE) ||
+            (pagenum == 15 && get_device_orientation() == LANDSCAPE)
+                )
         {
             orientation = LANDSCAPE;
         } else {
@@ -1452,18 +1454,27 @@ static void page_13_draw(void)
 // -----------------  PAGE 14: CAMERA  ------------------------
 
 #define EVID_TAKE_PICTURE 10
+#define EVID_RESET_PICTURE 11
 
 sdlx_texture_t *t;
-double xc=3000/2, yc=4000/2, scale=1;
+double xc, yc, scale;
+int jpeg_w, jpeg_h;
 
 static void page_14_init(void)
 {
-    t = sdlx_create_texture(3000, 4000);
+#if 0
+    //t = sdlx_create_texture(jpeg_w, jpeg_h);
+    t = sdlx_create_texture(4000, 4000);
+    if (t == NULL) {
+        printf("E %s: failed to create texture\n", progname);
+    }
+#endif
 }
 
 static void page_14_exit(void)
 {
     if (t) {
+        printf("I %s: page_14_exit cleaning up\n", progname);
         sdlx_destroy_texture(t);
         t = NULL;
     }
@@ -1472,25 +1483,77 @@ static void page_14_exit(void)
 static void page_14_draw(void)
 {
     sdlx_loc_t src, dest;
+    sdlx_loc_t *loc;
 
     if (t) {
-        src.x = xc - (scale * 3000) / 2;
-        src.y = yc - (scale * 4000) / 2;
-        src.w = 3000;
-        src.h = 4000;
-        printf("SRC %d %d %d %d - SCALE %f\n", src.x, src.y, src.w, src.h, scale);
+        //src.x = xc - (scale * jpeg_w) / 2;
+        //src.y = yc - (scale * jpeg_h) / 2;
+        //src.w = jpeg_w;
+        //src.h = jpeg_h;
+        //printf("SRC %d %d %d %d - SCALE %f\n", src.x, src.y, src.w, src.h, scale);
+
+        bool flag = false;
+
+        src.x = xc - jpeg_w / 2 * scale;
+        src.y = yc - jpeg_h / 2 * scale;
+        src.w = jpeg_w * scale;
+        src.h = jpeg_h * scale;
+
+        if (src.x < 0) {
+            xc = jpeg_w / 2 * scale;
+            flag = true;
+        } else if (src.x + src.w >= jpeg_w) {
+            xc = jpeg_w - jpeg_w / 2 * scale;
+            flag = true;
+        }
+
+        if (src.y < 0) {
+            yc = jpeg_h / 2 * scale;
+            flag = true;
+        } else if (src.y + src.h >= jpeg_h) {
+            yc = jpeg_h - jpeg_h / 2 * scale;
+            flag = true;
+        }
+
+        if (flag) {
+            int new_x = xc - jpeg_w / 2 * scale;
+            int new_y = yc - jpeg_h / 2 * scale;
+
+            // xxx flag is always set?
+            //printf("XC,YC,SCALE = %0.0f %0.0f %0.3f  SRC %d %d %d %d => %d %d %d %d\n",
+            //       xc, yc, scale,
+            //       src.x, src.y, src.w, src.h,
+            //       new_x, new_y, src.w, src.h);
+
+            src.x = new_x;
+            src.y = new_y;
+        } else {
+            //printf("XC,YC,SCALE = %0.0f %0.0f %0.3f  SRC %d %d %d %d\n", 
+            //       xc, yc, scale,
+            //       src.x, src.y, src.w, src.h);
+        }
 
         dest.x = 0;
         dest.y = 0;
-        dest.w = 1000;
-        dest.h = 1333;
+        if (orientation == PORTRAIT) {
+            dest.w = 1000;
+            dest.h = 1000 * ((double)jpeg_h / jpeg_w);  // xxx deviding here
+        } else {
+            dest.h = 1000;
+            dest.w = 1000 * ((double)jpeg_w / jpeg_h);  // xxx deviding here
+        }
 
         sdlx_render_texture_new(t, &src, &dest);
     }
 
-    sdlx_loc_t *loc = sdlx_render_printf_ex1(0, sdlx_win_height-2*sdlx_char_height_dflt, 
-                                             FONT_NORMAL, COLOR_LIGHT_BLUE, "TAKE_PICTURE");
+    loc = sdlx_render_printf_ex1(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-4*sdlx_char_height_dflt, 
+                                 FONT_NORMAL, COLOR_LIGHT_BLUE, "RESET");
+    sdlx_register_event(loc, EVID_RESET_PICTURE);
+
+    loc = sdlx_render_printf_ex1(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-2*sdlx_char_height_dflt, 
+                                 FONT_NORMAL, COLOR_LIGHT_BLUE, "TAKE");
     sdlx_register_event(loc, EVID_TAKE_PICTURE);
+
     sdlx_register_event(NULL, EVID_MOTION);
     sdlx_register_event(NULL, EVID_PINCH);
 }
@@ -1498,15 +1561,10 @@ static void page_14_draw(void)
 static void page_14_process_event(sdlx_event_t *ev)
 {
     int fd, rc;
-    int out_width, out_height;
     void *out_pixels;
 
     switch (ev->event_id) {
     case EVID_TAKE_PICTURE:
-        if (!t) {
-            printf("E %s: t is NULL\n", progname);
-            break;
-        }
 
         printf("I %s: calling take_picture\n", progname);
         rc = util_take_picture();  // xxx return status
@@ -1523,33 +1581,59 @@ static void page_14_process_event(sdlx_event_t *ev)
             break;
         }
 
-        rc = util_decode_jpeg_to_raw(fd, &out_width, &out_height, &out_pixels);
+        rc = util_decode_jpeg_to_raw(fd, &jpeg_w, &jpeg_h, &out_pixels);
         if (rc != 0) {
             printf("E %s: failed to decode jpeg file, %s\n", progname, strerror(errno));
             close(fd);
             break;
         }
-        printf("I %s: decode_jpeg okay, w/h=%d,%d\n", progname, out_width, out_height);
+        printf("I %s: decode_jpeg okay, w/h=%d,%d\n", progname, jpeg_w, jpeg_h);
+
+        close(fd);
+
+        if (t != NULL) {
+            int w, h;
+            sdlx_query_texture(t, &w, &h);
+            if (w != jpeg_w || h != jpeg_h) {
+                sdlx_destroy_texture(t);
+                t = NULL;
+            }
+        }
+
+        if (t == NULL) {
+            printf("I %s: CREATING TEXTURE %d %d\n", progname, jpeg_w, jpeg_h);
+            t = sdlx_create_texture(jpeg_w, jpeg_h);
+            if (t == NULL) {
+                printf("E %s: failed to create texture\n", progname);
+                free(out_pixels);
+                break;
+            }
+        }
 
         sdlx_set_texture_pixels(t, out_pixels);
         printf("I %s: after call to sdlx_set_texture_pixels\n", progname);
 
         free(out_pixels);
-        close(fd);
 
-        xc = 3000 / 2;
-        yc = 4000 / 2;
+        xc = jpeg_w / 2;
+        yc = jpeg_h / 2;
         scale = 1;
         break;
     case EVID_MOTION:
-        xc -= ev->u.motion.xrel;
-        yc -= ev->u.motion.yrel;
+        xc -= ev->u.motion.xrel * scale * 3; // xxx where is the 3 from
+        yc -= ev->u.motion.yrel * scale * 3;
         //printf("I %s: motion x,y = %f %f\n", progname, xc, yc);
         break;
     case EVID_PINCH:
         if (ev->u.pinch.scale == 0) break;
-        scale *= ev->u.pinch.scale;
+        scale /= ev->u.pinch.scale;
+        if (scale > 1) scale = 1;
         //printf("i %s: scale %f\n", progname, ev->u.pinch.scale);
+        break;
+    case EVID_RESET_PICTURE:
+        xc = jpeg_w / 2;
+        yc = jpeg_h / 2;
+        scale = 1;
         break;
     }
 }
