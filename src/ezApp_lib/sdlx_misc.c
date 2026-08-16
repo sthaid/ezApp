@@ -178,7 +178,7 @@ char *sdlx_get_input_str(char *prompt, bool numeric_keybd, char *dflt_input_str)
 
         // process sdlx events EVID_KEYBD and EVID_QUIT
         if (event.event_id == EVID_KEYBD) {
-            int ch = event.u.data.bytes[0];
+            int ch = event.u.private_keybd.keycode;
 
             if (ch >= 0x20 && ch < 0x7f) {
                 // add the printable char to the input array

@@ -957,9 +957,6 @@ typedef struct { \n\
             double focus_x; \n\
             double focus_y; \n\
         } pinch; \n\
-        struct { \n\
-            unsigned char bytes[40]; \n\
-        } data; \n\
     } u; \n\
 } sdlx_event_t; \n\
 ";

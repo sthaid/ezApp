@@ -553,14 +553,11 @@ typedef struct {
         struct {
             double scale, span_x, span_y, focus_x, focus_y;
         } pinch;
-        struct {
-            unsigned char bytes[40];  //xxx is bytes needed, compare struct size with picoc
-        } data;
+        struct {  // the u.private_keybd struct is not available in picoc
+            unsigned int keycode;
+        } private_keybd;
     } u;
 } sdlx_event_t;
-
-// xxx keybd
-// xxx what are bytes for?
 
 // Events: Registration
 // --------------------

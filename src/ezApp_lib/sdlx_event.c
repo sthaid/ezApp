@@ -343,12 +343,8 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         }
 
         keycode = SDL_GetKeyFromScancode(x->scancode, x->mod, false);
-        //bool shift = (x->mod & SDL_KMOD_SHIFT) != 0;
-        //INFO("GOT keycode 0x%x  shift=%d\n", keycode, shift);
         event->event_id = EVID_KEYBD;
-        event->u.data.bytes[0] = keycode; // xxx should have a keybd eventdata, but not in picoc
-        // xxx check where bytes is used   - maybe delete bytes
-        // xxx need to keep the structure the same size in picoc
+        event->u.private_keybd.keycode = keycode;
         break; }
 
     case SDL_EVENT_PINCH_BEGIN:
