@@ -21,9 +21,6 @@
 #define MAX_FONT_PTSIZE  400
 
 #define LOGICAL_WIN_WIDTH   1000
-//#define LOGICAL_WIN_HEIGHT  2350
-// xxx make a setting for aspect ratio, and default to 2.166  or 2.167
-#define LOGICAL_WIN_HEIGHT  2166
 
 //
 // typedefs
@@ -89,7 +86,7 @@ static inline SDL_Color sdlx_color(sdlx_color_t color)
 
 static bool event_watcher(void* userdata, SDL_Event* event);
 
-int sdlx_video_init(void)
+int sdlx_video_init(double aspect_ratio)
 {
     int w, h;
 
@@ -169,6 +166,7 @@ int sdlx_video_init(void)
     }
 #endif
 
+    // xxx update comment
     // Aspect ratio ...
     // 
     // * Modern android devices use taller aspect ratios, such as:
@@ -210,7 +208,7 @@ int sdlx_video_init(void)
 
     // init the logical window size for portrait and landscape orientations
     logical_win_width_portrait   = LOGICAL_WIN_WIDTH;
-    logical_win_height_portrait  = LOGICAL_WIN_HEIGHT;
+    logical_win_height_portrait  = LOGICAL_WIN_WIDTH * aspect_ratio;
     logical_win_width_landscape  = logical_win_height_portrait;
     logical_win_height_landscape = logical_win_width_portrait;
 

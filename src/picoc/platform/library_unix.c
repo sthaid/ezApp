@@ -23,10 +23,11 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut,
 void Sdlx_init(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    int subsys = (int)Param[0]->Val->Integer;
+    int subsys          = Param[0]->Val->Integer;
+    double aspect_ratio = Param[1]->Val->FP;
 
     int retval;
-    retval = sdlx_init(subsys);
+    retval = sdlx_init(subsys, aspect_ratio);
     ReturnValue->Val->Integer = retval;
 }
 
@@ -755,7 +756,7 @@ void SdlSetupFunction(Picoc *pc)
 
 struct LibraryFunction SdlFunctions[] = {
     // init & quit
-    { Sdlx_init,                     "int sdlx_init(int subsys);" },
+    { Sdlx_init,                     "int sdlx_init(int subsys, double aspect_ratio);" },
     { Sdlx_quit,                     "void sdlx_quit(int subsys);" },
 
     // video - display init and present

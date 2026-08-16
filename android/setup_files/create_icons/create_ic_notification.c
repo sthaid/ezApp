@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     bool             okay = false;
 
     // init sdl video
-    rc = sdlx_init(SUBSYS_VIDEO);
+    rc = sdlx_init(SUBSYS_VIDEO, DEFAULT_ASPECT_RATIO);
 
     // create large texture of the proposed notification icon
     t_proposed = sdlx_create_texture(WIDTH, HEIGHT);

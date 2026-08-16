@@ -36,7 +36,7 @@ extern int    logical_win_width, logical_win_height;
 extern int    logical_win_width_portrait, logical_win_height_portrait;
 extern int    logical_win_width_landscape, logical_win_height_landscape;
 
-int sdlx_video_init(void);
+int sdlx_video_init(double aspect_ratio);
 void sdlx_video_quit(void);
 void sdlx_minimize_window(void);
 
@@ -87,7 +87,9 @@ void sdlx_event_box_ctrl(bool event_box_enable);
 #define SUBSYS_AUDIO  2
 #define SUBSYS_SENSOR 4
 
-int sdlx_init(int subsys);
+#define DEFAULT_ASPECT_RATIO 2.167
+
+int sdlx_init(int subsys, double aspect_ratio);
 void sdlx_quit(int subsys);
 char *sdlx_get_storage_path(void);
 void sdlx_copy_asset_file(char *asset_filename, char *dest_dir);

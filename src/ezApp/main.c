@@ -53,6 +53,7 @@ typedef struct {
     double record_gain;
     double record_silence;
     bool   event_box_enable;
+    double aspect_ratio;
 } params_t;
 
 typedef struct {
@@ -170,6 +171,7 @@ static int init(void)
     params.record_gain = util_get_numeric_param(".", "record_gain", DEFAULT_RECORD_GAIN);
     params.record_silence = util_get_numeric_param(".", "record_silence", DEFAULT_RECORD_SILENCE);
     params.event_box_enable = util_get_numeric_param(".", "event_box_enable", false);
+    params.aspect_ratio = util_get_numeric_param(".", "aspect_ratio", DEFAULT_ASPECT_RATIO);
 
     // provide params to other modules, when needed
     sdlx_event_box_ctrl(params.event_box_enable);
@@ -190,7 +192,7 @@ static int init(void)
     sdlx_create_detached_thread(devel_mode_server_thread, "devel_server", NULL);
 
     // init sdl
-    rc = sdlx_init(SUBSYS_VIDEO | SUBSYS_AUDIO | SUBSYS_SENSOR);
+    rc = sdlx_init(SUBSYS_VIDEO | SUBSYS_AUDIO | SUBSYS_SENSOR, params.aspect_ratio);
     if (rc != 0) {
         ERROR("sdlx_init failed\n");
         return -1;
@@ -737,6 +739,7 @@ static void settings(void)
     #define EVID_RESET_APPS_AND_SVCS  1011
     #define EVID_FOREGROUND           1012
     #define EVID_EVENT_BOX_ENABLE     1013
+    #define EVID_ASPECT_RATIO         1014
 
     #define GET_Y2 ({ y2 += 2*sdlx_char_height_dflt; \
                       y2 >= y_top - 1.5 * sdlx_char_height_dflt && y2 <= y_bottom; })
@@ -837,6 +840,12 @@ static void settings(void)
         if (GET_Y2) {
             loc = sdlx_render_printf(0, y2, "Event_Box = %s", params.event_box_enable ? "ENABLED" : "DISABLED");
             sdlx_register_event(loc, EVID_EVENT_BOX_ENABLE);
+        }
+
+        // display Aspect_Ratio
+        if (GET_Y2) {
+            loc = sdlx_render_printf(0, y2, "Aspect_Ratio = %0.3f", params.aspect_ratio);
+            sdlx_register_event(loc, EVID_ASPECT_RATIO);
         }
 
         // display Devel_Mode
@@ -1006,6 +1015,19 @@ static void settings(void)
             params.event_box_enable = (params.event_box_enable ? false : true);
             util_set_numeric_param(".", "event_box_enable", params.event_box_enable);
             sdlx_event_box_ctrl(params.event_box_enable);
+            break; }
+        case EVID_ASPECT_RATIO: {
+            char *str, dflt_input_str[100];
+            int cnt;
+            double aspect_ratio;
+            sprintf(dflt_input_str, "%0.3f", params.aspect_ratio);
+            str = sdlx_get_input_str("Aspect_Ratio\n2.0 - 2.4\nezApp restart needed", true, dflt_input_str);
+            cnt = sscanf(str, "%lf", &aspect_ratio);
+            if (cnt == 1 && (aspect_ratio >= 2.0 && aspect_ratio <= 2.4)) {
+                params.aspect_ratio = aspect_ratio;
+                util_set_numeric_param(".", "aspect_ratio", aspect_ratio);
+            }
+            // xxx show toat on errors
             break; }
         case EVID_MOTION:
             y += event.u.motion.yrel;
