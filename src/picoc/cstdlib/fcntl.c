@@ -20,15 +20,22 @@ struct LibraryFunction FcntlFunctions[] =
     {NULL, NULL}
 };  
 
+#define DEFINE_OPEN_FLAG(name) \
+    do { \
+        static int name##_value = name; \
+        VariableDefinePlatformVar(pc, NULL, #name, &pc->IntType, \
+                                  (union AnyValue *)&name##_value, false); \
+    } while (0)
+
 void FcntlSetupFunc(Picoc *pc)
 {   
-    static int O_RDONLY_value = O_RDONLY;
-    static int O_RDWR_value   = O_RDWR;
-
-    // xxx add more flags
-    VariableDefinePlatformVar(pc, NULL, "O_RDONLY", &pc->IntType,
-        (union AnyValue *)&O_RDONLY_value, false);
-    VariableDefinePlatformVar(pc, NULL, "O_RDWR", &pc->IntType,
-        (union AnyValue *)&O_RDWR_value, false);
+    DEFINE_OPEN_FLAG(O_RDONLY);
+    DEFINE_OPEN_FLAG(O_WRONLY);
+    DEFINE_OPEN_FLAG(O_RDWR);
+    DEFINE_OPEN_FLAG(O_APPEND);
+    DEFINE_OPEN_FLAG(O_CREAT);
+    DEFINE_OPEN_FLAG(O_EXCL);
+    DEFINE_OPEN_FLAG(O_SYNC);
+    DEFINE_OPEN_FLAG(O_TRUNC);
 }
 
