@@ -164,13 +164,25 @@ int util_take_picture(void)
     int rc;
     sdlx_event_t ev;
 
-    // xxx remove photo file
+    // remove existing tmp/photo.jpg file
+    util_delete_file("tmp", "photo.jpg");
 
-    call_java1("take_picture_start");
+    // xxx
+    rc = call_java1("take_picture_start");
+    if (rc == INVALID_NUMBER) {
+        ERROR("take_picture_start rc=%f\n", rc);
+        return -1;
+    }
 
-    call_java1("take_picture"); // xxx check return codes
+    // xxx  are both this and above needed?
+    rc = call_java1("take_picture");
+    if (rc == INVALID_NUMBER) {
+        ERROR("take_picture rc=%f\n", rc);
+        return -1;
+    }
 
-    while (true) { // xxx timeout here?
+    // xxx comment,  and add a timeout?
+    while (true) {
         sdlx_get_event(100000, &ev);
         rc = call_java1("take_picture_complete");
         if (rc == 1) {
@@ -180,7 +192,11 @@ int util_take_picture(void)
         INFO("take picture is not yet complete\n");
     }
 
-    // xxx check that the file was created
+    // if photo.jpg does not exist then return error
+    if (!util_file_exists("tmp", "photo.jpg")) {
+        ERROR("tmp/photo.jpg does not exist\n");
+        return -1;
+    }
 
     return 0;
 }

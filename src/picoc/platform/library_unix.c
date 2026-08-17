@@ -848,6 +848,7 @@ const char SdlDefs[] = "\
 #define SUBSYS_VIDEO  1 \n\
 #define SUBSYS_AUDIO  2 \n\
 #define SUBSYS_SENSOR 4 \n\
+#define DEFAULT_ASPECT_RATIO 2.167\n\
 \n\
 /* video typedefs  */ \n\
 typedef unsigned int sdlx_color_t; \n\

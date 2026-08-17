@@ -1462,13 +1462,7 @@ int jpeg_w, jpeg_h;
 
 static void page_14_init(void)
 {
-#if 0
-    //t = sdlx_create_texture(jpeg_w, jpeg_h);
-    t = sdlx_create_texture(4000, 4000);
-    if (t == NULL) {
-        printf("E %s: failed to create texture\n", progname);
-    }
-#endif
+	// nothing needed
 }
 
 static void page_14_exit(void)
@@ -1486,12 +1480,6 @@ static void page_14_draw(void)
     sdlx_loc_t *loc;
 
     if (t) {
-        //src.x = xc - (scale * jpeg_w) / 2;
-        //src.y = yc - (scale * jpeg_h) / 2;
-        //src.w = jpeg_w;
-        //src.h = jpeg_h;
-        //printf("SRC %d %d %d %d - SCALE %f\n", src.x, src.y, src.w, src.h, scale);
-
         bool flag = false;
 
         src.x = xc - jpeg_w / 2 * scale;
@@ -1537,10 +1525,10 @@ static void page_14_draw(void)
         dest.y = 0;
         if (orientation == PORTRAIT) {
             dest.w = 1000;
-            dest.h = 1000 * ((double)jpeg_h / jpeg_w);  // xxx deviding here
+            dest.h = 1000 * ((double)jpeg_h / jpeg_w);  // xxx dividing here
         } else {
             dest.h = 1000;
-            dest.w = 1000 * ((double)jpeg_w / jpeg_h);  // xxx deviding here
+            dest.w = 1000 * ((double)jpeg_w / jpeg_h);  // xxx dividing here
         }
 
         sdlx_render_texture_new(t, &src, &dest);
@@ -1565,32 +1553,37 @@ static void page_14_process_event(sdlx_event_t *ev)
 
     switch (ev->event_id) {
     case EVID_TAKE_PICTURE:
-
+        // take the picture, this should create file tmp/photo.hpg
         printf("I %s: calling take_picture\n", progname);
         rc = util_take_picture();  // xxx return status
         if (rc != 0) {
             printf("E %s: util_take_picture failed\n", progname);
             break;
         }
-
         printf("I %s: back from take_picture, rc=%d\n", progname, rc);
 
+        // open photo.jpg,
+        // decode photo.jpg, this call returns out_pixels,
+        // done with photo.jpg file, delete it
         fd = open("tmp/photo.jpg", O_RDONLY, 0);
         if (fd == -1) {
-            printf("E %s: failed to open jpeg file, %s\n", progname, strerror(errno));
+            printf("E %s: failed to open JPEG file, %s\n", progname, strerror(errno));
             break;
         }
 
         rc = util_decode_jpeg_to_raw(fd, &jpeg_w, &jpeg_h, &out_pixels);
         if (rc != 0) {
-            printf("E %s: failed to decode jpeg file, %s\n", progname, strerror(errno));
+            printf("E %s: failed to decode JPEG file, %s\n", progname, strerror(errno));
             close(fd);
             break;
         }
-        printf("I %s: decode_jpeg okay, w/h=%d,%d\n", progname, jpeg_w, jpeg_h);
+        printf("I %s: decode JPEG okay, w/h=%d,%d\n", progname, jpeg_w, jpeg_h);
 
         close(fd);
+        util_delete_file("tmp", "photo.jpg");
 
+        // if the texture 't' is already allocated, but has the wrong dimensions, then
+        // destroy texture 't'
         if (t != NULL) {
             int w, h;
             sdlx_query_texture(t, &w, &h);
@@ -1600,8 +1593,9 @@ static void page_14_process_event(sdlx_event_t *ev)
             }
         }
 
+        // if t is NULL then create texture with dimensions that match the photo.jpg
         if (t == NULL) {
-            printf("I %s: CREATING TEXTURE %d %d\n", progname, jpeg_w, jpeg_h);
+            printf("I %s: creating texture %d %d\n", progname, jpeg_w, jpeg_h);
             t = sdlx_create_texture(jpeg_w, jpeg_h);
             if (t == NULL) {
                 printf("E %s: failed to create texture\n", progname);
@@ -1610,11 +1604,14 @@ static void page_14_process_event(sdlx_event_t *ev)
             }
         }
 
+        // set the pixel values, that had been extrackted from photo.jpg, to the texture 't'
         sdlx_set_texture_pixels(t, out_pixels);
         printf("I %s: after call to sdlx_set_texture_pixels\n", progname);
 
+        // now done with pixels
         free(out_pixels);
 
+        // xxx comment
         xc = jpeg_w / 2;
         yc = jpeg_h / 2;
         scale = 1;
