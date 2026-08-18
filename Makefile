@@ -1,7 +1,6 @@
 # --- build ---
 
 APPS := $(sort $(dir $(wildcard files/apps/*/.)))
-APPS := $(filter-out files/apps/lib/, $(APPS))
 SVCS := $(sort $(dir $(wildcard files/svcs/*/.)))
 
 build: clone_sdl bin/src linux test_build_apps_and_svcs

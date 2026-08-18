@@ -8,7 +8,7 @@
 #include <utils.h>
 
 #include "apps/ColrOrgn/common.h"
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 //
 // defines

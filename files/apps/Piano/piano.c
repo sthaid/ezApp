@@ -9,7 +9,7 @@
 #include <sdlx.h>
 #include <utils.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // todo-later - check timing of the key highlight vs the tone
 

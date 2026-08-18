@@ -187,7 +187,7 @@ sdlx_loc_t *sdlx_render_printf_ex2(int x, int y, int fontid, sdlx_color_t color,
 // - There are 2 typical use cases:
 //     a) Just one line, with embedded newline chars.
 //     b) multiple lines, without embedded newline chars.
-// - For an example of the one line use case, refer to show_file routine in apps/lib/lib.c.
+// - For an example of the one line use case, refer to show_file routine in lib/lib.c.
 void sdlx_render_multiline_text(int x, int y, int y_top, int y_bottom, 
                                 int fontid, char **lines, sdlx_color_t *colors, int num_lines);
 

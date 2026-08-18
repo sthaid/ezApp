@@ -4,7 +4,7 @@
 #include <sdlx.h>
 #include <utils.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // defines
 #define EVID_SET_COLOR_WHITE 1

@@ -10,7 +10,7 @@
 #include <utils.h>
 #include <svcs.h>
 #include "svcs/Location/location.h"
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 #define EVID_SLCT   1
 #define EVID_SHOW   2

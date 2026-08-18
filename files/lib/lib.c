@@ -9,7 +9,7 @@
 #include <utils.h>
 #include <svcs.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // -----------------  ORIENTATION  --------------------------------
 

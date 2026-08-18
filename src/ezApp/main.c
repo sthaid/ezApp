@@ -648,7 +648,7 @@ static void get_list_of_apps(void)
     while (fgets(str, sizeof(str), fp)) {
         str[strcspn(str, "\n")] = '\0';
         char *name = basename(str);
-        if (strcmp(name, "apps") == 0 || strcmp(name, "lib") == 0) {
+        if (strcmp(name, "apps") == 0) {
             continue;
         }
         if (!app_name_exists(name)) {

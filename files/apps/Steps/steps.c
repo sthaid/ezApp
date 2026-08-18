@@ -8,7 +8,7 @@
 #include <utils.h>
 
 #include "svcs/Steps/steps.h"
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // defines
 #define ONE_SEC         1000000

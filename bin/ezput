@@ -28,7 +28,7 @@ ezput
 
 # copy files in NewApp and lib dirs, and the apps/layout file to Android
 cd files/apps/NewApp
-ezput . ../lib ../layput 
+ezput . ../../lib ../layout 
 
 # copy all of the files hierarchy to Android
 cd files

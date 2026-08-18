@@ -14,7 +14,7 @@
 #include <utils.h>
 
 #include "apps/Test/common.h"
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 #include "svcs/Template/template.h"
 
 //

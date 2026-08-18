@@ -4,7 +4,7 @@
 #include <sdlx.h>
 #include <utils.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // event ids
 #define EVID_TAPME 1
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
         sdlx_register_event(loc, EVID_TAPME);
 
         // register EVID_SHOW_README_FILE event; 
-        // note: the reg_event_show_readme_file routine is defined in apps/lib/lib.c,
+        // note: the reg_event_show_readme_file routine is defined in lib/lib.c,
         //       which is automatically included in miniApps
         reg_event_show_readme_file();
 

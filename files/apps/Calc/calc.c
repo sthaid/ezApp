@@ -5,7 +5,7 @@
 #include <sdlx.h>
 #include <utils.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // display locations
 #define DISPLAY_Y_TOP       150

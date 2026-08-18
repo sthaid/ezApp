@@ -9,7 +9,7 @@
 #include <sdlx.h>
 #include <utils.h>
 
-#include "apps/lib/lib.h"
+#include "lib/lib.h"
 
 // NOTES:
 // - word list is from here:

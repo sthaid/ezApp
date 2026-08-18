@@ -49,9 +49,9 @@ int run(char *name, bool is_svc)
         return 99;
     }
 
-    // if running an app then add apps/lib/lib.c
+    // if running an app then add lib/lib.c
     if (!is_svc) {
-        p += sprintf(p, "%s", "apps/lib/lib.c ");
+        p += sprintf(p, "%s", "lib/lib.c ");
     }
 
     // add progname and data_dir args, which will be passed to the
