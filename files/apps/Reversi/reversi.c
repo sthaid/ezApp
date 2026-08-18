@@ -330,9 +330,15 @@ static void update_display_and_register_events(board_t *b, int game_state, char 
         int x_origin                = (i == 0 ? 0 : 500);
         int piece_cnt               = (i == 0 ? b->black_cnt : b->white_cnt);
         bool is_turn                = (i == 0 ? b->whose_turn == BLACK : b->whose_turn == WHITE);
+        sdlx_loc_t dest;
 
         sdlx_render_fill_rect(x_origin, Y_TOP+1200, info_circle_radius*2, info_circle_radius*2, COLOR_GREEN);
-        sdlx_render_texture(info_circle, x_origin, Y_TOP+1200);
+
+        dest.x = x_origin;
+        dest.y = Y_TOP+1200;
+        dest.w = 2*info_circle_radius;
+        dest.h = 2*info_circle_radius;
+        sdlx_render_texture(info_circle, NULL, &dest);
 
         if (game_state == GAME_STATE_ACTIVE) {
             sdlx_render_printf(x_origin, Y_TOP+1350, "%s", player_name(player));
@@ -407,13 +413,18 @@ static void update_display_and_register_events(board_t *b, int game_state, char 
         for (int c = 1; c <= 8; c++) {
             if (b->pos[r][c] != NONE) {
                 sdlx_texture_t *piece;
-                sdlx_loc_t loc;
+                sdlx_loc_t loc, dest;
                 int offset;
 
                 piece = (b->pos[r][c] == BLACK ? piece_black_circle : piece_white_circle);
                 loc = rc_to_loc[r][c];
                 offset = loc.w / 2 - piece_circle_radius;
-                sdlx_render_texture(piece, loc.x+offset, loc.y+offset);
+
+                dest.x = loc.x+offset;
+                dest.y = loc.y+offset;
+                dest.w = 2*piece_circle_radius;
+                dest.h = 2*piece_circle_radius;
+                sdlx_render_texture(piece, NULL, &dest);
             }
         }
     }
@@ -423,12 +434,17 @@ static void update_display_and_register_events(board_t *b, int game_state, char 
         sdlx_texture_t *prompt = (b->whose_turn == BLACK ? prompt_black_circle : prompt_white_circle);
         for (int i = 0; i < pm.max; i++) {
             int r, c, offset;
-            sdlx_loc_t loc;
+            sdlx_loc_t loc, dest;
 
             move_to_rc(pm.move[i], &r, &c);
             loc = rc_to_loc[r][c];
             offset = loc.w / 2 - prompt_circle_radius;
-            sdlx_render_texture(prompt, loc.x+offset, loc.y+offset);
+
+            dest.x = loc.x+offset;
+            dest.y = loc.y+offset;
+            dest.w = 2*prompt_circle_radius;
+            dest.h = 2*prompt_circle_radius;
+            sdlx_render_texture(prompt, NULL, &dest);
         }
     }
 }

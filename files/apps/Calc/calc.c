@@ -313,6 +313,7 @@ void draw_button(int row, int col, int button, bool highlight)
     int x, y, radius;
     char str[8];
     bool is_number;
+    sdlx_loc_t dest;
 
     static int texture_w, texture_h;
 
@@ -337,9 +338,13 @@ void draw_button(int row, int col, int button, bool highlight)
     x = BUTTONS_X_LEFT + col * BUTTONS_SPACING;
     y = BUTTONS_Y_TOP + row * BUTTONS_SPACING;
 
+    dest.x = x-texture_w/2;
+    dest.y = y-texture_h/2;
+    dest.w = texture_w;
+    dest.h = texture_h;
     sdlx_render_texture(
         highlight ? highlighted_button_texture : (is_number ? number_button_texture : button_texture),
-        x-texture_w/2, y-texture_h/2);
+        NULL, &dest);
 
     sdlx_render_printf_ex2(x, y, 
                            FONT_NORMAL, BUTTON_COLOR_TEXT, FLAG_XY_CTR, 

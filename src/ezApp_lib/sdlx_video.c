@@ -208,7 +208,7 @@ int sdlx_video_init(double aspect_ratio)
 
     // init the logical window size for portrait and landscape orientations
     logical_win_width_portrait   = LOGICAL_WIN_WIDTH;
-    logical_win_height_portrait  = LOGICAL_WIN_WIDTH * aspect_ratio;
+    logical_win_height_portrait  = LOGICAL_WIN_WIDTH * aspect_ratio;  // xxx allow 0 to use the device aspect ratio, range limitted
     logical_win_width_landscape  = logical_win_height_portrait;
     logical_win_height_landscape = logical_win_width_portrait;
 
@@ -370,12 +370,11 @@ void sdlx_display_present(void)
     // render the texture_dflt to the display;
     // when orientation is landscpe, the texture_dflt is rotated by 90 degrees
     if (orientation == PORTRAIT) {
-        sdlx_render_texture_ex1(texture_dflt, 0, 0, real_win_width, real_win_height);
+        sdlx_render_texture(texture_dflt, NULL, NULL);
     } else {
-        sdlx_render_texture_ex3(texture_dflt,
-                                0, 0, real_win_height, real_win_width,
-                                90,
-                                real_win_width/2, real_win_width/2);
+        sdlx_loc_t dest = {0, 0, real_win_height, real_win_width};
+        sdlx_point_t center = {real_win_width/2, real_win_width/2};
+        sdlx_render_texture_rotated(texture_dflt, NULL, &dest, 90, &center, FLIP_NONE);
     }
 
     // present the display
@@ -1317,119 +1316,70 @@ unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w_arg, int *h_arg)
     return pixels;
 }
 
-// - - - - - - render texture xxx new - - - - - 
+// - - - - - - render texture - - - - - 
 
-void sdlx_render_texture_new(sdlx_texture_t *texture, sdlx_loc_t *src_arg, sdlx_loc_t *dest_arg)
+void sdlx_render_texture(sdlx_texture_t *texture, sdlx_loc_t *srcrect, sdlx_loc_t *dstrect)
 {
-    SDL_FRect src, dest;
-    SDL_FRect *Src=NULL, *Dest=NULL;
+    SDL_FRect src, *Src=NULL;
+    SDL_FRect dst, *Dst=NULL;
 
     if (texture == NULL) {
         return;
     }
     
-    if (src_arg != NULL) {
-        src.x = src_arg->x;
-        src.y = src_arg->y;
-        src.w = src_arg->w;
-        src.h = src_arg->h;
+    if (srcrect != NULL) {
+        src.x = srcrect->x;
+        src.y = srcrect->y;
+        src.w = srcrect->w;
+        src.h = srcrect->h;
         Src = &src;
     }
 
-    if (dest_arg != NULL) {
-        dest.x = dest_arg->x;
-        dest.y = dest_arg->y;
-        dest.w = dest_arg->w;
-        dest.h = dest_arg->h;
-        Dest = &dest;
+    if (dstrect != NULL) {
+        dst.x = dstrect->x;
+        dst.y = dstrect->y;
+        dst.w = dstrect->w;
+        dst.h = dstrect->h;
+        Dst = &dst;
     }
 
-    SDL_RenderTexture(renderer, (SDL_Texture*)texture, Src, Dest);
+    SDL_RenderTexture(renderer, (SDL_Texture*)texture, Src, Dst);
 }
 
-// - - - - - - render texture - - - - - 
-
-void sdlx_render_texture(sdlx_texture_t *texture, int x, int y)
+void sdlx_render_texture_rotated(sdlx_texture_t *texture, sdlx_loc_t *srcrect, sdlx_loc_t *dstrect,
+                                 double angle, sdlx_point_t *center, int flip) 
 {
-    int w, h;
-    SDL_FRect dest;
+    SDL_FRect src, *Src=NULL;
+    SDL_FRect dst, *Dst=NULL;
+    SDL_FPoint ctr, *Ctr=NULL;
 
     if (texture == NULL) {
         return;
     }
-
-    sdlx_query_texture(texture, &w, &h);
-
-    dest.x = x;
-    dest.y = y;
-    dest.w = w;
-    dest.h = h;
-
-    SDL_RenderTexture(renderer, (SDL_Texture*)texture, NULL, &dest);
-}
-
-void sdlx_render_texture_ex1(sdlx_texture_t *texture, int x, int y, int w, int h)
-{
-    SDL_FRect dest;
-
-    if (texture == NULL) {
-        return;
+    
+    if (srcrect != NULL) {
+        src.x = srcrect->x;
+        src.y = srcrect->y;
+        src.w = srcrect->w;
+        src.h = srcrect->h;
+        Src = &src;
     }
 
-    dest.x = x;
-    dest.y = y;
-    dest.w = w;
-    dest.h = h;
-
-    SDL_RenderTexture(renderer, (SDL_Texture*)texture, NULL, &dest);
-}
-
-void sdlx_render_texture_ex2(sdlx_texture_t *texture, int x, int y, int w, int h, double angle)
-{
-    SDL_FRect dest;
-
-    if (texture == NULL) {
-        return;
+    if (dstrect != NULL) {
+        dst.x = dstrect->x;
+        dst.y = dstrect->y;
+        dst.w = dstrect->w;
+        dst.h = dstrect->h;
+        Dst = &dst;
     }
 
-    dest.x = x;
-    dest.y = y;
-    dest.w = w;
-    dest.h = h;
-
-    SDL_RenderTextureRotated(renderer,
-                             (SDL_Texture*)texture, 
-                             NULL,      // source, NULL means the entire texture
-                             &dest,     // dest rectangle
-                             angle,     // rotation angle
-                             NULL,      // point around which dest will be rotated
-                             SDL_FLIP_NONE);
-}
-
-void sdlx_render_texture_ex3(sdlx_texture_t *texture, int x, int y, int w, int h, double angle, int xctr, int yctr)
-{
-    SDL_FRect dest;
-    SDL_FPoint ctr;
-
-    if (texture == NULL) {
-        return;
+    if (center != NULL) {
+        ctr.x = center->x;
+        ctr.y = center->y;
+        Ctr = &ctr;
     }
 
-    dest.x = x;
-    dest.y = y;
-    dest.w = w;
-    dest.h = h;
-
-    ctr.x = xctr;
-    ctr.y = yctr;
-
-    SDL_RenderTextureRotated(renderer,
-                             (SDL_Texture*)texture, 
-                             NULL,      // source, NULL means the entire texture
-                             &dest,     // dest rectangle
-                             angle,     // rotation angle
-                             &ctr,      // point around which dest will be rotated
-                             SDL_FLIP_NONE);
+    SDL_RenderTextureRotated(renderer, (SDL_Texture*)texture, Src, Dst, angle, Ctr, flip);
 }
 
 // - - - - - - set render target - - - - - - - - 

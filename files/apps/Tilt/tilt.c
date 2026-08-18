@@ -242,7 +242,7 @@ void display_tilt_horizontal(double ax, double ay, double az, double roll_raw, d
     double              roll, pitch;
     double              tilt_dir, tilt_amount;
     sdlx_event_t        event;
-    sdlx_loc_t         *loc;
+    sdlx_loc_t         *loc, dest;
 
     static bool         params_initialized;
     static int          max_bulls_eye = MAX_BULLS_EYE_DEFAULT;
@@ -282,7 +282,11 @@ void display_tilt_horizontal(double ax, double ay, double az, double roll_raw, d
     for (deg = max_bulls_eye; deg >= 1; deg--) {
         diameter = nearbyint((double)sdlx_win_width / max_bulls_eye * deg);
         t = (t == gray_circle ? light_gray_circle : gray_circle);
-        sdlx_render_texture_ex1(t, xctr-diameter/2, yctr-diameter/2, diameter, diameter);
+        dest.x = xctr-diameter/2;
+        dest.y = yctr-diameter/2;
+        dest.w = diameter;
+        dest.h = diameter;
+        sdlx_render_texture(t, NULL, &dest);
     }
 
     // display max_bulls_eye radius, in degrees
@@ -325,7 +329,11 @@ void display_tilt_horizontal(double ax, double ay, double az, double roll_raw, d
         ((fabs(tilt_amount) < max_bulls_eye)      ? blue_circle :
                                                     red_circle));
 
-    sdlx_render_texture(t, x-SMALL_CIRCLE_RADIUS, y-SMALL_CIRCLE_RADIUS);
+    dest.x = x-SMALL_CIRCLE_RADIUS;
+    dest.y = y-SMALL_CIRCLE_RADIUS;
+    dest.w = 2*SMALL_CIRCLE_RADIUS;
+    dest.h = 2*SMALL_CIRCLE_RADIUS;
+    sdlx_render_texture(t, NULL, &dest);
 
     // display dot at center of bulls_eye
     sdlx_render_point(xctr, yctr, COLOR_BLACK, 9);
@@ -399,7 +407,7 @@ void display_tilt_vertical(double ax, double ay, double az, double roll, double 
     int             tick_deg, tick_delta_deg;
     sdlx_texture_t *vert_circle_texture;
     char            cal_param_name[50];
-    sdlx_loc_t     *loc, tmp_loc;
+    sdlx_loc_t     *loc, tmp_loc, dest;
 
     // statics
     static double       arc_span_deg, arc_span_rad, arc_radius, arc_radius_squared;
@@ -483,9 +491,15 @@ void display_tilt_vertical(double ax, double ay, double az, double roll, double 
     // draw small cirle on the arc, at the vertical location;
     // use green circle when within 0.2 degrees of arc center
     vert_circle_texture = (fabs(angle_deg) < 0.2) ? green_circle : blue_circle;
+
     x = arc_radius * sin(angle_rad) + CHORD_LEN / 2 + x_offset;
     y = arc_radius - arc_radius * cos(angle_rad) + Y_OFFSET;
-    sdlx_render_texture(vert_circle_texture, x-SMALL_CIRCLE_RADIUS, y-SMALL_CIRCLE_RADIUS);
+
+    dest.x = x-SMALL_CIRCLE_RADIUS;
+    dest.y = y-SMALL_CIRCLE_RADIUS;
+    dest.w = 2*SMALL_CIRCLE_RADIUS;
+    dest.h = 2*SMALL_CIRCLE_RADIUS;
+    sdlx_render_texture(vert_circle_texture, NULL, &dest);
 
     // print tilt angle at both ends of the arc, and at arc center
     x = arc_radius * sin(-arc_span_rad/2) + CHORD_LEN / 2 + x_offset;
@@ -544,7 +558,11 @@ void display_tilt_vertical(double ax, double ay, double az, double roll, double 
     // render the rendering texture to the display, centered and rotated
     x = 0;
     y = (sdlx_win_height - VERT_TEXTURE_WH) / 2;
-    sdlx_render_texture_ex2(vert, x, y, VERT_TEXTURE_WH, VERT_TEXTURE_WH, rotate_deg);
+    dest.x = x;
+    dest.y = y;
+    dest.w = VERT_TEXTURE_WH;
+    dest.h = VERT_TEXTURE_WH;
+    sdlx_render_texture_rotated(vert, NULL, &dest, rotate_deg, NULL, FLIP_NONE);
 
     // Register the CALIBRATE event.
     // This event was printed to the vert texture.

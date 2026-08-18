@@ -255,6 +255,7 @@ void color_organ_display_circles(float *fft)
     int          first_bin, last_bin;
     float        raw_new_vol;
     static float filtered_vol[3];
+    sdlx_loc_t   dest;
 
     // loop over the 3 bands
     for (int band = 0; band < 3; band++) {
@@ -302,7 +303,12 @@ void color_organ_display_circles(float *fft)
             band_volume = 1;
         }
         sdlx_color_mod_texture(t, band_volume, band_volume, band_volume);
-        sdlx_render_texture_ex1(t, x_ctr-radius, y_ctr-radius, 2*radius, 2*radius);
+
+        dest.x = x_ctr-radius;
+        dest.y = y_ctr-radius;
+        dest.w = 2*radius;
+        dest.h = 2*radius;
+        sdlx_render_texture(t, NULL, &dest);
 
         // register events to adjust scale factor
         init_loc(&loc, x_ctr - radius/2, y_ctr-radius, radius, radius);

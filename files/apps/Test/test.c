@@ -308,6 +308,38 @@ static void page_hndlr()
     pagenum = new_pagenum;
 }
 
+void render_texture(sdlx_texture_t *t, int x, int y, int w, int h)
+{
+    sdlx_loc_t dest;
+
+    if (w == 0 || h == 0) {
+        sdlx_query_texture(t, &w, &h);
+    }
+
+    dest.x = x;
+    dest.y = y;
+    dest.w = w;
+    dest.h = h;
+
+    sdlx_render_texture(t, NULL, &dest);
+}
+
+void render_texture_rotated(sdlx_texture_t *t, int x, int y, int w, int h, double angle)
+{
+    sdlx_loc_t dest;
+
+    if (w == 0 || h == 0) {
+        sdlx_query_texture(t, &w, &h);
+    }
+
+    dest.x = x;
+    dest.y = y;
+    dest.w = w;
+    dest.h = h;
+
+    sdlx_render_texture_rotated(t, NULL, &dest, angle, NULL, FLIP_NONE);
+}
+
 // -----------------  PAGE 0: CLOCK  --------------------------
 
 #define EVID_CRASH 10
@@ -626,14 +658,14 @@ static void page_5_draw(void)
     sdlx_set_render_target(NULL);
 
     // render textur1 to the display coords 0,200, without scaling
-    sdlx_render_texture(texture1, 0, 200);
+    render_texture(texture1, 0, 200, 0, 0);
 
     // render texture1 to the display coords 0, 1300, scaling to half size
-    sdlx_render_texture_ex1(texture1, 0, 1300, 500, 500);
+    render_texture(texture1, 0, 1300, 500, 500);
 
     // render texture 2, a blue square, just to the right of the 
     // previous rendering of textur1
-    sdlx_render_texture(texture2, 500, 1300);
+    render_texture(texture2, 500, 1300, 0, 0);
 
     // destroy texture1
     sdlx_destroy_texture(texture1);
@@ -1377,11 +1409,11 @@ static void page_12_draw(void)
 
     // render texture1 to the display
     // - top left, no scaling
-    sdlx_render_texture(texture1, 0, 0);
+    render_texture(texture1, 0, 0, 0, 0);
     // - bottom right, scale = 0.5
-    sdlx_render_texture_ex1(texture1, sdlx_win_width-w/2, sdlx_win_height-h/2, w/2, h/2);
+    render_texture(texture1, sdlx_win_width-w/2, sdlx_win_height-h/2, w/2, h/2);
     // - bottom left, rotated 90 degrees
-    sdlx_render_texture_ex2(texture1, -125, sdlx_win_height-h-125, w, h, 90);
+    render_texture_rotated(texture1, -125, sdlx_win_height-h-125, w, h, 90);
 
     // print the display area dimensions
     sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(3),
@@ -1531,7 +1563,7 @@ static void page_14_draw(void)
             dest.w = 1000 * ((double)jpeg_w / jpeg_h);  // xxx dividing here
         }
 
-        sdlx_render_texture_new(t, &src, &dest);
+        sdlx_render_texture(t, &src, &dest);
     }
 
     loc = sdlx_render_printf_ex1(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-4*sdlx_char_height_dflt, 

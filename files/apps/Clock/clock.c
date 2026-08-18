@@ -197,8 +197,10 @@ static void draw_analog_clock_hands(struct tm *tm)
 {
     static bool first_call = true;
 
-    double hour_hand_angle, minute_hand_angle, second_hand_angle;
-    long   secs;
+    double       hour_hand_angle, minute_hand_angle, second_hand_angle;
+    long         secs;
+    sdlx_loc_t   dest;
+    sdlx_point_t center;
 
     if (first_call) {
         hour_hand = create_rectangle_texture(W_HH, H_HH, COLOR_BLACK);
@@ -213,23 +215,29 @@ static void draw_analog_clock_hands(struct tm *tm)
     minute_hand_angle = secs * (360. / 3600);
     second_hand_angle = secs * (360. / 60);
 
-    sdlx_render_texture_ex3(hour_hand,                                   // texture
-                            XCTR_CLOCK-(W_HH/2), YCTR_CLOCK-H_HH+O_HH,   // x,y
-                            W_HH, H_HH,                                  // w,h
-                            hour_hand_angle,                             // angle
-                            W_HH/2, H_HH-O_HH);                          // rotation center
+    dest.x = XCTR_CLOCK-(W_HH/2);
+    dest.y = YCTR_CLOCK-H_HH+O_HH;
+    dest.w = W_HH;
+    dest.h = H_HH;
+    center.x = W_HH/2;
+    center.y = H_HH-O_HH;
+    sdlx_render_texture_rotated(hour_hand, NULL, &dest, hour_hand_angle, &center, FLIP_NONE);
 
-    sdlx_render_texture_ex3(minute_hand,
-                            XCTR_CLOCK-(W_MH/2), YCTR_CLOCK-H_MH+O_MH, 
-                            W_MH, H_MH, 
-                            minute_hand_angle, 
-                            W_MH/2, H_MH-O_MH);
+    dest.x = XCTR_CLOCK-(W_MH/2);
+    dest.y = YCTR_CLOCK-H_MH+O_MH;
+    dest.w = W_MH;
+    dest.h = H_MH;
+    center.x = W_MH/2;
+    center.y = H_MH-O_MH;
+    sdlx_render_texture_rotated(minute_hand, NULL, &dest, minute_hand_angle, &center, FLIP_NONE);
 
-    sdlx_render_texture_ex3(second_hand,
-                            XCTR_CLOCK-(W_SH/2), YCTR_CLOCK-H_SH+O_SH, 
-                            W_SH, H_SH, 
-                            second_hand_angle,
-                            W_SH/2, H_SH-O_SH);
+    dest.x = XCTR_CLOCK-(W_SH/2);
+    dest.y = YCTR_CLOCK-H_SH+O_SH;
+    dest.w = W_SH;
+    dest.h = H_SH;
+    center.x = W_SH/2;
+    center.y = H_SH-O_SH;
+    sdlx_render_texture_rotated(second_hand, NULL, &dest, second_hand_angle, &center, FLIP_NONE);
 
     sdlx_render_point(XCTR_CLOCK, YCTR_CLOCK, COLOR_RED, 9);
 }

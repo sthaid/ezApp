@@ -187,7 +187,7 @@ function install_linux_packages()
 
     # devel tools
     sudo apt install -y git build-essential pkg-config cmake openjdk-17-jdk-headless \
-                        cscope universal-ctags vim unzip x11-apps meld
+                        cscope universal-ctags vim unzip x11-apps meld curl
 
     # wayland
     sudo apt install -y libwayland-dev     # display protocol, replaces X11

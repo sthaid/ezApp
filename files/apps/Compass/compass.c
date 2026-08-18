@@ -46,6 +46,7 @@ int main(int argc, char **argv)
     int          rc, x, y;
     sdlx_event_t event;
     double       mag_heading, true_heading, compass_heading;
+    sdlx_loc_t   dest;
     bool         end_program = false;
 
     // save args
@@ -108,7 +109,11 @@ int main(int argc, char **argv)
             normalize(&compass_heading);
 
             // draw the compass rotated by compass_heading
-            sdlx_render_texture_ex2(compass, 50, 150, 900, 900, -compass_heading);
+            dest.x = 50;
+            dest.y = 150;
+            dest.w = 900;
+            dest.h = 900;
+            sdlx_render_texture_rotated(compass, NULL, &dest, -compass_heading, NULL, FLIP_NONE);
 
             // if show is enabled then draw a reference point at true north
             if (show && view == MAGNETIC_COMPASS && true_heading != INVALID_NUMBER) {

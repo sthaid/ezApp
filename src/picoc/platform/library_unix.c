@@ -387,51 +387,24 @@ void Sdlx_get_texture_pixels(struct ParseState *Parser, struct Value *ReturnValu
 void Sdlx_render_texture(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    sdlx_texture_t * t = (sdlx_texture_t *)Param[0]->Val->Pointer;
-    int              x = (int)Param[1]->Val->Integer;
-    int              y = (int)Param[2]->Val->Integer;
+    sdlx_texture_t * t    = (sdlx_texture_t *)Param[0]->Val->Pointer;
+    sdlx_loc_t *     src  = (sdlx_loc_t *)Param[1]->Val->Pointer;
+    sdlx_loc_t *     dest = (sdlx_loc_t *)Param[2]->Val->Pointer;
 
-    sdlx_render_texture(t, x, y);
+    sdlx_render_texture(t, src, dest);
 }
 
-void Sdlx_render_texture_ex1(struct ParseState *Parser, struct Value *ReturnValue,
+void Sdlx_render_texture_rotated(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    sdlx_texture_t * t = (sdlx_texture_t *)Param[0]->Val->Pointer;
-    int              x = (int)Param[1]->Val->Integer;
-    int              y = (int)Param[2]->Val->Integer;
-    int              w = (int)Param[3]->Val->Integer;
-    int              h = (int)Param[4]->Val->Integer;
+    sdlx_texture_t * t      = (sdlx_texture_t *)Param[0]->Val->Pointer;
+    sdlx_loc_t *     src    = (sdlx_loc_t *)Param[1]->Val->Pointer;
+    sdlx_loc_t *     dest   = (sdlx_loc_t *)Param[2]->Val->Pointer;
+    double           angle  = Param[3]->Val->FP;
+    sdlx_point_t   * center = (sdlx_point_t *)Param[4]->Val->Pointer;
+    int              flip   = Param[5]->Val->Integer;
 
-    sdlx_render_texture_ex1(t, x, y, w, h);
-}
-
-void Sdlx_render_texture_ex2(struct ParseState *Parser, struct Value *ReturnValue,
-        struct Value **Param, int NumArgs)
-{
-    sdlx_texture_t * t     = (sdlx_texture_t *)Param[0]->Val->Pointer;
-    int              x     = (int)Param[1]->Val->Integer;
-    int              y     = (int)Param[2]->Val->Integer;
-    int              w     = (int)Param[3]->Val->Integer;
-    int              h     = (int)Param[4]->Val->Integer;
-    double           angle = (double)Param[5]->Val->FP;
-
-    sdlx_render_texture_ex2(t, x, y, w, h, angle);
-}
-
-void Sdlx_render_texture_ex3(struct ParseState *Parser, struct Value *ReturnValue,
-        struct Value **Param, int NumArgs)
-{
-    sdlx_texture_t * texture = (sdlx_texture_t *)Param[0]->Val->Pointer;
-    int              x       = (int)Param[1]->Val->Integer;
-    int              y       = (int)Param[2]->Val->Integer;
-    int              w       = (int)Param[3]->Val->Integer;
-    int              h       = (int)Param[4]->Val->Integer;
-    double           angle   = (double)Param[5]->Val->FP;
-    int              xctr    = (int)Param[6]->Val->Integer;
-    int              yctr    = (int)Param[7]->Val->Integer;
-
-    sdlx_render_texture_ex3(texture, x, y, w, h, angle, xctr, yctr);
+    sdlx_render_texture_rotated(t, src, dest, angle, center, flip);
 }
 
 void Sdlx_set_render_target(struct ParseState *Parser, struct Value *ReturnValue,
@@ -442,16 +415,6 @@ void Sdlx_set_render_target(struct ParseState *Parser, struct Value *ReturnValue
     sdlx_set_render_target(t);
 }
 
-// xxx new
-void Sdlx_render_texture_new(struct ParseState *Parser, struct Value *ReturnValue,
-        struct Value **Param, int NumArgs)
-{
-    sdlx_texture_t * t    = (sdlx_texture_t *)Param[0]->Val->Pointer;
-    sdlx_loc_t *     src  = (sdlx_loc_t *)Param[1]->Val->Pointer;
-    sdlx_loc_t *     dest = (sdlx_loc_t *)Param[2]->Val->Pointer;
-
-    sdlx_render_texture_new(t, src, dest);
-}
 
 //
 // audio
@@ -796,12 +759,9 @@ struct LibraryFunction SdlFunctions[] = {
     { Sdlx_color_mod_texture,        "void sdlx_color_mod_texture(sdlx_texture_t *t, float r, float g, float b);" },
     { Sdlx_set_texture_pixels,       "void sdlx_set_texture_pixels(sdlx_texture_t *t, unsigned int *pixels);" },
     { Sdlx_get_texture_pixels,       "unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w, int *h);" },
-    { Sdlx_render_texture,           "void sdlx_render_texture(sdlx_texture_t *t, int x, int y);" },
-    { Sdlx_render_texture_ex1,       "void sdlx_render_texture_ex1(sdlx_texture_t *t, int x, int y, int w, int h);" },
-    { Sdlx_render_texture_ex2,       "void sdlx_render_texture_ex2(sdlx_texture_t *t, int x, int y, int w, int h, double angle);" },
-    { Sdlx_render_texture_ex3,       "void sdlx_render_texture_ex3(sdlx_texture_t *texture, int x, int y, int w, int h, double angle, int xctr, int yctr);" },
-    // xxx new
-    { Sdlx_render_texture_new,       "void sdlx_render_texture_new(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_t *dest);" },
+    { Sdlx_render_texture,           "void sdlx_render_texture(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_t *dest);" },
+    { Sdlx_render_texture_rotated,   "void sdlx_render_texture_rotated(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_t *dest, double angle, sdlx_point_t *center, int flip);" },
+
     { Sdlx_set_render_target,        "void sdlx_set_render_target(sdlx_texture_t *t);" },
 
     // audio
@@ -903,6 +863,11 @@ typedef struct { \n\
 #define FLAG_BG_BLACK      0x00020000 \n\
 #define FLAG_BG_WHITE      0x00040000 \n\
 #define FLAG_XY_CTR        (FLAG_X_CTR | FLAG_Y_CTR) \n\
+/* video sdlx_render_texture_rotated, flip arg values */ \n\
+#define FLIP_NONE                     0 \n\
+#define FLIP_HORIZONTAL               1 \n\
+#define FLIP_VERTICAL                 2 \n\
+#define FLIP_HORIZONTAL_AND_VERTICAL  3 \n\
 /* video misc */ \n\
 #define MAX_POINT_SIZE 9 \n\
 \n\

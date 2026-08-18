@@ -486,7 +486,8 @@ static void display_menu(void)
         // display the menu item
         // - first render the circle
         // - then render the app name text within the circle
-        sdlx_render_texture(circle, x-RADIUS, y-RADIUS);
+        sdlx_loc_t dest = {x-RADIUS, y-RADIUS, 2*RADIUS, 2*RADIUS};
+        sdlx_render_texture(circle, NULL, &dest);
         if (s2[0] == '\0') {
             sdlx_render_printf_ex2(x, y, 
                                    fontid, COLOR_WHITE, FLAG_XY_CTR, 

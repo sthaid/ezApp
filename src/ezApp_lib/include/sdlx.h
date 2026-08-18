@@ -278,6 +278,7 @@ void sdlx_set_texture_pixels(sdlx_texture_t *t, unsigned int *pixels);
 // Caller must free the returned pixels array.
 unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w, int *h);
 
+#if 0
 // Copy entire texture to location x,y of the current_texture.   xxx or doc 'copy to current rendering target'
 void sdlx_render_texture(sdlx_texture_t *t, int x, int y);
 // Copy entire texture to location x,y,w,h of the current_texture.
@@ -288,10 +289,16 @@ void sdlx_render_texture_ex2(sdlx_texture_t *t, int x, int y, int w, int h, doub
 // Same as above, except the xctr, yctr args specify the point around which the 
 // texture is rotated. This is equivalent to the previous routine when xctr=w/2 and yctr=h/2.
 void sdlx_render_texture_ex3(sdlx_texture_t *texture, int x, int y, int w, int h, double angle, int xctr, int yctr);
+#endif
 
-// xxx new
-void sdlx_render_texture_new(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_t *dest);
-
+// xxx needs comments
+void sdlx_render_texture(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_t *dest);
+#define FLIP_NONE                     0
+#define FLIP_HORIZONTAL               1
+#define FLIP_VERTICAL                 2
+#define FLIP_HORIZONTAL_AND_VERTICAL  3
+void sdlx_render_texture_rotated(sdlx_texture_t *texture, sdlx_loc_t *srcrect, sdlx_loc_t *dstrect,
+                                 double angle, sdlx_point_t *center, int flip);
 
 // Set current_texture to 't'.
 // It t==NULL, the current_texture is set to the default_texture.

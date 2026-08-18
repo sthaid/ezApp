@@ -95,6 +95,7 @@ int main(int argc, char **argv)
     int          serving_delay = 0;
     sdlx_event_t event;
     long         start_us, timeout_us;
+    sdlx_loc_t   dest;
     bool         end_program = false;
 
     // save args
@@ -191,8 +192,14 @@ int main(int argc, char **argv)
                                FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                                "%0.2f %s", ball_speed_court_per_sec, short_skill_str[param_skill]);
 
-        // display the ball and paddles
-        sdlx_render_texture(ball, x-BALL_RADIUS, y-BALL_RADIUS);
+        // display the ball
+        dest.x = x - BALL_RADIUS;
+        dest.y = y - BALL_RADIUS;
+        dest.w = 2 * BALL_RADIUS;
+        dest.h = 2 * BALL_RADIUS;
+        sdlx_render_texture(ball, NULL, &dest);
+
+        // display the paddles
         sdlx_render_fill_rect(human_paddle_x-PADDLE_W/2, human_paddle_y-PADDLE_H/2, PADDLE_W, PADDLE_H, COLOR_WHITE);
         sdlx_render_fill_rect(computer_paddle_x-PADDLE_W/2, computer_paddle_y-PADDLE_H/2, PADDLE_W, PADDLE_H, COLOR_WHITE);
 

@@ -767,7 +767,7 @@ void create_icon_texture_if_needed(forecast_t *x)
 void display_forecast(void)
 {
     int y2;
-    sdlx_loc_t loc;
+    sdlx_loc_t loc, dest;
 
     y2 = y;
 
@@ -804,7 +804,11 @@ void display_forecast(void)
         // display the forecast icon
         create_icon_texture_if_needed(x);
         if (x->icon_texture) {
-            sdlx_render_texture_ex1(x->icon_texture, 0, y2, ICON_WH, ICON_WH);
+            dest.x = 0;
+            dest.y = y2;
+            dest.w = ICON_WH;
+            dest.h = ICON_WH;
+            sdlx_render_texture(x->icon_texture, NULL, &dest);
 
             loc.x = 0;
             loc.y = y2;
@@ -839,6 +843,7 @@ void display_detailed_forecast(int idx)
     forecast_t  *x = (mode == HOURLY ? &hourly[idx] : &daily[idx]);
     sdlx_event_t event;
     int          wrap;
+    sdlx_loc_t   dest;
     bool         done = false;
 
     while (!done) {
@@ -848,7 +853,11 @@ void display_detailed_forecast(int idx)
         // display the forecast icon
         create_icon_texture_if_needed(x);
         if (x->icon_texture) {
-            sdlx_render_texture_ex1(x->icon_texture, 0, y_top, ICON_WH, ICON_WH);
+            dest.x = 0;
+            dest.y = y_top;
+            dest.w = ICON_WH;
+            dest.h = ICON_WH;
+            sdlx_render_texture(x->icon_texture, NULL, &dest);
         }
 
         // display forecast info ...
