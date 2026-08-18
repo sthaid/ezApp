@@ -171,7 +171,7 @@ static int init(void)
     params.record_gain = util_get_numeric_param(".", "record_gain", DEFAULT_RECORD_GAIN);
     params.record_silence = util_get_numeric_param(".", "record_silence", DEFAULT_RECORD_SILENCE);
     params.event_box_enable = util_get_numeric_param(".", "event_box_enable", false);
-    params.aspect_ratio = util_get_numeric_param(".", "aspect_ratio", DEFAULT_ASPECT_RATIO);
+    params.aspect_ratio = util_get_numeric_param(".", "aspect_ratio", 0);
 
     // provide params to other modules, when needed
     sdlx_event_box_ctrl(params.event_box_enable);
@@ -762,7 +762,7 @@ static void settings(void)
 
     // init variables which define the vertical region of the display
     // being used for the filename list
-    y_top    = ROW2Y(4.5);
+    y_top    = ROW2Y(5.5);
     y_bottom = sdlx_win_height;
     y        = y_top;
 
@@ -845,7 +845,7 @@ static void settings(void)
 
         // display Aspect_Ratio
         if (GET_Y2) {
-            loc = sdlx_render_printf(0, y2, "Aspect_Ratio = %0.3f", params.aspect_ratio);
+            loc = sdlx_render_printf(0, y2, "Aspect_Ratio = %.4g", params.aspect_ratio);
             sdlx_register_event(loc, EVID_ASPECT_RATIO);
         }
 
@@ -887,13 +887,14 @@ static void settings(void)
         }
 
         // display title line, version, and ipaddr
-        sdlx_render_fill_rect(0, 0, sdlx_win_width, 4*sdlx_char_height_dflt, BG_COLOR);
+        sdlx_render_fill_rect(0, 0, sdlx_win_width, 5*sdlx_char_height_dflt, BG_COLOR);
         sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(0),
                                FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                                "%s", "Settings");
         sdlx_render_printf(0, ROW2Y(1), "Version = %s", VERSION);
         sdlx_render_printf(0, ROW2Y(2), "%s", BUILD_DATE);
         sdlx_render_printf(0, ROW2Y(3), "%s:%d", ipaddr_str, params.devel_port);
+        sdlx_render_printf(0, ROW2Y(4), "Aspect_Ratio = %.4g", logical_aspect_ratio);
 
         // register motion and control events
         sdlx_register_event(NULL, EVID_MOTION);
@@ -932,6 +933,10 @@ static void settings(void)
             char *str; 
             int cnt, port;
             str = sdlx_get_input_str("Port\n1024 - 49151", true, NULL);
+            if (strlen(str) == 0) {
+                sdlx_show_toast("Cancelled");
+                break;
+            }
             cnt = sscanf(str, "%d", &port);
             if (cnt == 1 && (port >= 1024 && port <= 49151)) {
                 params.devel_port = port;
@@ -940,18 +945,25 @@ static void settings(void)
                     INFO("sending SIGUSR2 to devel_mode_server_thread\n");
                     pthread_kill(server_tid, SIGUSR2);
                 }
+                sdlx_show_toast("Port changed");
+            } else {
+                sdlx_show_toast("Invalid Port");
             }
             break; }
         case EVID_DEVEL_PASSWORD: {
             char *str; 
             str = sdlx_get_input_str("Password\nMin Length 4", false, params.devel_password);
-            if (strlen(str) >= MIN_DEVEL_PASSWORD_LEN) {
-                strcpy(params.devel_password, str);
-                util_set_str_param(".", "devel_password", str);
-                sdlx_show_toast("CHANGED");
-            } else {
-                sdlx_show_toast("TOO SHORT");
+            if (strlen(str) == 0) {
+                sdlx_show_toast("Cancelled");
+                break;
             }
+            if (strlen(str) < MIN_DEVEL_PASSWORD_LEN) {
+                sdlx_show_toast("Password too short");
+                break;
+            }
+            strcpy(params.devel_password, str);
+            util_set_str_param(".", "devel_password", str);
+            sdlx_show_toast("Password changed");
             break; }
         case EVID_SERVICES:
             svcs_display(BG_COLOR);
@@ -992,14 +1004,15 @@ static void settings(void)
                     "Reset y/n", 
                     false, NULL);
             if (strcasecmp(str, "y") != 0) {
-                INFO("aborting RESET_APPS_AND_SVCS\n");
+                sdlx_show_toast("Cancelled");
                 break;
             }
             INFO("performing  RESET_APPS_AND_SVCS\n");
             create_files(CREATE_FILES_RESET_APPS_AND_SVCS);
-            sdlx_show_toast("RESET DONE");
+            sdlx_show_toast("Reset Complete");
             break; }
         case EVID_FOREGROUND: {
+            // xxx check this
             params.foreground_enabled = (params.foreground_enabled ? false : true);
             util_set_numeric_param(".", "foreground_enabled", params.foreground_enabled);
             if (params.foreground_enabled) {
@@ -1018,17 +1031,27 @@ static void settings(void)
             sdlx_event_box_ctrl(params.event_box_enable);
             break; }
         case EVID_ASPECT_RATIO: {
-            char *str, dflt_input_str[100];
+            char *str, dflt_input_str[100], prompt_str[100];
             int cnt;
             double aspect_ratio;
-            sprintf(dflt_input_str, "%0.3f", params.aspect_ratio);
-            str = sdlx_get_input_str("Aspect_Ratio\n2.0 - 2.4\nezApp restart needed", true, dflt_input_str);
-            cnt = sscanf(str, "%lf", &aspect_ratio);
-            if (cnt == 1 && (aspect_ratio >= 2.0 && aspect_ratio <= 2.4)) {
-                params.aspect_ratio = aspect_ratio;
-                util_set_numeric_param(".", "aspect_ratio", aspect_ratio);
+            sprintf(prompt_str, "Aspect_Ratio\n0 or %0.1f - %0.1f", MIN_ASPECT_RATIO, MAX_ASPECT_RATIO);
+            sprintf(dflt_input_str, "%.4g", params.aspect_ratio);
+            str = sdlx_get_input_str(prompt_str, true, dflt_input_str);
+            if (strlen(str) == 0) {
+                sdlx_show_toast("Cancelled");
+                break;
             }
-            // xxx show toat on errors
+            cnt = sscanf(str, "%lf", &aspect_ratio);
+            if ((cnt != 1) || 
+                !((aspect_ratio == 0) ||
+                  (aspect_ratio >= MIN_ASPECT_RATIO && aspect_ratio <= MAX_ASPECT_RATIO))) 
+            {
+                sdlx_show_toast("Invalid Aspect_Ratio");
+                break;
+            }
+            params.aspect_ratio = aspect_ratio;
+            util_set_numeric_param(".", "aspect_ratio", aspect_ratio);
+            sdlx_show_toast("Aspect_Ratio changed. Restart ezApp.");
             break; }
         case EVID_MOTION:
             y += event.u.motion.yrel;

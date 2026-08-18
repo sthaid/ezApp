@@ -57,6 +57,8 @@ static font_t        font[MAX_FONT_PTSIZE];
 sdlx_texture_t      *texture_dflt;
 int                  orientation;
 int                  real_win_width, real_win_height;
+double               real_aspect_ratio;
+double               logical_aspect_ratio;
 int                  logical_win_width, logical_win_height;
 int                  logical_win_width_portrait, logical_win_height_portrait;
 int                  logical_win_width_landscape, logical_win_height_landscape;
@@ -86,7 +88,7 @@ static inline SDL_Color sdlx_color(sdlx_color_t color)
 
 static bool event_watcher(void* userdata, SDL_Event* event);
 
-int sdlx_video_init(double aspect_ratio)
+int sdlx_video_init(double requested_aspect_ratio)
 {
     int w, h;
 
@@ -196,8 +198,9 @@ int sdlx_video_init(double aspect_ratio)
 
     // get real windows size and aspect ratio
     SDL_GetWindowSize(window, &real_win_width, &real_win_height);
+    real_aspect_ratio = (double)real_win_height / real_win_width;
     INFO("real    win_width x height = %d %d  aspect = %f\n", 
-         real_win_width, real_win_height, (double)real_win_height / real_win_width);
+         real_win_width, real_win_height, real_aspect_ratio);
 
     // sanity check
     SDL_GetCurrentRenderOutputSize(renderer, &w, &h);
@@ -206,9 +209,19 @@ int sdlx_video_init(double aspect_ratio)
               real_win_width, real_win_height, w, h);
     }
 
+    // xxx comment
+    logical_aspect_ratio = (requested_aspect_ratio == 0 ? real_aspect_ratio
+                                                        : requested_aspect_ratio);
+    if (logical_aspect_ratio < MIN_ASPECT_RATIO) {
+        logical_aspect_ratio = MIN_ASPECT_RATIO;
+    }
+    if (logical_aspect_ratio > MAX_ASPECT_RATIO) {
+        logical_aspect_ratio = MAX_ASPECT_RATIO;
+    }
+
     // init the logical window size for portrait and landscape orientations
     logical_win_width_portrait   = LOGICAL_WIN_WIDTH;
-    logical_win_height_portrait  = LOGICAL_WIN_WIDTH * aspect_ratio;  // xxx allow 0 to use the device aspect ratio, range limitted
+    logical_win_height_portrait  = LOGICAL_WIN_WIDTH * logical_aspect_ratio;
     logical_win_width_landscape  = logical_win_height_portrait;
     logical_win_height_landscape = logical_win_width_portrait;
 
