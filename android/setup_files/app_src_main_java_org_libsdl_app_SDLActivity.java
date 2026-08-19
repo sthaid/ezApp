@@ -69,20 +69,10 @@ import org.libsdl.app.ezApp_loc_fgsvc;
 import org.libsdl.app.ezApp_media_fgsvc;
 import org.libsdl.app.ezApp_utils;
 import android.os.SystemClock;
-
-// xxx camera
-import android.app.Activity;
-import android.content.Intent;
-import android.net.Uri;
 import android.provider.MediaStore;
-import android.widget.Toast;
 import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-
 
 /**
     SDL Activity
@@ -282,13 +272,17 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     private static ezApp_media_fgsvc mezApp_media_fgsvc;
     private static boolean           mezApp_media_fgsvc_isbound = false;
     private static int               mezApp_media_start_result;
-    private static int               mezApp_image_capture_result;  //xxx cleanup
-    private static final int         MEDIA_RECORD_REQUEST_CODE = 1234;
-
+    private static int               mezApp_image_capture_result;
+    private static final int         REQUEST_RECORD_MEDIA  = 1234;
     private static final int         REQUEST_IMAGE_CAPTURE = 1235;
-
-    //private static final int         RESULT_NOT_SET = Activity.RESULT_FIRST_USER;  // xxx check this
-    private static final int         RESULT_NOT_SET = 999;
+    // result code values
+    // . RESULT_OK         = -1  defined by android
+    // . RESULT_CANCELLED  = 0   defined by android
+    // . RESULT_FIRST_USER = 1   user defined result codes are 1 and greater
+    private static final int         RESULT_FAILED                     = 1;
+    private static final int         RESULT_NO_CAMERA                  = 2;
+    private static final int         RESULT_FAILED_TO_CREATE_PHOTO_JPG = 3;
+    private static final int         RESULT_NOT_SET                    = 99;
 
     public static SDLGenericMotionListener_API14 getMotionListener() {
         if (mMotionListener == null) {
@@ -598,7 +592,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         mezApp_media_start_result = RESULT_NOT_SET;
         MediaProjectionManager manager = 
             (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-        startActivityForResult(manager.createScreenCaptureIntent(), MEDIA_RECORD_REQUEST_CODE);
+        startActivityForResult(manager.createScreenCaptureIntent(), REQUEST_RECORD_MEDIA);
 
         while (mezApp_media_start_result == RESULT_NOT_SET) {
             SystemClock.sleep(100);
@@ -763,91 +757,70 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         return 0;
     }
 
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-    public double take_picture_start() {
-        mezApp_image_capture_result = RESULT_NOT_SET;
-        return 0;
-    }
-
-    // EZAPP utils camera
-    // xxx
+    // EZAPP take picture
     public double take_picture() {
+        // preset result to RESULT_NOT_SET
+        mezApp_image_capture_result = RESULT_NOT_SET;
 
-      mSingleton.runOnUiThread(new Runnable() {
+        // take picture must be run on the UI thread (ake main thread)
+        mSingleton.runOnUiThread(new Runnable() {
         @Override
         public void run() {
+            Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        Uri photoURI;
+            // check if there is at least one camera installed on the 
+            // device that can handle the request to take a photo
+            if (takePictureIntent.resolveActivity(mSingleton.getPackageManager()) == null) {
+                Log.e(EZAPP_TAG, "no camera");
+                mezApp_image_capture_result = RESULT_NO_CAMERA;
+                return;
+            }
 
-        // xxx put this in start
-        if (takePictureIntent.resolveActivity(mSingleton.getPackageManager()) != null) {
-            // 1. Get internal files directory and append "tmp"
+            // get path for photo file, for example:
+            // /data/data/org.sthaid.ezApp/files/tmp/photo.jpg
             File baseDir = mSingleton.getFilesDir();
             File tmpDirectory = new File(baseDir, "tmp");
             File file = new File(tmpDirectory, "photo.jpg");
 
+            // create new tmp/photo.jpg file
             try {
-                // 2. Ensure the /files/tmp/ directory exists
+                // ensure the /files/tmp/ directory exists
                 if (!tmpDirectory.exists()) {
                     tmpDirectory.mkdirs();
                 }
-
-                // 3. Force recreation if it already exists
+                // if photo.jpg exists then delete it
                 if (file.exists()) {
                     file.delete();
                 }
-
-                // 4. Create the brand new file
-                if (file.createNewFile()) {
-                    // File successfully created
-                }
+                // create new photo.jpg
+                file.createNewFile();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(EZAPP_TAG, "failed to create " + file);
+                mezApp_image_capture_result = RESULT_FAILED_TO_CREATE_PHOTO_JPG;
+                return;
             }
 
-            if (file != null) {
-                Log.i(EZAPP_TAG, "PhotoFile != NULL");
-                photoURI = FileProvider.getUriForFile(mSingleton,
-                        //"org.sthaid.ezApp.fileprovider",
-                        "org.libsdl.app.fileprovider",
-                        file);
-                Log.i(EZAPP_TAG, "  LINE 1");
+            // get URI for tmp/photo.jpg, and grant read/write permission
+            Uri file_uri;
+            file_uri = FileProvider.getUriForFile(mSingleton,
+                            "org.libsdl.app.fileprovider",
+                            file);
+            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, file_uri);
+            takePictureIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                takePictureIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-
-                Log.i(EZAPP_TAG, "  LINE 2");
-
-                // LEGACY METHOD: Executes from any generic Activity context
-                Log.i(EZAPP_TAG, "request image capture");
-                mSingleton.startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
-
-                Log.i(EZAPP_TAG, "  LINE 3");
-            }
-        } else {
-            //xxx Toast.makeText(activity, "No camera application found", Toast.LENGTH_SHORT).show();
-        }
-
-        }
+            // take the picture;
+            // when completed the mezApp_image_capture_result will be set to RESULT_OK
+            mSingleton.startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+        }  // end of 'public void run()'
     });
 
     return 0;
     }
 
     public double take_picture_complete() {
-        Log.i(EZAPP_TAG, "  COMPLETE TOP");
-        if (mezApp_image_capture_result != RESULT_NOT_SET) {
-            Log.i(EZAPP_TAG, "  IS COMPLETE " + mezApp_image_capture_result);
-            return 1;
-        } else {
-            Log.i(EZAPP_TAG, "  IS NOT COMPLETE " + mezApp_image_capture_result);
-            return 0;
-        }
+        return mezApp_image_capture_result;
     }
-
 
     // ---- EZAPP END ----
 
@@ -1167,7 +1140,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         super.onActivityResult(requestCode, resultCode, data);
 
         // EZAPP if request is for device recording then start the ezApp_media_fgsvc
-        if (requestCode == MEDIA_RECORD_REQUEST_CODE) {
+        if (requestCode == REQUEST_RECORD_MEDIA) {
             if (resultCode == Activity.RESULT_OK) {
                 Log.i(EZAPP_TAG, "start media record permission granted, starting ezApp_media_fgsvc");
                 Intent x = new Intent(this, ezApp_media_fgsvc.class);
@@ -1178,19 +1151,18 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
                 mezApp_media_start_result = RESULT_OK;
             } else {
                 Log.e(EZAPP_TAG, "start media record permission failed, resultCode = " + resultCode);
-                mezApp_media_start_result = RESULT_CANCELED;
+                mezApp_media_start_result = RESULT_FAILED;
             }
         }
 
-        // EZAPP
+        // EZAPP if request was for image capture then set mezApp_image_capture_result
         if (requestCode == REQUEST_IMAGE_CAPTURE) {
-            Log.i(EZAPP_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
             if (resultCode == RESULT_OK) {
                 Log.i(EZAPP_TAG, "REQUEST_IMAGE_CAPTURE okay, resoltCode = " + resultCode);
                 mezApp_image_capture_result = RESULT_OK;
             } else {
                 Log.e(EZAPP_TAG, "REQUEST_IMAGE_CAPTURE failed, resoltCode = " + resultCode);
-                mezApp_image_capture_result = RESULT_CANCELED;
+                mezApp_image_capture_result = RESULT_FAILED;
             }
         }
 

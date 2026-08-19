@@ -163,41 +163,59 @@ int util_take_picture(void)
 {
     int rc;
     sdlx_event_t ev;
+    char tmp[] = "tmp";
+    char photo_jpg[] = "photo.jpg";
+
+    // values copied from _SDLActivity.java
+    #define RESULT_OK                         -1
+    #define RESULT_CANCELLED                  0
+    #define RESULT_FAILED                     1
+    #define RESULT_NO_CAMERA                  2
+    #define RESULT_FAILED_TO_CREATE_PHOTO_JPG 3;
+    #define RESULT_NOT_SET                    99
 
     // remove existing tmp/photo.jpg file
-    util_delete_file("tmp", "photo.jpg");
+    util_delete_file(tmp, photo_jpg);
 
-    // xxx
-    rc = call_java1("take_picture_start");
-    if (rc == INVALID_NUMBER) {
-        ERROR("take_picture_start rc=%f\n", rc);
-        return -1;
-    }
-
-    // xxx  are both this and above needed?
+    // take the picture
     rc = call_java1("take_picture");
-    if (rc == INVALID_NUMBER) {
-        ERROR("take_picture rc=%f\n", rc);
+    if (rc != 0) {
+        ERROR("take_picture failed, rc=%d\n", rc);
         return -1;
     }
 
-    // xxx comment,  and add a timeout?
+    // wait for taking the picture to be completed
     while (true) {
+        // This call to sdlx_get_event ensures that after taking the
+        // picture has completed, and the Android camera code has 
+        // finished with the display, the ezApp display becomes visible.
+        // Reason why this is needed is not known.
         sdlx_get_event(100000, &ev);
+
+        // check if the taking of the picture has completed
         rc = call_java1("take_picture_complete");
-        if (rc == 1) {
-            INFO("take picture is complete\n");
+
+        // if result has been set then break out of loop, 
+        // otherwise print that polling continues
+        if (rc != RESULT_NOT_SET) {
             break;
         }
-        INFO("take picture is not yet complete\n");
+        INFO("polling for take_picture_complete\n");
+    }
+
+    // if rc is not RESULT_OK then return error
+    if (rc != RESULT_OK) {
+        ERROR("rc = %d\n", rc);
+        return -1;
     }
 
     // if photo.jpg does not exist then return error
-    if (!util_file_exists("tmp", "photo.jpg")) {
+    if (!util_file_exists(tmp, photo_jpg)) {
         ERROR("tmp/photo.jpg does not exist\n");
         return -1;
     }
 
+    // return success
     return 0;
 }
 
@@ -205,10 +223,7 @@ int util_take_picture(void)
 
 // returns:
 // - INVALID_NUMBER, when failed, or
-// - method specific result value, such as:
-//   - latitude, longitude, or altitude_ft
-//   - 0 or 1 for boolean
-//   - 0 for success
+// - method specific result value
 
 // call method 'double proc()'
 static double call_java1(const char *method_name)
