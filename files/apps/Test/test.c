@@ -188,8 +188,7 @@ static void page_hndlr()
     }
 
     while (true) {
-        // init the backbuffer, and print font/color
-        // xxx comments
+        // determine orientation for the current pagenum 
         if ((pagenum == 12) || 
             (pagenum == 14 && get_device_orientation() == LANDSCAPE) ||
             (pagenum == 15 && get_device_orientation() == LANDSCAPE)
@@ -200,6 +199,7 @@ static void page_hndlr()
             orientation = PORTRAIT;
         }
 
+        // init the backbuffer, and print font/color
         sdlx_display_init(COLOR_BLACK, orientation);
         sdlx_print_set_default(FONT_NORMAL, COLOR_WHITE);
 
@@ -1489,18 +1489,18 @@ static void page_13_draw(void)
 #define EVID_RESET_PICTURE 11
 
 sdlx_texture_t *t;
-double xc, yc, scale;
-int jpeg_w, jpeg_h;
+double          xc, yc, scale;
+int             jpeg_w, jpeg_h;
 
 static void page_14_init(void)
 {
-	// nothing needed
+    // nothing needed
 }
 
 static void page_14_exit(void)
 {
+    printf("I %s: page_14_exit cleaning up\n", progname);
     if (t) {
-        printf("I %s: page_14_exit cleaning up\n", progname);
         sdlx_destroy_texture(t);
         t = NULL;
     }
@@ -1511,69 +1511,66 @@ static void page_14_draw(void)
     sdlx_loc_t src, dest;
     sdlx_loc_t *loc;
 
-    if (t) {
-        bool flag = false;
+    // it image texture exists, and jpeg_w/h variables are sane then
+    // determine image scaling/panning, and render the image
+    if (t != NULL && jpeg_w > 0 && jpeg_h > 0) {
+        bool ctr_adjusted = false;
 
+        // determine the image src area that will be displayed, 
+        // based on xc,yc (center coord), and scale variables
         src.x = xc - jpeg_w / 2 * scale;
         src.y = yc - jpeg_h / 2 * scale;
         src.w = jpeg_w * scale;
         src.h = jpeg_h * scale;
 
+        // if src region extends beyond the bounds of the image
+        // then adjust src to keep it within the image bounds
         if (src.x < 0) {
             xc = jpeg_w / 2 * scale;
-            flag = true;
+            ctr_adjusted = true;
         } else if (src.x + src.w >= jpeg_w) {
             xc = jpeg_w - jpeg_w / 2 * scale;
-            flag = true;
+            ctr_adjusted = true;
         }
 
         if (src.y < 0) {
             yc = jpeg_h / 2 * scale;
-            flag = true;
+            ctr_adjusted = true;
         } else if (src.y + src.h >= jpeg_h) {
             yc = jpeg_h - jpeg_h / 2 * scale;
-            flag = true;
+            ctr_adjusted = true;
         }
 
-        if (flag) {
-            int new_x = xc - jpeg_w / 2 * scale;
-            int new_y = yc - jpeg_h / 2 * scale;
-
-            // xxx flag is always set?
-            //printf("XC,YC,SCALE = %0.0f %0.0f %0.3f  SRC %d %d %d %d => %d %d %d %d\n",
-            //       xc, yc, scale,
-            //       src.x, src.y, src.w, src.h,
-            //       new_x, new_y, src.w, src.h);
-
-            src.x = new_x;
-            src.y = new_y;
-        } else {
-            //printf("XC,YC,SCALE = %0.0f %0.0f %0.3f  SRC %d %d %d %d\n", 
-            //       xc, yc, scale,
-            //       src.x, src.y, src.w, src.h);
+        if (ctr_adjusted) {
+            src.x = xc - jpeg_w / 2 * scale;
+            src.y = yc - jpeg_h / 2 * scale;
         }
 
+        // determine the dest area to which the image will be displayed
         dest.x = 0;
         dest.y = 0;
         if (orientation == PORTRAIT) {
             dest.w = 1000;
-            dest.h = 1000 * ((double)jpeg_h / jpeg_w);  // xxx dividing here
+            dest.h = 1000 * ((double)jpeg_h / jpeg_w);
         } else {
             dest.h = 1000;
-            dest.w = 1000 * ((double)jpeg_w / jpeg_h);  // xxx dividing here
+            dest.w = 1000 * ((double)jpeg_w / jpeg_h);
         }
 
+        // display the image src area to the display dest area
         sdlx_render_texture(t, &src, &dest);
     }
+
+    // register events to TAKE_PICTURE, and RESET_PICTURE pan/zoom
+    loc = sdlx_render_printf_ex1(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-2*sdlx_char_height_dflt, 
+                                 FONT_NORMAL, COLOR_LIGHT_BLUE, "TAKE");
+    sdlx_register_event(loc, EVID_TAKE_PICTURE);
 
     loc = sdlx_render_printf_ex1(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-4*sdlx_char_height_dflt, 
                                  FONT_NORMAL, COLOR_LIGHT_BLUE, "RESET");
     sdlx_register_event(loc, EVID_RESET_PICTURE);
 
-    loc = sdlx_render_printf_ex1(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-2*sdlx_char_height_dflt, 
-                                 FONT_NORMAL, COLOR_LIGHT_BLUE, "TAKE");
-    sdlx_register_event(loc, EVID_TAKE_PICTURE);
-
+    // register for MOTION and PINCH events
     sdlx_register_event(NULL, EVID_MOTION);
     sdlx_register_event(NULL, EVID_PINCH);
 }
@@ -1587,12 +1584,12 @@ static void page_14_process_event(sdlx_event_t *ev)
     case EVID_TAKE_PICTURE:
         // take the picture, this should create file tmp/photo.hpg
         printf("I %s: calling take_picture\n", progname);
-        rc = util_take_picture();  // xxx return status
+        rc = util_take_picture();
         if (rc != 0) {
             printf("E %s: util_take_picture failed\n", progname);
             break;
         }
-        printf("I %s: back from take_picture, rc=%d\n", progname, rc);
+        printf("I %s: back from take_picture\n", progname);
 
         // open photo.jpg,
         // decode photo.jpg, this call returns out_pixels,
@@ -1625,7 +1622,7 @@ static void page_14_process_event(sdlx_event_t *ev)
             }
         }
 
-        // if t is NULL then create texture with dimensions that match the photo.jpg
+        // if t is NULL then create texture
         if (t == NULL) {
             printf("I %s: creating texture %d %d\n", progname, jpeg_w, jpeg_h);
             t = sdlx_create_texture(jpeg_w, jpeg_h);
@@ -1636,28 +1633,27 @@ static void page_14_process_event(sdlx_event_t *ev)
             }
         }
 
-        // set the pixel values, that had been extrackted from photo.jpg, to the texture 't'
+        // set the pixel values, that had been extrackted from photo.jpg, to the texture
         sdlx_set_texture_pixels(t, out_pixels);
         printf("I %s: after call to sdlx_set_texture_pixels\n", progname);
 
         // now done with pixels
         free(out_pixels);
 
-        // xxx comment
+        // init values that control the photo display center and scale
         xc = jpeg_w / 2;
         yc = jpeg_h / 2;
         scale = 1;
         break;
-    case EVID_MOTION:
-        xc -= ev->u.motion.xrel * scale * 3; // xxx where is the 3 from
-        yc -= ev->u.motion.yrel * scale * 3;
-        //printf("I %s: motion x,y = %f %f\n", progname, xc, yc);
-        break;
+    case EVID_MOTION: {
+        double k = (double)jpeg_w / sdlx_win_width;  // xxx check this, not working landscape
+        xc -= ev->u.motion.xrel * scale * k;
+        yc -= ev->u.motion.yrel * scale * k;
+        break; }
     case EVID_PINCH:
         if (ev->u.pinch.scale == 0) break;
         scale /= ev->u.pinch.scale;
         if (scale > 1) scale = 1;
-        //printf("i %s: scale %f\n", progname, ev->u.pinch.scale);
         break;
     case EVID_RESET_PICTURE:
         xc = jpeg_w / 2;
