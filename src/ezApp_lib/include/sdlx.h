@@ -25,7 +25,7 @@ extern "C" {
 // --------------------
 
 // Sdlx_video defines a logical display that has pixel dimensions based on orientation:
-// - Portrait WxH:  1000 x 2200
+// - Portrait WxH:  1000 x 2200 xxx  search 2200
 // - Landscape WxH: 2200 x 1000
 // MiniApps do not use the real pixel dimensions of the physical display.
 // 
@@ -37,12 +37,12 @@ extern "C" {
 // that is initialized to the compass image pixels.
 //
 // Terminology:
-// - display_texture: This is the 1000x2200 (portrait), or 2200x1000 (landscape texture.
-//                    This texture is defined when sdlx_display_init is called. 
-//                    And this texture becomes visible on the display when sdlx_display_present
-//                    is called.
-// - current_texture: This is texture that is selected for rendering. When sdlx_display_init 
-//                    is called the current_texture is set to the display_texture.
+// - display_texture:   This is the 1000x2200 (portrait), or 2200x1000 (landscape texture.
+//                      This texture is defined when sdlx_display_init is called. 
+//                      And this texture becomes visible on the display when sdlx_display_present
+//                      is called.
+// - rendering_texture: This is texture that is selected for rendering. When sdlx_display_init 
+//                      is called the rendering_texture is set to the display_texture.
 // 
 // The top left of the display area is (x,y) = (0,0).
 // In Portrait Mode, the bottom right of the display is (x,y) = (999,2199).
@@ -143,7 +143,7 @@ sdlx_color_t sdlx_wavelength_to_color(int wavelength);
 // This routine sets the default fontid and color.
 void sdlx_print_set_default(int fontid, sdlx_color_t color);
 
-// This printf routine prints to the current_texture:
+// This printf routine prints to the rendering_texture:
 // - x,y specify the upper left corner location of the printed text.
 // - the default fontid and color are used.
 // - the returned sdlx_loc_t contains the location of the printed text
@@ -213,7 +213,7 @@ int sdlx_char_height(int fontid);
 #define MAX_POINT_SIZE 9  // for call to sdlx_render_point and sdlx_render_points
 
 // These routines perform the function implied by their name.
-// Rendering occurs to the current_texture.
+// Rendering occurs to the rendering_texture.
 // - For sdlx_render_rect and sdlx_render_fill_rect, x,y are the top left corner
 //   of the rectangle.
 // - For sdlx_render_circle and sdlx_render_fill_circle, x_ctr,y_ctr are the 
@@ -232,9 +232,9 @@ void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int
 // Video: Textures
 // ---------------
 
-// Textures are xxx GPU memory buffers that can be selected as render target.
-// Once set as render target, the texture is the current_texture.
-// Subsequent rendering occurs to the current_texture.
+// Textures are memory buffers that can be selected as render target.
+// When set as render target, the texture is the rendering_texture.
+// Subsequent rendering occurs to the rendering_texture.
 
 // For example, the Compass miniApp uses a texture to display the compass image:
 // - initialization
@@ -244,16 +244,16 @@ void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int
 // - run time
 //   - the compass_heading is determined from the Android magnetic field sensor
 //   - sdlx_render_texture_ex2 is called to copy (scale & rotate) 
-//     the compass texture (current_texture) to the display_texture
+//     the compass texture (rendering_texture) to the display_texture xxx
 // - termination
 //   - sdlx_destroy_texture is called to free the GPU memory 
 
 // Another way textures can be initialized is by using sdlx_set_render_target.
 // For example, during initialization, create a 100x100 texture containing a yellow circle:
 //    sdlx_texture_t *circle = sdlx_create_texture(100, 100);
-//    sdlx_set_render_target(circle);  // sets current_texture to the created circle texture
+//    sdlx_set_render_target(circle);  // sets rendering_texture to the created circle texture
 //    sdlx_render_fill_circle(50, 50, 50, COLOR_YELLOW);
-//    sdlx_set_render_target(NULL);    // restores current_texture to display_texture
+//    sdlx_set_render_target(NULL);    // restores rendering_texture to display_texture
 // At runtime, the circle texture can be scaled to fill the entire display, the scaling
 // will result in the circle being stretched to an ellipse:
 //    sdlx_render_texture_ex1(circle, 0, 0, sdlx_win_width, sdlx_win_height);
@@ -279,9 +279,9 @@ void sdlx_set_texture_pixels(sdlx_texture_t *t, unsigned int *pixels);
 unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w, int *h);
 
 #if 0
-// Copy entire texture to location x,y of the current_texture.   xxx or doc 'copy to current rendering target'
+// Copy entire texture to location x,y of the rendering_texture.   xxx or doc 'copy to current rendering target'
 void sdlx_render_texture(sdlx_texture_t *t, int x, int y);
-// Copy entire texture to location x,y,w,h of the current_texture.
+// Copy entire texture to location x,y,w,h of the rendering_texture.
 // The texture is scaled to fit w X h.
 void sdlx_render_texture_ex1(sdlx_texture_t *t, int x, int y, int w, int h);
 // Same as above, except that the texture is also rotated, about its center, by angle degrees.
@@ -300,8 +300,8 @@ void sdlx_render_texture(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_
 void sdlx_render_texture_rotated(sdlx_texture_t *texture, sdlx_loc_t *srcrect, sdlx_loc_t *dstrect,
                                  double angle, sdlx_point_t *center, int flip);
 
-// Set current_texture to 't'.
-// It t==NULL, the current_texture is set to the default_texture.
+// Set rendering_texture to 't'.
+// It t==NULL, the rendering_texture is set to the default_texture. xxx default or display?
 void sdlx_set_render_target(sdlx_texture_t *t);
 
 // --------------------

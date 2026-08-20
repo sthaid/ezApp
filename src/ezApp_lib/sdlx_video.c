@@ -172,8 +172,8 @@ int sdlx_video_init(double requested_aspect_ratio)
     // Aspect ratio ...
     // 
     // * Modern android devices use taller aspect ratios, such as:
-    //   - 19.5:9   2.1666
-    //   - 20:9     2.2222
+    //   - 19.5:9   2.1666   (most common, my device)
+    //   - 20:9     2.2222   (most common)
     //   - 20.5:9   2.2777
     // * This program was developed on an Android device with 
     //   display size of WxH = 1080 x 2340   (aspect_ratio = 2.1666).

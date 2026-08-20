@@ -351,7 +351,6 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         pinching = true;
         break;
     case SDL_EVENT_PINCH_END:
-        // xxx maybe discard motion events or mouse events that occur shortly after pinch end
         pinching = false;
         break;
     case SDL_EVENT_PINCH_UPDATE: {
@@ -361,11 +360,9 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
             break;
         }
 
-        //INFO("%s: scale=%f span=%f %f focus=%f %f\n", // xxx add to event_type_to_str
-        //     (ev->type == SDL_EVENT_PINCH_BEGIN  ? "PINCH_BEGIN" :
-        //      ev->type == SDL_EVENT_PINCH_UPDATE ? "PINCH_UPDATE" :
-        //                                           "PINCH_END"),
-        //    x->scale, x->span_x, x->span_y, x->focus_x, x->focus_y);
+        //INFO("%s: scale=%f span=%f %f focus=%f %f\n",
+        //     event_type_to_str(ev->type),
+        //     x->scale, x->span_x, x->span_y, x->focus_x, x->focus_y);
 
         event->event_id = EVID_PINCH;
         if (orientation == PORTRAIT) {

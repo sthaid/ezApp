@@ -117,7 +117,7 @@ NDK Version:
 - explicit configuration, in build.gradle:
         android {
             ...
-            ndkVersion "23.1.7779620"  xxx
+            ndkVersion "28.2.13676358"
         }
 - Automatic Selection:
   If you do not specify an ndkVersion, the Android Gradle Plugin (AGP)
