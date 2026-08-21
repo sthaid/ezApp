@@ -27,13 +27,13 @@ static int sensor_init_count;
 // picoc can call sdlx_init and sdlx_quit,
 // but these calls are intended only for use by eztest
 
-int sdlx_init(int subsys, double aspect_ratio)
+int sdlx_init(int subsys)
 {
     int rc;
 
     if (subsys & SUBSYS_VIDEO) {
         if (video_init_count == 0) {
-            rc = sdlx_video_init(aspect_ratio);
+            rc = sdlx_video_init();
             if (rc != 0) {
                 ERROR("failed to init video\n");
                 SDL_Quit();

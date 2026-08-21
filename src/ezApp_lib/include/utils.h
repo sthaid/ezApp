@@ -224,10 +224,16 @@ int util_start_playbackcapture(void);
 void util_stop_playbackcapture(void);
 int util_get_playbackcapture_audio(float *array, int num_array_elements);
 
-
-// Camera xxx more comments needed
+// Take a picture using the Android camera.
+// The file is saved in "tmp/photo.jpg"
+// Returns 0 for success.
 int util_take_picture(void);
-int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_pixels); //xxx move or update comment
+
+// Convert a jpg file to raw 32 bit RGBA pixel format.
+// Param fd is file decriptor of the jpg file to be decoded.
+// Caller must free out_pixels.
+// Returns 0 for success.
+int util_decode_jpeg_to_raw(int fd, int *out_width, int *out_height, void **out_pixels);
 
 #ifdef __cplusplus
 }

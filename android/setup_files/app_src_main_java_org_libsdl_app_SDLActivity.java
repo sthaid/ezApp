@@ -73,6 +73,8 @@ import android.provider.MediaStore;
 import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.IOException;
+import android.Manifest;
+import androidx.core.content.ContextCompat;
 
 /**
     SDL Activity
@@ -633,31 +635,51 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     // EZAPP start/stop location foreground service
     public double start_foreground() {
         Log.i(EZAPP_TAG, "start_foreground called");
+
+        // check if coarse location permission is granted
+        if (ContextCompat.checkSelfPermission(mSingleton, Manifest.permission.ACCESS_COARSE_LOCATION) 
+                != PackageManager.PERMISSION_GRANTED) 
+        {
+            Log.e(EZAPP_TAG, "coarse location permission denied");
+            return INVALID_NUMBER;
+        }
+
         if (mezApp_loc_fgsvc_isbound) {
-            Log.e(EZAPP_TAG, "foreground already enabled");
+            Log.e(EZAPP_TAG, "foreground service is already started");
             return 0;
         }
 
-        showToast("enabling foreground", 0, Gravity.CENTER, 0, 0);
-            
+        showToast("starting foreground", 0, Gravity.CENTER, 0, 0);
         Intent x = new Intent(this, ezApp_loc_fgsvc.class);
         startForegroundService(x);
         bindService(x, ezApp_loc_fgsvc_connection, Context.BIND_AUTO_CREATE);
-        return 0;
+
+        int count = 0;
+        while (!mezApp_loc_fgsvc_isbound && count++ < 30) {
+            SystemClock.sleep(100);
+        }
+
+        if (mezApp_loc_fgsvc_isbound) {
+            Log.i(EZAPP_TAG, "foreground service has been started");
+        } else {
+            Log.e(EZAPP_TAG, "timedout starting foreground service");
+        }
+
+        return (mezApp_loc_fgsvc_isbound ? 0 : INVALID_NUMBER);
     }
 
     public double stop_foreground() {
         Log.i(EZAPP_TAG, "stop_foreground called");
         if (!mezApp_loc_fgsvc_isbound) {
-            Log.i(EZAPP_TAG, "foreground already disabled");
+            Log.i(EZAPP_TAG, "foreground service is already stopped");
             return 0;
         }
 
-        showToast("disabling foreground", 0, Gravity.CENTER, 0, 0);
-
+        showToast("stopping foreground service", 0, Gravity.CENTER, 0, 0);
         Intent x = new Intent(this, ezApp_loc_fgsvc.class);
         stopService(x);
         unbindService(ezApp_loc_fgsvc_connection);
+
         mezApp_loc_fgsvc_isbound = false;
         return 0;
     }
@@ -761,6 +783,14 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     public double take_picture() {
         // preset result to RESULT_NOT_SET
         mezApp_image_capture_result = RESULT_NOT_SET;
+
+        // check if the app has camera permission
+        if (ContextCompat.checkSelfPermission(mSingleton, Manifest.permission.CAMERA) 
+                != PackageManager.PERMISSION_GRANTED)
+        {
+            Log.e(EZAPP_TAG, "Camera permission not granted");
+            return INVALID_NUMBER;
+        }
 
         // take picture must be run on the UI thread (ake main thread)
         mSingleton.runOnUiThread(new Runnable() {

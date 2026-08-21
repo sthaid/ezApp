@@ -25,11 +25,11 @@ extern "C" {
 // --------------------
 
 // Sdlx_video defines a logical display that has pixel dimensions based on orientation:
-// - Portrait WxH:  1000 x 2200 xxx  search 2200
-// - Landscape WxH: 2200 x 1000
+// - Portrait WxH:  1000 x 2000
+// - Landscape WxH: 2000 x 1000
 // MiniApps do not use the real pixel dimensions of the physical display.
 // 
-// A texture of either (WxH) 1000x2200 (portrait), or 2200x1000 (landscape) is defined by sdlx
+// A texture of either (WxH) 1000x2000 (portrait), or 2000x1000 (landscape) is defined by sdlx
 // Rendering is usually performed to this texture. When preenting the display, this texture
 // is scaled (and rotated when in landscape mode), to fit the physical display.
 //
@@ -37,7 +37,7 @@ extern "C" {
 // that is initialized to the compass image pixels.
 //
 // Terminology:
-// - display_texture:   This is the 1000x2200 (portrait), or 2200x1000 (landscape texture.
+// - display_texture:   This is the 1000x2000 (portrait), or 2000x1000 (landscape texture.
 //                      This texture is defined when sdlx_display_init is called. 
 //                      And this texture becomes visible on the display when sdlx_display_present
 //                      is called.
@@ -73,8 +73,8 @@ typedef struct sdlx_texture sdlx_texture_t;
 // on the orientation (PORTRAIT or LANDSCAPE) value passed to sdlx_display_init.
 //  Orientation     sdlx_win_width      sdlx_win_height
 //  -----------     --------------      ---------------
-//  PORTRAIT            1000                2200
-//  LANDSCAPE           2200                1000
+//  PORTRAIT            1000                2000
+//  LANDSCAPE           2000                1000
 extern int sdlx_win_width;
 extern int sdlx_win_height;
 
@@ -243,8 +243,8 @@ void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int
 //   - sdlx_set_texture_pixels is called to copy the png file pixels to this new texture
 // - run time
 //   - the compass_heading is determined from the Android magnetic field sensor
-//   - sdlx_render_texture_ex2 is called to copy (scale & rotate) 
-//     the compass texture (rendering_texture) to the display_texture xxx
+//   - sdlx_render_texture_rotated is called to copy (scale & rotate) 
+//     the compass texture to the display_texture 
 // - termination
 //   - sdlx_destroy_texture is called to free the GPU memory 
 
@@ -256,7 +256,9 @@ void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int
 //    sdlx_set_render_target(NULL);    // restores rendering_texture to display_texture
 // At runtime, the circle texture can be scaled to fill the entire display, the scaling
 // will result in the circle being stretched to an ellipse:
-//    sdlx_render_texture_ex1(circle, 0, 0, sdlx_win_width, sdlx_win_height);
+//    sdlx_render_texture_ex1(circle, NULL, NULL);
+//    The first NULL specifies that the entire circle texture is to be copied.
+//    The second NULL specifies that the destination is the entire display area.
 // Destroy the circle texture when the program terminates, freeing GPU memory:
 //    sdlx_destroy_texture(circle);
 
@@ -278,31 +280,28 @@ void sdlx_set_texture_pixels(sdlx_texture_t *t, unsigned int *pixels);
 // Caller must free the returned pixels array.
 unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w, int *h);
 
-#if 0
-// Copy entire texture to location x,y of the rendering_texture.   xxx or doc 'copy to current rendering target'
-void sdlx_render_texture(sdlx_texture_t *t, int x, int y);
-// Copy entire texture to location x,y,w,h of the rendering_texture.
-// The texture is scaled to fit w X h.
-void sdlx_render_texture_ex1(sdlx_texture_t *t, int x, int y, int w, int h);
-// Same as above, except that the texture is also rotated, about its center, by angle degrees.
-void sdlx_render_texture_ex2(sdlx_texture_t *t, int x, int y, int w, int h, double angle);
-// Same as above, except the xctr, yctr args specify the point around which the 
-// texture is rotated. This is equivalent to the previous routine when xctr=w/2 and yctr=h/2.
-void sdlx_render_texture_ex3(sdlx_texture_t *texture, int x, int y, int w, int h, double angle, int xctr, int yctr);
-#endif
+// Copy src_texture src_rect to the rendering_texture dest_rect.
+// If src_rect is NULL, the entire src_texture is copied.
+// If dest_rect is NULL, then the destination is the entire rendering_texture.
+void sdlx_render_texture(sdlx_texture_t *src_texture, sdlx_loc_t *src_rect, sdlx_loc_t *dest_rect);
 
-// xxx needs comments
-void sdlx_render_texture(sdlx_texture_t *src_texture, sdlx_loc_t *src, sdlx_loc_t *dest);
+// Copy src_texture src_rect to the rendering_texture dest_rect.
+// If src_rect is NULL, the entire src_texture is copied.
+// If dest_rect is NULL, then the destination is the entire rendering_texture.
+// The dest_rect is rotated by angle (degrees), about the center param.
+// If the center param is NULL the rotation is about dest_rect.w/2, dest_rect.h/2.
+// If the flip param is not FLIP_NONE, the flipping action is performed.
 #define FLIP_NONE                     0
 #define FLIP_HORIZONTAL               1
 #define FLIP_VERTICAL                 2
 #define FLIP_HORIZONTAL_AND_VERTICAL  3
-void sdlx_render_texture_rotated(sdlx_texture_t *texture, sdlx_loc_t *srcrect, sdlx_loc_t *dstrect,
+void sdlx_render_texture_rotated(sdlx_texture_t *src_texture, sdlx_loc_t *src_rect, sdlx_loc_t *dest_rect,
                                  double angle, sdlx_point_t *center, int flip);
 
-// Set rendering_texture to 't'.
-// It t==NULL, the rendering_texture is set to the default_texture. xxx default or display?
-void sdlx_set_render_target(sdlx_texture_t *t);
+// Set rendering_texture.
+// It the rendering_texture param is NULL, the rendering_texture 
+// will be set to the display_texture.
+void sdlx_set_render_target(sdlx_texture_t *rendering_texture);
 
 // --------------------
 // AUDIO
@@ -537,7 +536,8 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 // - EVID_MOTION: This event occurs when the display is tapped and dragged.
 //                The current x,y coordinates; and the relative motion in the x,y
 //                directions are returned by the call to sdlx_get_event.
-// - EVID_PINCH:  xxx
+// - EVID_PINCH:  This event occurs, on the Android device, when the user
+//                performs a two finger pinch action .
 // - EVID_QUIT:   This event is usually registered by calling 
 //                  sdlx_register_control_events(..., EVID_QUIT, "X");
 //                When the "X" is tapped, the EVID_QUIT event occurs.

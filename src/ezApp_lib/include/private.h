@@ -29,18 +29,14 @@ void log_msg(const char * lvl, const char * func, const char * fmt, ...) __attri
 // sdlx_video.c
 // --------------------
 
-#define MIN_ASPECT_RATIO 2.0
-#define MAX_ASPECT_RATIO 2.4
-
 extern double scale_events_x;
 extern double scale_events_y;
 extern int    orientation;
 extern int    logical_win_width, logical_win_height;
 extern int    logical_win_width_portrait, logical_win_height_portrait;
 extern int    logical_win_width_landscape, logical_win_height_landscape;
-extern double logical_aspect_ratio;
 
-int sdlx_video_init(double aspect_ratio);
+int sdlx_video_init(void);
 void sdlx_video_quit(void);
 void sdlx_minimize_window(void);
 
@@ -91,7 +87,7 @@ void sdlx_event_box_ctrl(bool event_box_enable);
 #define SUBSYS_AUDIO  2
 #define SUBSYS_SENSOR 4
 
-int sdlx_init(int subsys, double aspect_ratio);
+int sdlx_init(int subsys);
 void sdlx_quit(int subsys);
 char *sdlx_get_storage_path(void);
 void sdlx_copy_asset_file(char *asset_filename, char *dest_dir);
@@ -113,8 +109,8 @@ int num_svcs_running(void);
 
 void util_android_utils_init(void);
 void util_android_utils_destroy(void);
-void util_start_foreground(void);
-void util_stop_foreground(void);
+int util_start_foreground(void);
+int util_stop_foreground(void);
 bool util_is_foreground_enabled(void);
 
 // ----------------------

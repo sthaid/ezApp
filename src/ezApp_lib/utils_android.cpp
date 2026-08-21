@@ -123,11 +123,13 @@ void util_text_to_speech_stop(void) {
 }
 
 // foreground service
-void util_start_foreground(void) {
-    call_java1("start_foreground");
+int util_start_foreground(void) {
+    int rc = call_java1("start_foreground");
+    return rc == 0 ? 0 : -1;    
 }
-void util_stop_foreground(void) {
-    call_java1("stop_foreground");
+int util_stop_foreground(void) {
+    int rc = call_java1("stop_foreground");
+    return rc == 0 ? 0 : -1;    
 }
 bool util_is_foreground_enabled(void) {
     return call_java1("is_foreground_enabled") == 1;

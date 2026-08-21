@@ -23,12 +23,11 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut,
 void Sdlx_init(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    int subsys          = Param[0]->Val->Integer;
-    double aspect_ratio = Param[1]->Val->FP;
+    int subsys = Param[0]->Val->Integer;
+    int rc;
 
-    int retval;
-    retval = sdlx_init(subsys, aspect_ratio);
-    ReturnValue->Val->Integer = retval;
+    rc = sdlx_init(subsys);
+    ReturnValue->Val->Integer = rc;
 }
 
 void Sdlx_quit(struct ParseState *Parser, struct Value *ReturnValue,
@@ -719,7 +718,7 @@ void SdlSetupFunction(Picoc *pc)
 
 struct LibraryFunction SdlFunctions[] = {
     // init & quit
-    { Sdlx_init,                     "int sdlx_init(int subsys, double aspect_ratio);" },
+    { Sdlx_init,                     "int sdlx_init(int subsys);" },
     { Sdlx_quit,                     "void sdlx_quit(int subsys);" },
 
     // video - display init and present
@@ -927,8 +926,6 @@ typedef struct { \n\
     } u; \n\
 } sdlx_event_t; \n\
 ";
-
-// xxx maybe pad struct so entire length is 64   OR dont pad at all,  AND keybd
 
 // -----------------  UTILS PLATFORM ROUTINES  --------------------------
 

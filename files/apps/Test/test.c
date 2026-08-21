@@ -1604,6 +1604,7 @@ static void page_14_process_event(sdlx_event_t *ev)
         if (rc != 0) {
             printf("E %s: failed to decode JPEG file, %s\n", progname, strerror(errno));
             close(fd);
+            util_delete_file("tmp", "photo.jpg");
             break;
         }
         printf("I %s: decode JPEG okay, w/h=%d,%d\n", progname, jpeg_w, jpeg_h);
@@ -1646,7 +1647,13 @@ static void page_14_process_event(sdlx_event_t *ev)
         scale = 1;
         break;
     case EVID_MOTION: {
-        double k = (double)jpeg_w / sdlx_win_width;  // xxx check this, not working landscape
+        double k;
+
+        if (orientation == PORTRAIT) {
+            k = (double)jpeg_w / sdlx_win_width;  // xxx check this, not working landscape
+        } else {
+            k = (double)jpeg_h / sdlx_win_height;  // xxx check this, not working landscape
+        }
         xc -= ev->u.motion.xrel * scale * k;
         yc -= ev->u.motion.yrel * scale * k;
         break; }

@@ -49,11 +49,9 @@ typedef struct {
     bool   devel_mode;
     int    devel_port;
     char   devel_password[50];
-    bool   foreground_enabled;
     double record_gain;
     double record_silence;
     bool   event_box_enable;
-    double aspect_ratio;
 } params_t;
 
 typedef struct {
@@ -62,7 +60,7 @@ typedef struct {
     bool access_fine_location;
     bool activity_recognition;
     bool record_audio;
-    bool camera; //xxx dont call camera routine if no perm
+    bool camera;
 } perm_granted_t;
 
 //
@@ -152,7 +150,7 @@ static int init(void)
     GET_PERMISSION("ACCESS_FINE_LOCATION", perm_granted.access_fine_location);
     GET_PERMISSION("ACTIVITY_RECOGNITION", perm_granted.activity_recognition);
     GET_PERMISSION("RECORD_AUDIO", perm_granted.record_audio);
-    GET_PERMISSION("CAMERA", perm_granted.camera);  // xxx test without permission
+    GET_PERMISSION("CAMERA", perm_granted.camera);
 
     // init android utils, which provide support for:
     // - text to speech
@@ -167,11 +165,9 @@ static int init(void)
     char *s = util_get_str_param(".", "devel_password", DEFAULT_DEVEL_PASSWORD);
     strcpy(params.devel_password, s);
     free(s);
-    params.foreground_enabled = util_get_numeric_param(".", "foreground_enabled", 1);
     params.record_gain = util_get_numeric_param(".", "record_gain", DEFAULT_RECORD_GAIN);
     params.record_silence = util_get_numeric_param(".", "record_silence", DEFAULT_RECORD_SILENCE);
     params.event_box_enable = util_get_numeric_param(".", "event_box_enable", false);
-    params.aspect_ratio = util_get_numeric_param(".", "aspect_ratio", 0);
 
     // provide params to other modules, when needed
     sdlx_event_box_ctrl(params.event_box_enable);
@@ -192,7 +188,7 @@ static int init(void)
     sdlx_create_detached_thread(devel_mode_server_thread, "devel_server", NULL);
 
     // init sdl
-    rc = sdlx_init(SUBSYS_VIDEO | SUBSYS_AUDIO | SUBSYS_SENSOR, params.aspect_ratio);
+    rc = sdlx_init(SUBSYS_VIDEO | SUBSYS_AUDIO | SUBSYS_SENSOR);
     if (rc != 0) {
         ERROR("sdlx_init failed\n");
         return -1;
@@ -200,15 +196,10 @@ static int init(void)
     INFO("sdlx_win_width,height = %d %d  sdlx_char_width,height=%d %d\n",
          sdlx_win_width, sdlx_win_height, sdlx_char_width_dflt, sdlx_char_height_dflt);
 
-    // start/stop foreground mode based on the foreground_enabled param
-    if (params.foreground_enabled) {
-        if (perm_granted.access_coarse_location) {
-            util_start_foreground();
-        } else {
-            ERROR("permission has not been granted to access_coarse_location\n");
-        }
-    } else {
-        util_stop_foreground();
+    // start foreground mode
+    rc = util_start_foreground();
+    if (rc != 0) {
+        ERROR("failed to start foreground\n");
     }
 
     // start all services, that do not have a 'stopped' file in their dir
@@ -738,9 +729,7 @@ static void settings(void)
     #define EVID_RECORD_SILENCE       1009
     #define EVID_RECORD_TEST          1010
     #define EVID_RESET_APPS_AND_SVCS  1011
-    #define EVID_FOREGROUND           1012
-    #define EVID_EVENT_BOX_ENABLE     1013
-    #define EVID_ASPECT_RATIO         1014
+    #define EVID_EVENT_BOX_ENABLE     1012
 
     #define GET_Y2 ({ y2 += 2*sdlx_char_height_dflt; \
                       y2 >= y_top - 1.5 * sdlx_char_height_dflt && y2 <= y_bottom; })
@@ -762,7 +751,7 @@ static void settings(void)
 
     // init variables which define the vertical region of the display
     // being used for the filename list
-    y_top    = ROW2Y(5.5);
+    y_top    = ROW2Y(4.5);
     y_bottom = sdlx_win_height;
     y        = y_top;
 
@@ -831,22 +820,10 @@ static void settings(void)
             }
         }
 
-        // display Foreground
-        if (GET_Y2) {
-            loc = sdlx_render_printf(0, y2, "Foreground = %s", params.foreground_enabled ? "ENABLED" : "DISABLED");
-            sdlx_register_event(loc, EVID_FOREGROUND);
-        }
-
         // display Event_Box
         if (GET_Y2) {
             loc = sdlx_render_printf(0, y2, "Event_Box = %s", params.event_box_enable ? "ENABLED" : "DISABLED");
             sdlx_register_event(loc, EVID_EVENT_BOX_ENABLE);
-        }
-
-        // display Aspect_Ratio
-        if (GET_Y2) {
-            loc = sdlx_render_printf(0, y2, "Aspect_Ratio = %.4g", params.aspect_ratio);
-            sdlx_register_event(loc, EVID_ASPECT_RATIO);
         }
 
         // display Devel_Mode
@@ -887,14 +864,13 @@ static void settings(void)
         }
 
         // display title line, version, and ipaddr
-        sdlx_render_fill_rect(0, 0, sdlx_win_width, 5*sdlx_char_height_dflt, BG_COLOR);
+        sdlx_render_fill_rect(0, 0, sdlx_win_width, 4*sdlx_char_height_dflt, BG_COLOR);
         sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(0),
                                FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                                "%s", "Settings");
         sdlx_render_printf(0, ROW2Y(1), "Version = %s", VERSION);
         sdlx_render_printf(0, ROW2Y(2), "%s", BUILD_DATE);
         sdlx_render_printf(0, ROW2Y(3), "%s:%d", ipaddr_str, params.devel_port);
-        sdlx_render_printf(0, ROW2Y(4), "Aspect_Ratio = %.4g", logical_aspect_ratio);
 
         // register motion and control events
         sdlx_register_event(NULL, EVID_MOTION);
@@ -1011,47 +987,10 @@ static void settings(void)
             create_files(CREATE_FILES_RESET_APPS_AND_SVCS);
             sdlx_show_toast("Reset Complete");
             break; }
-        case EVID_FOREGROUND: {
-            // xxx check this
-            params.foreground_enabled = (params.foreground_enabled ? false : true);
-            util_set_numeric_param(".", "foreground_enabled", params.foreground_enabled);
-            if (params.foreground_enabled) {
-                if (perm_granted.access_coarse_location) {
-                    util_start_foreground();
-                } else {
-                    ERROR("permission has not been granted to access_coarse_location\n");
-                }
-            } else {
-                util_stop_foreground();
-            }
-            break; }
         case EVID_EVENT_BOX_ENABLE: {
             params.event_box_enable = (params.event_box_enable ? false : true);
             util_set_numeric_param(".", "event_box_enable", params.event_box_enable);
             sdlx_event_box_ctrl(params.event_box_enable);
-            break; }
-        case EVID_ASPECT_RATIO: {
-            char *str, dflt_input_str[100], prompt_str[100];
-            int cnt;
-            double aspect_ratio;
-            sprintf(prompt_str, "Aspect_Ratio\n0 or %0.1f - %0.1f", MIN_ASPECT_RATIO, MAX_ASPECT_RATIO);
-            sprintf(dflt_input_str, "%.4g", params.aspect_ratio);
-            str = sdlx_get_input_str(prompt_str, true, dflt_input_str);
-            if (strlen(str) == 0) {
-                sdlx_show_toast("Cancelled");
-                break;
-            }
-            cnt = sscanf(str, "%lf", &aspect_ratio);
-            if ((cnt != 1) || 
-                !((aspect_ratio == 0) ||
-                  (aspect_ratio >= MIN_ASPECT_RATIO && aspect_ratio <= MAX_ASPECT_RATIO))) 
-            {
-                sdlx_show_toast("Invalid Aspect_Ratio");
-                break;
-            }
-            params.aspect_ratio = aspect_ratio;
-            util_set_numeric_param(".", "aspect_ratio", aspect_ratio);
-            sdlx_show_toast("Aspect_Ratio changed. Restart ezApp.");
             break; }
         case EVID_MOTION:
             y += event.u.motion.yrel;
