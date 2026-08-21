@@ -347,6 +347,7 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         event->u.private_keybd.keycode = keycode;
         break; }
 
+#ifdef ANDROID
     case SDL_EVENT_PINCH_BEGIN:
         pinching = true;
         break;
@@ -379,6 +380,22 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
             event->u.pinch.focus_y = logical_win_height - x->focus_x / scale_events_x;
         }
         break; }
+#else
+    case SDL_EVENT_MOUSE_WHEEL: {
+        if (!evid_pinch_registered) {
+            break;
+        }
+
+        //INFO("SDL_EVENT_MOUSE_WHEEL: y = %f\n", ev->wheel.y);
+
+        event->event_id = EVID_PINCH;
+        event->u.pinch.scale = (ev->wheel.y > 0 ? 1.1 : ev->wheel.y < 0 ? (1/1.1) : 1);
+        event->u.pinch.span_x = 200;
+        event->u.pinch.span_y = 200;
+        event->u.pinch.focus_x = sdlx_win_width/2;
+        event->u.pinch.focus_y = sdlx_win_height/2;
+        break; }
+#endif
 
     case SDL_EVENT_SENSOR_UPDATE:
         // SDL_SensorEvent - not used

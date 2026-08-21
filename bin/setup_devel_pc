@@ -193,6 +193,9 @@ function install_linux_packages()
     sudo apt install -y libwayland-dev     # display protocol, replaces X11
     sudo apt install -y wayland-protocols  # adds extra features to wayland display system
 
+    # jpeg decode
+    sudo apt install -y libjpeg-dev
+
     # graphics library
     sudo apt install -y libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libgles2
 

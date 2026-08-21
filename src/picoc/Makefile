@@ -7,7 +7,7 @@ SRCS =  picoc.c table.c lex.c parse.c expression.c heap.c type.c \
 	cstdlib/unistd.c cstdlib/libgen.c cstdlib/fcntl.c \
         picoc_ezApp.c
 
-LIBS = -L../../linux/local/lib -lezApp_lib -lmp3lame -llodepng -lcJSON -lkissfft-float -lSDL3 -lSDL3_ttf -lSDL3_mixer -lm \
+LIBS = -L../../linux/local/lib -lezApp_lib -lmp3lame -llodepng -lcJSON -lkissfft-float -lSDL3 -lSDL3_ttf -lSDL3_mixer -l jpeg -lm \
        -Wl,-rpath,$(PWD)/../../linux/local/lib
 
 picoc:

@@ -94,6 +94,7 @@ if [ "$android_dir" = "" ]; then
 fi
 
 # print message
+# xxx print the from and to dirs
 echo "INFO: transferring files from Android device to devel PC"
 
 # create ezget.tar on Android device

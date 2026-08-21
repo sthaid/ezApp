@@ -163,7 +163,7 @@ char *page_title[] = {     // Page
         "Camera",          //  14
         "Pinch",           //  15
             };
-static int pagenum = 0;
+static int pagenum = 14;  // xxx temp, revert to 0
 
 #define LAST_PAGE (sizeof(page_title)/sizeof(char*)-1)
 

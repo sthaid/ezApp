@@ -376,7 +376,10 @@ double call_java3(const char *method_name, float *caller_array, int num_array_el
 #include <utils.h>
 #include <private.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
+#include <string.h>
 
 void util_android_utils_init(void) { }
 
@@ -416,8 +419,8 @@ void util_get_location(double *latitude, double *longitude, double *altitude, bo
 void util_text_to_speech(char *text) { }
 void util_text_to_speech_stop(void) { }
 
-void util_start_foreground(void) { }
-void util_stop_foreground(void) { }
+int util_start_foreground(void) { return -1; }
+int util_stop_foreground(void) { return -1; }
 bool util_is_foreground_enabled(void) { return false; }
 
 void util_turn_flashlight_on(void) { }
@@ -429,6 +432,64 @@ int util_start_playbackcapture(void) { ERROR("this routine only supported on And
 void util_stop_playbackcapture(void) { }
 int util_get_playbackcapture_audio(float *array, int num_array_elements) { return INVALID_NUMBER; }
 
-int util_take_picture(void) { ERROR("this routine only supported on Android\n"); return -1; }
+static void remove_trailing_newline(char *s)
+{
+    int len = strlen(s);
+    if (len > 0 && s[len-1] == '\n') {
+        s[len-1] = '\0';
+    }
+}
+
+// xxx comment
+int util_take_picture(void)
+{
+    static bool first_call = true;
+    static char *jpg_files[10]; // xxx define
+    static int max_jpg_files;
+    static int idx;
+
+    char *file;
+    char  cmd[200];
+    int   rc;
+
+    // on first call make list of test jpg files that are in dir $HOME/ezApp_test_photos
+    if (first_call) {
+        FILE *fp;
+        char s[200];
+
+        first_call = false;
+
+        fp = popen(" find $HOME/ezApp_test_photos/ -type f -name \"*.jpg\"", "r");
+        while (fgets(s, sizeof(s), fp) != NULL) {
+            remove_trailing_newline(s);
+            jpg_files[max_jpg_files++] = strdup(s);
+        }
+        pclose(fp);
+
+        //for (int i = 0; i < max_jpg_files; i++) {
+        //    INFO("jpg test file: %s\n", jpg_files[i]);
+        //}
+    }
+
+    // return error if there are no jpg test files found
+    if (max_jpg_files == 0) {
+        ERROR("no jpg test files\n");
+        return -1;
+    }
+
+    // copy one of the jpg test files to tmp/photos.jpg;
+    // advance idx so that the next call will copy a different jpg test file
+    file = jpg_files[idx++ % max_jpg_files];
+    INFO("file %s\n", file);
+    sprintf(cmd, "cp %s tmp/photo.jpg", file);
+    rc = system(cmd);
+    rc = WEXITSTATUS(rc);
+    if (rc != 0) {
+        return -1;
+    }
+
+    // success
+    return 0;
+}
 
 #endif

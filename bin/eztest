@@ -8,7 +8,7 @@ function linux_build()
     LIB_PATH=$(pwd)/../linux/local/lib
     gcc -o /tmp/$APP_NAME $CFLAGS ../bin/src/eztest_linux_wrapper.c $SRCS \
         -I . -I ../linux/local/include \
-        -L $LIB_PATH -lezApp_lib -lmp3lame -lcJSON -llodepng -lkissfft-float -lSDL3 -lSDL3_mixer -lSDL3_ttf -lm \
+        -L $LIB_PATH -lezApp_lib -lmp3lame -lcJSON -llodepng -lkissfft-float -lSDL3 -lSDL3_mixer -lSDL3_ttf -ljpeg -lm \
         -Wl,-rpath,$LIB_PATH
     if [ $? -ne 0 ]; then
         echo "ABORT: failed to build /tmp/$APP_NAME"
@@ -101,7 +101,7 @@ fi
 if [ "$CMD" = run_on_picoc ]; then
     LIB_PATH=$(pwd)/../linux/local/lib
     gcc -o /tmp/picoc -D UNIX_HOST -O2 -g -Wall -Werror ../src/picoc/picoc.c ../src/picoc/picoc_ezApp.c \
-        -L $LIB_PATH -lpicoc -lezApp_lib -lmp3lame -lcJSON -llodepng -lkissfft-float -lSDL3 -lSDL3_mixer -lSDL3_ttf -lm \
+        -L $LIB_PATH -lpicoc -lezApp_lib -lmp3lame -lcJSON -llodepng -lkissfft-float -lSDL3 -lSDL3_mixer -lSDL3_ttf -ljpeg -lm \
         -Wl,-rpath,$LIB_PATH
     if [ $? -ne 0 ]; then
         echo "ABORT: failed to build /tmp/picoc"
