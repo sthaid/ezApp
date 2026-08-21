@@ -11,7 +11,7 @@ android {
                          // This Android Gradle plugin (8.7.3) was tested up to compileSdk = 35.
     ndkVersion = "28.2.13676358"
     defaultConfig {
-        minSdkVersion 30     // EZAPP - API 29 needed for getifaddrs, and 30 needed for xxx jped decode
+        minSdkVersion 30     // EZAPP - API 29 needed for getifaddrs, and 30 needed for the jpeg decoder
         targetSdkVersion 36  // EZAOO - the API level tested against
         versionCode 1
         versionName "1.0"
