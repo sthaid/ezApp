@@ -1650,9 +1650,9 @@ static void page_14_process_event(sdlx_event_t *ev)
         double k;
 
         if (orientation == PORTRAIT) {
-            k = (double)jpeg_w / sdlx_win_width;  // xxx check this, not working landscape
+            k = (double)jpeg_w / sdlx_win_width;
         } else {
-            k = (double)jpeg_h / sdlx_win_height;  // xxx check this, not working landscape
+            k = (double)jpeg_h / sdlx_win_height;
         }
         xc -= ev->u.motion.xrel * scale * k;
         yc -= ev->u.motion.yrel * scale * k;

@@ -34,9 +34,11 @@
         android:name="android.hardware.microphone"
         android:required="false" />
 
-    <!-- Camera support xxx android.required  -->
+    <!-- Camera support -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" />
+    <uses-feature 
+        android:name="android.hardware.camera"
+        android:required="false" />
 
     <!-- Allow downloading to the external storage on Android 5.1 and older -->
     <!-- <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="22" /> -->
@@ -65,9 +67,7 @@
     <!-- Required for Android 13 (API 33) and above. Ignored by Android 11. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Flashlight support xxx duplicates CAMERA -->
-    <!-- <uses-permission android:name="android.permission.CAMERA"/>  -->
-    <!-- <uses-feature android:name="android.hardware.camera" android:required="false"/>  -->
+    <!-- Flashlight support -->
     <uses-feature android:name="android.hardware.camera.flash" android:required="false"/>
 
     <!--Foreground Service Permissions-->
@@ -137,7 +137,8 @@
             android:exported="false" 
             android:foregroundServiceType="mediaProjection" />
 
-        <!-- EZAPP xxx -->
+        <!-- EZAPP this allows the Camera activity to create file photo.jpg -->
+        <!--       in the ezApp data files/tmp dir                          -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="org.libsdl.app.fileprovider"
