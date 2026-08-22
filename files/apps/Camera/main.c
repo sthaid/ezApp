@@ -2,6 +2,7 @@
 // - rename util_take_picture ?  to util_take_photo
 // - replace 'TAKE' with a circle
 // - cleanup needed?
+// - define for 300
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -9,6 +10,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <errno.h>
 
 #include <sdlx.h>
 #include <utils.h>
@@ -48,19 +50,19 @@ photo_t   photos[MAX_PHOTOS];
 int   max_photos;
     
 // prototypes
-int init(void);
+void init(void);
+void cleanup(void);
 void photo_gallery(void);
 void photo_location(void);
 void settings(void);
-int photo_take(void);
-int photo_delete(int num);
+metadata_t *create_and_map_metadata_file(int num);
+void photo_take(void);
+void photo_delete(int num);
 
 // -----------------  MAIN  ------------------------------------------
     
 int main(int argc, char **argv)
 {
-    int rc, i;
-
     // verify arg count
     if (argc != 2) {
         printf("E %s: argc=%d is not 2\n", "Camera", argc);
@@ -73,11 +75,7 @@ int main(int argc, char **argv)
     printf("I %s: starting, data_dir=%s\n", progname, data_dir);
 
     // initialize
-    rc = init();
-    if (rc != 0) {
-        printf("E %s: init failed\n", progname);
-        return 1;
-    }
+    init();
 
     // runtime
     while (!end_program) {
@@ -95,10 +93,61 @@ int main(int argc, char **argv)
     }
 
     // cleanup and terminate
+    cleanup();
     printf("I %s: terminating\n", progname);
+    return 0;
+}
 
-    // xxx unmap
-    for (i = 0; i < max_photos; i++) {
+void init(void)
+{
+    int         num, cnt;
+    char        cmd[100], s[100], metadata_filename[100];
+    FILE       *fp;
+    metadata_t *md;
+
+    // init global variable photos_dir
+    sprintf(photos_dir, "%s/photos", data_dir);
+
+    // initialize the photos array using sorted list of jpg 
+    // files that are in the photos dir
+    sprintf(cmd, "find %s -type f -name \"*.jpg\" | sort", photos_dir);
+    fp = popen(cmd, "r");
+    while (fgets(s, sizeof(s), fp) != NULL) {
+        // extract the photo number from the pathname strings provided by the find cmd
+        cnt = sscanf(s, "apps/Camera/photos/%d.jpg", &num);
+        if (cnt != 1) {
+            printf("E %s: failed to extract photo num from '%s'\n", progname, s);
+            continue;
+        }
+
+        // map the metadata file for this photo number
+        sprintf(metadata_filename, "%06d.meta", num);
+        md = util_map_file(photos_dir, metadata_filename, sizeof(metadata_t), true, NULL);
+        if (md == NULL) {
+            printf("E %s: failed to mmap %s, skipping photo %d\n", progname, metadata_filename, num);
+            continue;
+        }
+
+        // add entry to photos array
+        photos[max_photos].num = num;
+        photos[max_photos].md = md;
+        max_photos++;
+    }
+    pclose(fp);
+
+#if 0
+    // debug print the photos list
+    printf("I %s: max_photos = %d\n", progname, max_photos);
+    for (int i = 0; i < max_photos; i++) {
+        printf("I %s: photo num = %d  md = %p\n", progname, photos[i].num, photos[i].md);
+    }
+#endif
+}
+
+void cleanup(void)
+{
+    // unmap the metadata files
+    for (int i = 0; i < max_photos; i++) {
         if (photos[i].md == NULL) {
             printf("E %s: photos[%d].md is NULL\n", progname, i);
             continue;
@@ -106,43 +155,6 @@ int main(int argc, char **argv)
         util_unmap_file(photos[i].md, sizeof(metadata_t));
         photos[i].md = NULL;
     }
-
-    return 0;
-}
-
-int init(void)
-{
-    int photo_num, cnt, i;
-    char cmd[200], s[200];
-    char filename[100];
-    FILE *fp;
-
-    sprintf(photos_dir, "%s/photos", data_dir);
-
-    sprintf(cmd, "find %s -type f -name \"*.jpg\" | sort", photos_dir);
-    fp = popen(cmd, "r");
-    while (fgets(s, sizeof(s), fp) != NULL) {
-        cnt = sscanf(s, "apps/Camera/photos/%d.jpg", &photo_num);
-        if (cnt != 1) {
-            printf("E %s: failed to extract photo_num from '%s'\n", progname, s);
-            continue;
-        }
-
-        photos[max_photos].num = photo_num;
-        sprintf(filename, "%06d.meta", photo_num);
-        photos[max_photos].md = util_map_file(photos_dir, filename, sizeof(metadata_t), true, NULL);
-
-        max_photos++;
-    }
-    pclose(fp);
-
-    printf("I %s: max_photos = %d\n", progname, max_photos);
-    for (i = 0; i < max_photos; i++) {
-        printf("I %s: photo num = %d  md = %p\n", progname, photos[i].num, photos[i].md);
-    }
-
-// xxx last_photo_num
-    return 0;
 }
 
 // ------------------ PHOTO GALLERY --------------------
@@ -169,7 +181,7 @@ void photo_gallery(void)
         // init the backbuffer to COLOR_BLACK
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-        // xxx display
+        // xxx display, todo
         for (int i = 0; i < max_photos; i++) {
             sdlx_set_texture_pixels(t, photos[i].md->pixels);
             dest.x = 0;
@@ -181,7 +193,7 @@ void photo_gallery(void)
 
         // register events
         reg_event_show_readme_file();
-        y = sdlx_win_height - sdlx_char_height_dflt;
+        y = sdlx_win_height - 1.5 * sdlx_char_height_dflt;
         reg_event(0, y, COLOR_LIGHT_BLUE, "DEL", EVID_DEL);
         reg_event(sdlx_win_width/2-1.5*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "FAV", EVID_FAV);
         reg_event(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "VIEW", EVID_VIEW);
@@ -193,7 +205,7 @@ void photo_gallery(void)
         // present the display
         sdlx_display_present();
 
-        // wait for event, with infinite timeout
+        // wait for an event, with infinite timeout
         sdlx_get_event(-1, &event);
         if (event.event_id == -1) {
             continue;
@@ -247,7 +259,7 @@ void photo_location(void)
         // init the backbuffer to COLOR_BLACK
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-        // register events
+        // register events xxx add pinch
         reg_event_show_readme_file();
         y = sdlx_win_height - sdlx_char_height_dflt;
         reg_event(0, y, COLOR_LIGHT_BLUE, "CTR", EVID_CTR);
@@ -284,7 +296,6 @@ void photo_location(void)
             break;
 
         case EVID_CTR:
-            // xxx
             break;
         case EVID_FAV:
             favorites_mode = !favorites_mode;
@@ -304,96 +315,159 @@ void photo_location(void)
 
 void settings(void)
 {
+    // xxx todo
     return;
 }
 
 // ------------------ SUPPORT --------------------------
 
-int photo_take(void)
+void photo_take(void)
 {
-    char new_name[100];
-    int  rc, next_photo_num;
+    int rc, num;
+    char photo_filename[100];
+    metadata_t *md;
 
-    // take photo
+    // take photo; this will create file tmp/photo.jpg
     rc = util_take_picture();  
     if (rc != 0) {
         printf("E %s: util_take_picture failed\n", progname);
-        return -1;  // xxx is return value needed
+        // xxx maybe show_toast
+        return;
     }
 
-    // xxxxxxxxxxx
-    int fd, jpeg_w, jpeg_h, w, h;
-    sdlx_texture_t *t1, *t2;
-    unsigned int *pixels2;
-    void *pixels1;
-
-    fd = open("tmp/photo.jpg", O_RDONLY, 0);
-    rc = util_decode_jpeg_to_raw(fd, &jpeg_w, &jpeg_h, &pixels1);
-    if (rc != 0) {
-        printf("E %s: util_decode_jpeg_to_raw failed, rc=%d\n", progname, rc);
-        return -1;
-    }
-    printf("I %s: jpeg wXh = %d %d\n", progname, jpeg_w, jpeg_h);
-    t1 = sdlx_create_texture(jpeg_w, jpeg_h);
-    t2 = sdlx_create_texture(300, 300);
-    sdlx_set_texture_pixels(t1, pixels1);
-    sdlx_set_render_target(t2);
-    sdlx_render_texture(t1, NULL, NULL);
-
-    pixels2 = sdlx_get_texture_pixels(t2, &w, &h);
-    printf("I %s: pixels2=%p xXh=%d %d\n", progname, pixels2, w, h);
-
-    sdlx_destroy_texture(t1);
-    sdlx_destroy_texture(t2);
-    free(pixels1);
-    close(fd);
-    sdlx_set_render_target(NULL);
-
-    // pixels2 not freed yet
-
-
-    // determine next_photo_num
+    // determine next photo num
     if (max_photos == 0) {
-        next_photo_num = 1;
+        num = 1;
     } else {
-        next_photo_num = photos[max_photos-1].num + 1;
+        num = photos[max_photos-1].num + 1;
     }
 
     // move photo from tmp/photo.jpg to photos subdir
-    sprintf(new_name, "%06d.jpg", next_photo_num);
-    printf("I %s: creating %s\n", progname, new_name);
-    util_rename_file("tmp", "photo.jpg", photos_dir, new_name);
+    sprintf(photo_filename, "%06d.jpg", num);
+    printf("I %s: creating %s\n", progname, photo_filename);
+    util_rename_file("tmp", "photo.jpg", photos_dir, photo_filename);
 
+    // create and map metadata file
+    md = create_and_map_metadata_file(num);
+    if (md == NULL) {
+        printf("E %s: create_and_map_metadata_file(%d) failed\n", progname, num);
+        util_delete_file(photos_dir, photo_filename);
+        return;
+    }
+    
+    // add photo to list
+    photos[max_photos].num = num;
+    photos[max_photos].md = md;
+    max_photos++;
+}
 
+metadata_t *create_and_map_metadata_file(int num)
+{
+    char        photo_file_pathname[100];
+    char        metadata_filename[100];
+    metadata_t *md;
 
-    // xxx new code
-    sprintf(new_name, "%06d.meta", next_photo_num);
-    util_delete_file(photos_dir, new_name);
-    metadata_t *md = util_map_file(photos_dir, new_name, sizeof(metadata_t), true, NULL);
+    // create and map zero filled metadata file
+    sprintf(metadata_filename, "%06d.meta", num);
+    util_delete_file(photos_dir, metadata_filename);
+    md = util_map_file(photos_dir, metadata_filename, sizeof(metadata_t), true, NULL);
+    if (md == NULL) {
+        printf("E %s: failed to map file %s/%s, %s\n", progname, photos_dir, metadata_filename, strerror(errno));
+        util_delete_file(photos_dir, metadata_filename);
+        return NULL;
+    }
 
-    // init the metadata
+    // init metadata struct fields, except for pixels field
+    // xxx todo
     strcpy(md->date, "Aug 22, 2026");
     strcpy(md->time, "11:00:00");
     strcpy(md->city, "Bolton");
     md->latitude  = 0;
     md->longitude = 0;
     md->favorite = false;
+
+    // init the metadata struct pixels
+    int fd, rc, w, h, jpeg_w, jpeg_h;
+    unsigned int *pixels1, *pixels2;
+    sdlx_texture_t *t1, *t2;
+    // - open the jpg file
+    sprintf(photo_file_pathname, "%s/photos/%06d.jpg", data_dir, num);
+    fd = open(photo_file_pathname, O_RDONLY, 0);
+    if (fd < 0) {
+        printf("E %s: failed to open %s, %s\n", progname, photo_file_pathname, strerror(errno));
+        util_unmap_file(md, sizeof(metadata_t));
+        util_delete_file(photos_dir, metadata_filename);
+        return NULL;
+    }
+    // - decode the jpg photo file to pixels1
+    rc = util_decode_jpeg_to_raw(fd, &jpeg_w, &jpeg_h, &pixels1);
+    if (rc != 0) {
+        printf("E %s: util_decode_jpeg_to_raw failed, rc=%d\n", progname, rc);
+        close(fd);
+        util_unmap_file(md, sizeof(metadata_t));
+        util_delete_file(photos_dir, metadata_filename);
+        return NULL;
+    }
+    close(fd);
+    printf("I %s: jpeg wXh = %d %d\n", progname, jpeg_w, jpeg_h);
+    // - scale the jpeg image pixels (pixels1) to 300x300 pixels2
+    t1 = sdlx_create_texture(jpeg_w, jpeg_h);
+    t2 = sdlx_create_texture(300, 300);
+    sdlx_set_texture_pixels(t1, pixels1);
+    sdlx_set_render_target(t2);
+    sdlx_render_texture(t1, NULL, NULL);
+    pixels2 = sdlx_get_texture_pixels(t2, &w, &h);
+    // xxx verify w and h
+    // - copy the 300x300 pixels2 to md->pixels
     memcpy(md->pixels, pixels2, 4*300*300);
-    free(pixels2); // xxx move this
+    // - sync the metadata file to storage
     util_sync_file(md, sizeof(metadata_t));
+    // - cleanup    
+    sdlx_set_render_target(NULL);
+    sdlx_destroy_texture(t1);
+    sdlx_destroy_texture(t2);
+    free(pixels1);
+    free(pixels2);
 
-    // add photo to list
-    photos[max_photos].num = next_photo_num;
-    photos[max_photos].md = md;
-    max_photos++;
-
-    return 0;
+    // return mapped ptr to the new metadata file
+    return md;
 }
     
-int photo_delete(int num)
+void photo_delete(int num)
 {
-    // delete photo jpg and meta files
-    return 0;
-}
+    int i;
+    char photo_filename[100], metadata_filename[100];
 
+    // construct photo and metadata filenames
+    sprintf(photo_filename, "%06d.jpg", num);
+    sprintf(metadata_filename, "%06d.meta", num);
+
+    // search list of photos for num
+    for (i = 0; i < max_photos; i++) {
+        if (photos[i].num == num) {
+            break;
+        }
+    }
+    if (i == max_photos) {
+        printf("E %s: num %d not found in photos list\n", progname, num);
+        return;
+    }
+
+    // unmap the metadata
+    if (photos[i].md != NULL) {
+        util_unmap_file(photos[i].md, sizeof(metadata_t));
+        photos[i].md = NULL;
+    }
+
+    // remove the entry from the photos list
+    memmove(&photos[i], &photos[i+1], (max_photos-i-1) * sizeof(photo_t));
+    max_photos--;
+
+    // delete photo jpg and meta files
+    util_delete_file(photos_dir, photo_filename);
+    util_delete_file(photos_dir, metadata_filename);
+
+    // debug print
+    printf("I %s: deleted %s\n", progname, photo_filename);
+}
 
