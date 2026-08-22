@@ -5,6 +5,10 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
 
 #include <sdlx.h>
 #include <utils.h>
@@ -12,10 +16,20 @@
 #include "lib/lib.h"
 
 // defines
-#define MAX_PHOTOS 1000
-
+#define MAX_PHOTOS    1000
 #define GALLERY_VIEW  0
 #define LOCATION_VIEW 1
+
+// typedefs
+typedef struct {
+    char date[50];
+    char time[50];
+    char city[50];
+    double latitude;
+    double longitude;
+    bool favorite;
+    unsigned int pixels[300][300];
+} metadata_t;
 
 // variables
 char *progname;
@@ -24,9 +38,9 @@ bool  end_program;
 
 int   view = GALLERY_VIEW;
 
+char  photos_dir[100];
 int   photos[MAX_PHOTOS];
 int   max_photos;
-int   last_photo_num;
     
 // prototypes
 int init(void);
@@ -82,10 +96,30 @@ int main(int argc, char **argv)
 
 int init(void)
 {
-    //next_photo_num = 1;
+    int photo_num, cnt, i;
+    char cmd[200], s[200];
+    FILE *fp;
 
-    //if (max_list == 0) {
-    //}
+    sprintf(photos_dir, "%s/photos", data_dir);
+
+    sprintf(cmd, "find %s -type f -name \"*.jpg\" | sort", photos_dir);
+    fp = popen(cmd, "r");
+    while (fgets(s, sizeof(s), fp) != NULL) {
+        cnt = sscanf(s, "apps/Camera/photos/%d.jpg", &photo_num);
+        if (cnt != 1) {
+            printf("E %s: failed to extract photo_num from '%s'\n", progname, s);
+            continue;
+        }
+        photos[max_photos++] = photo_num;
+    }
+    pclose(fp);
+
+    printf("I %s: max_photos = %d\n", progname, max_photos);
+    for (i = 0; i < max_photos; i++) {
+        printf("I %s: photo_num = %d\n", progname, photos[i]);
+    }
+
+// xxx last_photo_num
     return 0;
 }
 
@@ -241,12 +275,92 @@ void settings(void)
 
 int photo_take(void)
 {
+    char new_name[100];
+    int  rc, next_photo_num;
+
     // take photo
-    util_take_picture();  
+    rc = util_take_picture();  
+    if (rc != 0) {
+        printf("E %s: util_take_picture failed\n", progname);
+        return -1;  // xxx is return value needed
+    }
+
+    // xxxxxxxxxxx
+    int fd, jpeg_w, jpeg_h, w, h;
+    sdlx_texture_t *t1, *t2;
+    unsigned int *pixels2;
+    void *pixels1;
+
+    fd = open("tmp/photo.jpg", O_RDONLY, 0);
+    rc = util_decode_jpeg_to_raw(fd, &jpeg_w, &jpeg_h, &pixels1);
+    if (rc != 0) {
+        printf("E %s: util_decode_jpeg_to_raw failed, rc=%d\n", progname, rc);
+        return -1;
+    }
+    printf("I %s: jpeg wXh = %d %d\n", progname, jpeg_w, jpeg_h);
+    t1 = sdlx_create_texture(jpeg_w, jpeg_h);
+    t2 = sdlx_create_texture(300, 300);
+    sdlx_set_texture_pixels(t1, pixels1);
+    sdlx_set_render_target(t2);
+    sdlx_render_texture(t1, NULL, NULL);
+
+    pixels2 = sdlx_get_texture_pixels(t2, &w, &h);
+    printf("I %s: pixels2=%p xXh=%d %d\n", progname, pixels2, w, h);
+
+    sdlx_destroy_texture(t1);
+    sdlx_destroy_texture(t2);
+    free(pixels1);
+    close(fd);
+    sdlx_set_render_target(NULL);
+
+    // pixels2 not freed yet
+
+
+    // determine next_photo_num
+    if (max_photos == 0) {
+        next_photo_num = 1;
+    } else {
+        next_photo_num = photos[max_photos-1] + 1;
+    }
 
     // move photo from tmp/photo.jpg to photos subdir
+    sprintf(new_name, "%06d.jpg", next_photo_num);
+    printf("I %s: creating %s\n", progname, new_name);
+    util_rename_file("tmp", "photo.jpg", photos_dir, new_name);
+
+    // add photo to list
+    photos[max_photos++] = next_photo_num;
 
     // create photo meta data file
+    metadata_t *x = calloc(1, sizeof(metadata_t));
+    strcpy(x->date, "Aug 22, 2026");
+    strcpy(x->time, "11:00:00");
+    strcpy(x->city, "Bolton");
+    x->latitude  = 0;
+    x->longitude = 0;
+    x->favorite = false;
+    memcpy(x->pixels, pixels2, 4*300*300);
+    free(pixels2);
+
+    sprintf(new_name, "%06d.meta", next_photo_num);
+    util_write_file(photos_dir, new_name, x, sizeof(metadata_t));
+
+#if 0
+    static sdlx_texture_t *t;
+    if (t == NUL) {
+        t = sdlx_create_texture(300, 300);
+    }
+
+    x->pixela
+
+    char date[50];
+    char time[50];
+    char city[50];
+    double latitude;
+    double longitude;
+    bool favorite;
+    unsigned int pixels[300][300];
+#endif
 
     return 0;
 }

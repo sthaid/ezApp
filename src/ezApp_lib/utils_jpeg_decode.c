@@ -163,6 +163,7 @@ static int get_exif_orientation(int fd)
 }
 
 // Convert a jpg file to raw 32 bit RGBA pixel format, correcting for EXIF orientation rotation.
+// xxx make out_pixels unsigned int**
 int util_decode_jpeg_to_raw(int fd, int *out_width, int *out_height, void **out_pixels)
 {
     if (fd < 0 || !out_width || !out_height || !out_pixels) {
