@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 void init(void)
 {
     int         num, cnt;
-    char        cmd[100], s[100], metadata_filename[100];
+    char        cmd[200], s[100], metadata_filename[100];
     FILE       *fp;
     metadata_t *md;
 

@@ -1578,7 +1578,7 @@ static void page_14_draw(void)
 static void page_14_process_event(sdlx_event_t *ev)
 {
     int fd, rc;
-    void *out_pixels;
+    unsigned int *out_pixels;
 
     switch (ev->event_id) {
     case EVID_TAKE_PICTURE:

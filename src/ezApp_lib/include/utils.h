@@ -233,7 +233,7 @@ int util_take_picture(void);
 // Param fd is file decriptor of the jpg file to be decoded.
 // Caller must free out_pixels.
 // Returns 0 for success.
-int util_decode_jpeg_to_raw(int fd, int *out_width, int *out_height, void **out_pixels);
+int util_decode_jpeg_to_raw(int fd, int *out_width, int *out_height, unsigned int **out_pixels);
 
 #ifdef __cplusplus
 }
