@@ -5,10 +5,10 @@ Compass     Clock       Steps
 Location    Altitude    Weather
 Calc        Tilt        Memo
 ColrOrgn    Piano       Morse
-FlshLite    -           -
+Camera      -           -
 -           Log         Settings
 
 # -------- Page 1 --------
-Reversi     Paddle      Test
-Light       Template    -
+Reversi     Paddle      FlshLite
+Template    Light       Test
 
