@@ -28,8 +28,13 @@ typedef struct {
     double latitude;
     double longitude;
     bool favorite;
-    unsigned int pixels[300][300];
+    unsigned int pixels[300*300];
 } metadata_t;
+
+typedef struct {
+    int num;
+    metadata_t *md;
+} photo_t;
 
 // variables
 char *progname;
@@ -39,7 +44,7 @@ bool  end_program;
 int   view = GALLERY_VIEW;
 
 char  photos_dir[100];
-int   photos[MAX_PHOTOS];
+photo_t   photos[MAX_PHOTOS];
 int   max_photos;
     
 // prototypes
@@ -54,7 +59,7 @@ int photo_delete(int num);
     
 int main(int argc, char **argv)
 {
-    int rc;
+    int rc, i;
 
     // verify arg count
     if (argc != 2) {
@@ -91,6 +96,17 @@ int main(int argc, char **argv)
 
     // cleanup and terminate
     printf("I %s: terminating\n", progname);
+
+    // xxx unmap
+    for (i = 0; i < max_photos; i++) {
+        if (photos[i].md == NULL) {
+            printf("E %s: photos[%d].md is NULL\n", progname, i);
+            continue;
+        }
+        util_unmap_file(photos[i].md, sizeof(metadata_t));
+        photos[i].md = NULL;
+    }
+
     return 0;
 }
 
@@ -98,6 +114,7 @@ int init(void)
 {
     int photo_num, cnt, i;
     char cmd[200], s[200];
+    char filename[100];
     FILE *fp;
 
     sprintf(photos_dir, "%s/photos", data_dir);
@@ -110,13 +127,18 @@ int init(void)
             printf("E %s: failed to extract photo_num from '%s'\n", progname, s);
             continue;
         }
-        photos[max_photos++] = photo_num;
+
+        photos[max_photos].num = photo_num;
+        sprintf(filename, "%06d.meta", photo_num);
+        photos[max_photos].md = util_map_file(photos_dir, filename, sizeof(metadata_t), true, NULL);
+
+        max_photos++;
     }
     pclose(fp);
 
     printf("I %s: max_photos = %d\n", progname, max_photos);
     for (i = 0; i < max_photos; i++) {
-        printf("I %s: photo_num = %d\n", progname, photos[i]);
+        printf("I %s: photo num = %d  md = %p\n", progname, photos[i].num, photos[i].md);
     }
 
 // xxx last_photo_num
@@ -138,10 +160,24 @@ void photo_gallery(void)
     bool done = false;
     bool del_mode = false;
     bool favorites_mode = false;
+    sdlx_texture_t *t;
+    sdlx_loc_t dest;
+
+    t = sdlx_create_texture(300, 300);
 
     while (!done && !end_program) {
         // init the backbuffer to COLOR_BLACK
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
+
+        // xxx display
+        for (int i = 0; i < max_photos; i++) {
+            sdlx_set_texture_pixels(t, photos[i].md->pixels);
+            dest.x = 0;
+            dest.y = 0;
+            dest.w = 300;
+            dest.h = 300;
+            sdlx_render_texture(t, NULL, &dest);
+        }
 
         // register events
         reg_event_show_readme_file();
@@ -320,7 +356,7 @@ int photo_take(void)
     if (max_photos == 0) {
         next_photo_num = 1;
     } else {
-        next_photo_num = photos[max_photos-1] + 1;
+        next_photo_num = photos[max_photos-1].num + 1;
     }
 
     // move photo from tmp/photo.jpg to photos subdir
@@ -328,39 +364,28 @@ int photo_take(void)
     printf("I %s: creating %s\n", progname, new_name);
     util_rename_file("tmp", "photo.jpg", photos_dir, new_name);
 
-    // add photo to list
-    photos[max_photos++] = next_photo_num;
 
-    // create photo meta data file
-    metadata_t *x = calloc(1, sizeof(metadata_t));
-    strcpy(x->date, "Aug 22, 2026");
-    strcpy(x->time, "11:00:00");
-    strcpy(x->city, "Bolton");
-    x->latitude  = 0;
-    x->longitude = 0;
-    x->favorite = false;
-    memcpy(x->pixels, pixels2, 4*300*300);
-    free(pixels2);
 
+    // xxx new code
     sprintf(new_name, "%06d.meta", next_photo_num);
-    util_write_file(photos_dir, new_name, x, sizeof(metadata_t));
+    util_delete_file(photos_dir, new_name);
+    metadata_t *md = util_map_file(photos_dir, new_name, sizeof(metadata_t), true, NULL);
 
-#if 0
-    static sdlx_texture_t *t;
-    if (t == NUL) {
-        t = sdlx_create_texture(300, 300);
-    }
+    // init the metadata
+    strcpy(md->date, "Aug 22, 2026");
+    strcpy(md->time, "11:00:00");
+    strcpy(md->city, "Bolton");
+    md->latitude  = 0;
+    md->longitude = 0;
+    md->favorite = false;
+    memcpy(md->pixels, pixels2, 4*300*300);
+    free(pixels2); // xxx move this
+    util_sync_file(md, sizeof(metadata_t));
 
-    x->pixela
-
-    char date[50];
-    char time[50];
-    char city[50];
-    double latitude;
-    double longitude;
-    bool favorite;
-    unsigned int pixels[300][300];
-#endif
+    // add photo to list
+    photos[max_photos].num = next_photo_num;
+    photos[max_photos].md = md;
+    max_photos++;
 
     return 0;
 }
