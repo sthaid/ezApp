@@ -75,7 +75,7 @@ void cleanup(void);
 void photo_gallery_view(void);
 void photo_location_view(void);
 
-void take_photo(void); // xxx maybe return idx
+int take_photo(void);
 void delete_photo(int idx);
 void show_photo(int idx);
 
@@ -260,7 +260,7 @@ void photo_gallery_view(void)
                 end_program = true;
                 break;
             case EVID_TAKE:
-                take_photo();
+                take_photo();  // xxx returns status now
                 break;
             case EVID_DEL:
                 del_mode = !del_mode;
@@ -344,7 +344,7 @@ void photo_location_view(void)
 
 // ------------------ TAKE PHOTO -----------------------
 
-void take_photo(void)
+int take_photo(void)
 {
     int rc, num;
     char photo_filename[100];
@@ -355,7 +355,7 @@ void take_photo(void)
     if (rc != 0) {
         printf("E %s: util_take_picture failed\n", progname);
         sdlx_show_toast("take picture failed");
-        return;
+        return -1;
     }
 
     // determine next photo num
@@ -375,13 +375,16 @@ void take_photo(void)
     if (md == NULL) {
         printf("E %s: create_and_map_metadata_file(%d) failed\n", progname, num);
         util_delete_file(photos_dir, photo_filename);
-        return;
+        return -1;
     }
     
     // add photo to list
     photos[max_photos].num = num;
     photos[max_photos].md = md;
     max_photos++;
+
+    // success
+    return 0;
 }
 
 // ------------------ DELETE PHOTO ---------------------
@@ -429,91 +432,112 @@ void delete_photo(int idx)
 
 void show_photo(int idx)
 {
-    int             num, w, h;
+    int             num, w, h, rc;
     char            file[50];
     metadata_t     *md;
-    sdlx_texture_t *t;
+    sdlx_texture_t *t = NULL;
     sdlx_loc_t      dest;
     sdlx_event_t    event;
     unsigned int   *pixels;
     bool            done = false;
+    bool            restart = false;
 
     // check idx arg
     if (idx < 0 || idx >= max_photos) {
         printf("E %s: idx %d out of range 0..%d\n", progname, idx, max_photos);
         return;
     }
-    num = photos[idx].num;
-    if (num <= 0) {
-        printf("E %s: invalid num %d\n", progname, num);
-        return;
-    }
-    md = photos[idx].md;
-    if (md == NULL) {
-        printf("E %s: photos[%d].md is NULL\n", progname, idx);
-        return;
-    }
-        
-    // construct photo filename
-    sprintf(file, "%06d.jpg", num);
-    printf("I %s: show photo %s\n", progname, file);
 
-    // create texture xxx check pixels return
-    pixels = jpeg_file_to_rgba_pixels(photos_dir, file, &w, &h);
-    t = sdlx_create_texture(w, h);
-    sdlx_set_texture_pixels(t, pixels);
-    free(pixels);
+    // xxx comment
+    do {
+        restart = false;
 
-    while (!done) {
-        // init the backbuffer to COLOR_BLACK
-        sdlx_display_init(COLOR_BLACK, PORTRAIT);
-
-        // render the photo texture
-        // xxx handle pan and zoom
-        dest.x = 0;
-        dest.y = 0;
-        dest.w = 1000;
-        dest.h = 1333;
-        sdlx_render_texture(t, NULL, &dest);
-
-        // display metadata
-        // xxx todo
-
-        // register events
-        sdlx_register_event(NULL, EVID_PINCH);
-        sdlx_register_event(NULL, EVID_MOTION);
-        sdlx_register_control_events(EVID_RST, "RST", EVID_TAKE, "TAKE", EVID_QUIT, "X");
-
-        // present the display
-        sdlx_display_present();
-
-        // wait for an event, with timeout
-        sdlx_get_event(ONE_SEC, &event);
-        if (event.event_id == -1) {
-            continue;
+        // xxx
+        num = photos[idx].num;
+        if (num <= 0) {
+            printf("E %s: invalid num %d\n", progname, num);
+            return;
         }
-
-        switch (event.event_id) {
-        case EVID_QUIT:
-            done = true;
-            break;
-        case EVID_MOTION:
-            //printf("xxxx motion\n");
-            break;
-        case EVID_PINCH:
-            //printf("xxxx pinch\n");
-            break;
-        case EVID_TAKE:
-            take_photo();
-            // update idx to show this photo
-            break;
-        case EVID_RST:
-            // reset pan and zoom
-            break;
+        md = photos[idx].md;
+        if (md == NULL) {
+            printf("E %s: photos[%d].md is NULL\n", progname, idx);
+            return;
         }
-    }
+            
+        // construct photo filename
+        sprintf(file, "%06d.jpg", num);
+        printf("I %s: show photo %s\n", progname, file);
+
+        // create texture xxx check pixels return
+        pixels = jpeg_file_to_rgba_pixels(photos_dir, file, &w, &h);
+        if (t == NULL) {
+            t = sdlx_create_texture(w, h);
+        }
+        sdlx_set_texture_pixels(t, pixels);
+        free(pixels);
+
+        while (!done && !restart) {
+            // init the backbuffer to COLOR_BLACK
+            sdlx_display_init(COLOR_BLACK, PORTRAIT);
+
+            // render the photo texture
+            // xxx handle pan and zoom
+            dest.x = 0;
+            dest.y = 0;
+            dest.w = 1000;
+            dest.h = 1333;
+            sdlx_render_texture(t, NULL, &dest);
+
+            // display metadata
+            sdlx_render_printf(0, 1400, "%s\n%s\n%s\n%s\n%.4f %.4f",
+                    md->date,
+                    md->time,
+                    md->city,
+                    md->state,
+                    md->latitude,
+                    md->longitude);
+
+            // register events
+            sdlx_register_event(NULL, EVID_PINCH);
+            sdlx_register_event(NULL, EVID_MOTION);
+            sdlx_register_control_events(EVID_RST, "RST", EVID_TAKE, "TAKE", EVID_QUIT, "X");
+
+            // present the display
+            sdlx_display_present();
+
+            // wait for an event, with timeout
+            sdlx_get_event(ONE_SEC, &event);
+            if (event.event_id == -1) {
+                continue;
+            }
+
+            switch (event.event_id) {
+            case EVID_QUIT:
+                done = true;
+                break;
+            case EVID_MOTION:
+                //printf("xxxx motion\n");
+                break;
+            case EVID_PINCH:
+                //printf("xxxx pinch\n");
+                break;
+            case EVID_TAKE: {
+                rc = take_photo();
+                if (rc != 0) {
+                    break;
+                }
+                restart = true;
+                idx = max_photos-1;
+                break; }
+            case EVID_RST:
+                // reset pan and zoom
+                break;
+            }
+        }
+    } while (restart);
 
     sdlx_destroy_texture(t);
+    t = NULL;
 }
 
 // ------------------ SETTINGS -------------------------
