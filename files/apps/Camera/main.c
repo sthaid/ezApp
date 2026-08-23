@@ -3,6 +3,8 @@
 // - replace 'TAKE' with a circle
 // - cleanup needed?
 // - define for 300
+// - allow for metadata location to be INVALID_NUMBER
+// - allow for city and state to be empty
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -11,11 +13,13 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 
 #include <sdlx.h>
 #include <utils.h>
 
 #include "lib/lib.h"
+#include "svcs/Location/location.h"
 
 // defines
 #define MAX_PHOTOS    1000
@@ -24,12 +28,13 @@
 
 // typedefs
 typedef struct {
+    bool favorite;
     char date[50];
     char time[50];
     char city[50];
+    char state[50];
     double latitude;
     double longitude;
-    bool favorite;
     unsigned int pixels[300*300];
 } metadata_t;
 
@@ -52,12 +57,15 @@ int   max_photos;
 // prototypes
 void init(void);
 void cleanup(void);
-void photo_gallery(void);
-void photo_location(void);
-void settings(void);
+void photo_gallery_view(void);
+void photo_location_view(void);
+
+void take_photo(void);
 metadata_t *create_and_map_metadata_file(int num);
-void photo_take(void);
-void photo_delete(int num);
+unsigned int * jpeg_file_to_rgba_pixels(char *jpeg_pathname, int w_arg, int h_arg);
+void delete_photo(int num);
+
+void settings(void);
 
 // -----------------  MAIN  ------------------------------------------
     
@@ -81,10 +89,10 @@ int main(int argc, char **argv)
     while (!end_program) {
         switch (view) {
         case GALLERY_VIEW:
-            photo_gallery();
+            photo_gallery_view();
             break;
         case LOCATION_VIEW:
-            photo_location();
+            photo_location_view();
             break;
         default:
             printf("E %s: invalid view %d\n", progname, view);
@@ -157,7 +165,7 @@ void cleanup(void)
     }
 }
 
-// ------------------ PHOTO GALLERY --------------------
+// ------------------ PHOTO GALLERY VIEW ---------------
 
 #define EVID_DEL   1
 #define EVID_FAV   2
@@ -165,7 +173,7 @@ void cleanup(void)
 #define EVID_STG   4
 #define EVID_TAKE  5
 
-void photo_gallery(void)
+void photo_gallery_view(void)
 {
     sdlx_event_t event;
     int y;
@@ -221,7 +229,7 @@ void photo_gallery(void)
             settings();
             break;
         case EVID_TAKE:
-            photo_take();
+            take_photo();
             break;
         case EVID_QUIT:
             end_program = true;
@@ -244,11 +252,11 @@ void photo_gallery(void)
     }
 }
 
-// ------------------ PHOTO LOCATION -------------------
+// ------------------ PHOTO LOCATION VIEW --------------
 
 #define EVID_CTR   6
 
-void photo_location(void)
+void photo_location_view(void)
 {
     sdlx_event_t event;
     int y;
@@ -289,7 +297,7 @@ void photo_location(void)
             settings();
             break;
         case EVID_TAKE:
-            photo_take();
+            take_photo();
             break;
         case EVID_QUIT:
             end_program = true;
@@ -311,17 +319,9 @@ void photo_location(void)
     }
 }
 
-// ------------------ SETTINGS -------------------------
+// ------------------ TAKE PHOTO -----------------------
 
-void settings(void)
-{
-    // xxx todo
-    return;
-}
-
-// ------------------ SUPPORT --------------------------
-
-void photo_take(void)
+void take_photo(void)
 {
     int rc, num;
     char photo_filename[100];
@@ -331,7 +331,7 @@ void photo_take(void)
     rc = util_take_picture();  
     if (rc != 0) {
         printf("E %s: util_take_picture failed\n", progname);
-        // xxx maybe show_toast
+        sdlx_show_toast("take picture failed");
         return;
     }
 
@@ -366,74 +366,149 @@ metadata_t *create_and_map_metadata_file(int num)
     char        photo_file_pathname[100];
     char        metadata_filename[100];
     metadata_t *md;
+    time_t      t;
+    struct tm  *tm;
+    int         rc;
+    char        req_data[MAX_SVC_REQ_DATA];
+    svc_req_t  *req;
+    unsigned int *pixels;
 
     // create and map zero filled metadata file
     sprintf(metadata_filename, "%06d.meta", num);
     util_delete_file(photos_dir, metadata_filename);
     md = util_map_file(photos_dir, metadata_filename, sizeof(metadata_t), true, NULL);
     if (md == NULL) {
-        printf("E %s: failed to map file %s/%s, %s\n", progname, photos_dir, metadata_filename, strerror(errno));
+        printf("E %s: failed to create and map file %s/%s, %s\n", 
+               progname, photos_dir, metadata_filename, strerror(errno));
         util_delete_file(photos_dir, metadata_filename);
         return NULL;
     }
 
-    // init metadata struct fields, except for pixels field
-    // xxx todo
-    strcpy(md->date, "Aug 22, 2026");
-    strcpy(md->time, "11:00:00");
-    strcpy(md->city, "Bolton");
-    md->latitude  = 0;
-    md->longitude = 0;
+    // md should already be zero, zero it here, to be certain
+    memset(md, 0, sizeof(metadata_t));
+
+    // init metadata struct fields ...
+
+    // - favorite
     md->favorite = false;
 
-    // init the metadata struct pixels
-    int fd, rc, w, h, jpeg_w, jpeg_h;
-    unsigned int *pixels1, *pixels2;
-    sdlx_texture_t *t1, *t2;
-    // - open the jpg file
-    sprintf(photo_file_pathname, "%s/photos/%06d.jpg", data_dir, num);
-    fd = open(photo_file_pathname, O_RDONLY, 0);
-    if (fd < 0) {
-        printf("E %s: failed to open %s, %s\n", progname, photo_file_pathname, strerror(errno));
-        util_unmap_file(md, sizeof(metadata_t));
-        util_delete_file(photos_dir, metadata_filename);
-        return NULL;
-    }
-    // - decode the jpg photo file to pixels1
-    rc = util_decode_jpeg_to_raw(fd, &jpeg_w, &jpeg_h, &pixels1);
+    // - date & time
+    t = time(NULL);
+    tm = localtime(&t);
+    strftime(md->date, sizeof(md->date), "%a %b %d %Y", tm);
+    strftime(md->time, sizeof(md->time), "%H:%M %Z", tm);
+
+    // - latitude & longitude
+    util_get_location(&md->latitude, &md->longitude, NULL, NULL);
+
+    // - city & state
+    memset(req_data, 0, sizeof(req_data));
+    *(double*)(&req_data[0]) = md->latitude;
+    *(double*)(&req_data[8]) = md->longitude;
+    req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_NAME_FROM_LAT_LONG, req_data, sizeof(req_data));
+    rc = svc_make_req("Location", req, 5);
     if (rc != 0) {
-        printf("E %s: util_decode_jpeg_to_raw failed, rc=%d\n", progname, rc);
-        close(fd);
+        strcpy(md->city, "Unknown");
+    } else {
+        // expected response format: <city>\n<state>\n\0
+        // either city or state can be empty strings, or can contain space chars
+        char *newline, *city, *state;
+
+        // for safety
+        req_data[MAX_SVC_REQ_DATA-3] = '\n';
+        req_data[MAX_SVC_REQ_DATA-2] = '\n';
+        req_data[MAX_SVC_REQ_DATA-1] = '\0';
+
+        // copy city and state from req_data to metadata
+        city = req->data;
+        newline = strchr(city, '\n'); *newline = '\0';
+        state = newline + 1;
+        newline = strchr(state, '\n'); *newline = '\0';
+        strncpy(md->city, city, sizeof(md->city)-1);
+        strncpy(md->state, state, sizeof(md->state)-1);
+
+        // if city and state are both empty then set city to Unknown
+        if (md->city[0] == '\0' && md->state[0] == '\0') {
+            strcpy(md->city, "Unknown");
+        }
+    }
+
+    // - pixels
+    sprintf(photo_file_pathname, "%s/photos/%06d.jpg", data_dir, num);
+    pixels = jpeg_file_to_rgba_pixels(photo_file_pathname, 300, 300);
+    if (pixels == NULL) {
         util_unmap_file(md, sizeof(metadata_t));
         util_delete_file(photos_dir, metadata_filename);
         return NULL;
     }
-    close(fd);
-    printf("I %s: jpeg wXh = %d %d\n", progname, jpeg_w, jpeg_h);
-    // - scale the jpeg image pixels (pixels1) to 300x300 pixels2
-    t1 = sdlx_create_texture(jpeg_w, jpeg_h);
-    t2 = sdlx_create_texture(300, 300);
-    sdlx_set_texture_pixels(t1, pixels1);
-    sdlx_set_render_target(t2);
-    sdlx_render_texture(t1, NULL, NULL);
-    pixels2 = sdlx_get_texture_pixels(t2, &w, &h);
-    // xxx verify w and h
-    // - copy the 300x300 pixels2 to md->pixels
-    memcpy(md->pixels, pixels2, 4*300*300);
-    // - sync the metadata file to storage
+    memcpy(md->pixels, pixels, 4*300*300);
+    free(pixels);
+
+    // sync the metadata file to storage
     util_sync_file(md, sizeof(metadata_t));
-    // - cleanup    
-    sdlx_set_render_target(NULL);
-    sdlx_destroy_texture(t1);
-    sdlx_destroy_texture(t2);
-    free(pixels1);
-    free(pixels2);
+
+    // debug print metadata
+    printf("I %s: metadata ...\n", progname);
+    printf("I %s:   favorite   = %d\n",    progname, md->favorite);
+    printf("I %s:   date       = %s\n",    progname, md->date);
+    printf("I %s:   time       = %s\n",    progname, md->time);
+    printf("I %s:   city       = %s\n",    progname, md->city);
+    printf("I %s:   state      = %s\n",    progname, md->state);
+    printf("I %s:   latitude   = %0.4f\n", progname, md->latitude);
+    printf("I %s:   longitude  = %0.4f\n", progname, md->longitude);
+    printf("I %s:   pixels     = %p\n",    progname, md->pixels);
 
     // return mapped ptr to the new metadata file
     return md;
 }
+
+unsigned int * jpeg_file_to_rgba_pixels(char *jpeg_pathname, int w_arg, int h_arg)
+{
+    int fd, w, h, jpeg_w, jpeg_h, rc;
+    unsigned int *pixels1, *pixels2;
+    sdlx_texture_t *t1, *t2;
+
+    // decode the jpg photo file to pixels1
+    fd = open(jpeg_pathname, O_RDONLY, 0);
+    if (fd < 0) {
+        printf("E %s: failed to open %s, %s\n", progname, jpeg_pathname, strerror(errno));
+        return NULL;
+    }
+
+    rc = util_decode_jpeg_to_raw(fd, &jpeg_w, &jpeg_h, &pixels1);
+    if (rc != 0) {
+        printf("E %s: util_decode_jpeg_to_raw failed, rc=%d\n", progname, rc);
+        close(fd);
+        return NULL;
+    }
+    printf("I %s: jpeg wXh = %d %d\n", progname, jpeg_w, jpeg_h);
+
+    close(fd);
+
+    // scale the jpeg image pixels (pixels1) to dimension w_arg X h_arg;
+    // result is in pixels2
+    t1 = sdlx_create_texture(jpeg_w, jpeg_h);
+    t2 = sdlx_create_texture(w_arg, h_arg);
+    sdlx_set_texture_pixels(t1, pixels1);
+    sdlx_set_render_target(t2);
+    sdlx_render_texture(t1, NULL, NULL);
+    pixels2 = sdlx_get_texture_pixels(t2, &w, &h);
+
+    // xxx verify x,h
+
+    // cleanup
+    sdlx_set_render_target(NULL);
+    sdlx_destroy_texture(t1);
+    sdlx_destroy_texture(t2);
+    free(pixels1);
+
+    // return pixels, caller must free
+    return pixels2;
+}
     
-void photo_delete(int num)
+// ------------------ DELETE PHOTO ---------------------
+
+void delete_photo(int num) // xxx maybe use photoes idx
 {
     int i;
     char photo_filename[100], metadata_filename[100];
@@ -469,5 +544,13 @@ void photo_delete(int num)
 
     // debug print
     printf("I %s: deleted %s\n", progname, photo_filename);
+}
+
+// ------------------ SETTINGS -------------------------
+
+void settings(void)
+{
+    // xxx todo
+    return;
 }
 

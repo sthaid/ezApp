@@ -119,7 +119,7 @@ int main(int argc, char **argv)
                                    FONT_NORMAL, COLOR_RED, 
                                    "%s", "Location miniSvc\nNot Responding");
         }
-        y += 4.5 * sdlx_char_height_dflt;
+        y += 5.5 * sdlx_char_height_dflt;
 
         // display rectangle to separate the Current and History areas
         sdlx_render_fill_rect(0, y, sdlx_win_width, 10, COLOR_BLUE);

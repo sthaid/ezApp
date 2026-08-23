@@ -391,12 +391,15 @@ void util_get_location(double *latitude, double *longitude, double *altitude, bo
     #define BOLTON_MASS_LONGITUDE   -71.6078
     #define BOLTON_MASS_ALTITUDE_FT  450.0
 
-    static time_t tstart;
-
     if (latitude) {
         *latitude = BOLTON_MASS_LATITUDE;
     }
     if (longitude) {
+#if 1
+        *longitude = BOLTON_MASS_LONGITUDE;
+#else
+        static time_t tstart;
+
         // simulate velocity in west direction, for testing
         if (tstart == 0) {
             tstart = time(NULL);
@@ -407,6 +410,7 @@ void util_get_location(double *latitude, double *longitude, double *altitude, bo
         *longitude = BOLTON_MASS_LONGITUDE - 
                      (RATE * (time(NULL) - tstart) / 3600.) / 
                      (COS_LAT * 69.) ;
+#endif
     }
     if (altitude) {
         *altitude = BOLTON_MASS_ALTITUDE_FT;

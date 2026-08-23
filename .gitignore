@@ -26,6 +26,7 @@ files/apps/Weather/*.json
 files/apps/Weather/icon
 files/apps/Memo/*.mp3
 files/apps/ColrOrgn/files/*.mp3
+files/apps/Camera/photos
 params
 
 files/tmp/*
