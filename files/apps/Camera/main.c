@@ -5,6 +5,7 @@
 // - define for 300
 // - allow for metadata location to be INVALID_NUMBER
 // - allow for city and state to be empty
+// - add click when photo taken,  disable via settings
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -63,7 +64,8 @@ void photo_location_view(void);
 void take_photo(void);
 metadata_t *create_and_map_metadata_file(int num);
 unsigned int * jpeg_file_to_rgba_pixels(char *jpeg_pathname, int w_arg, int h_arg);
-void delete_photo(int num);
+void delete_photo(int idx);
+void show_photo(int idx);
 
 void settings(void);
 
@@ -118,6 +120,7 @@ void init(void)
 
     // initialize the photos array using sorted list of jpg 
     // files that are in the photos dir
+    // xxx check for overflow
     sprintf(cmd, "find %s -type f -name \"*.jpg\" | sort", photos_dir);
     fp = popen(cmd, "r");
     while (fgets(s, sizeof(s), fp) != NULL) {
@@ -167,19 +170,22 @@ void cleanup(void)
 
 // ------------------ PHOTO GALLERY VIEW ---------------
 
-#define EVID_DEL   1
-#define EVID_FAV   2
-#define EVID_VIEW  3
-#define EVID_STG   4
-#define EVID_TAKE  5
+#define EVID_TAKE  1
+#define EVID_DEL   2
+#define EVID_FAV   3
+#define EVID_VIEW  4
+#define EVID_STG   5
+
+#define EVID_SHOW_PHOTO     10000
+#define EVID_DELETE_PHOTO   20000
 
 void photo_gallery_view(void)
 {
     sdlx_event_t event;
-    int y;
+    int x, y;
     bool done = false;
     bool del_mode = false;
-    bool favorites_mode = false;
+    bool fav_mode = false;
     sdlx_texture_t *t;
     sdlx_loc_t dest;
 
@@ -192,11 +198,19 @@ void photo_gallery_view(void)
         // xxx display, todo
         for (int i = 0; i < max_photos; i++) {
             sdlx_set_texture_pixels(t, photos[i].md->pixels);
-            dest.x = 0;
-            dest.y = 0;
+            dest.x = (i % 3) * 350;
+            dest.y = (i / 3) * 350;
             dest.w = 300;
             dest.h = 300;
             sdlx_render_texture(t, NULL, &dest);
+
+            sdlx_register_event(&dest, EVID_SHOW_PHOTO+i);
+
+            if (del_mode) {
+                x = dest.x + 300 - sdlx_char_width_dflt;
+                y = dest.y;
+                reg_event(x, y, COLOR_RED, "X", EVID_DELETE_PHOTO+i);
+            }
         }
 
         // register events
@@ -220,36 +234,44 @@ void photo_gallery_view(void)
         }
 
         // process events
-        switch (event.event_id) {
-        case EVID_SHOW_README_FILE:
-            show_file(data_dir, "README");
-            break;
+        if (event.event_id >= EVID_DELETE_PHOTO && event.event_id < EVID_DELETE_PHOTO+max_photos) {
+            int idx = event.event_id - EVID_DELETE_PHOTO;
+            delete_photo(idx);
+        } else if (event.event_id >= EVID_SHOW_PHOTO && event.event_id < EVID_SHOW_PHOTO+max_photos) {
+            int idx = event.event_id - EVID_SHOW_PHOTO;
+            show_photo(idx);
+        } else {
+            switch (event.event_id) {
+            case EVID_SHOW_README_FILE:  // xxx what evid nnumber is this?
+                show_file(data_dir, "README");
+                break;
+            case EVID_MOTION:
+                break;
+            case EVID_QUIT:
+                end_program = true;
+                break;
 
-        case EVID_STG:
-            settings();
-            break;
-        case EVID_TAKE:
-            take_photo();
-            break;
-        case EVID_QUIT:
-            end_program = true;
-            break;
-
-        case EVID_DEL:
-            del_mode = !del_mode;
-            break;
-        case EVID_FAV:
-            favorites_mode = !favorites_mode;
-            break;
-        case EVID_VIEW:
-            view = LOCATION_VIEW;
-            done = true;
-            break;
-
-        case EVID_MOTION:
-            break;
+            case EVID_TAKE:
+                take_photo();
+                break;
+            case EVID_DEL:
+                del_mode = !del_mode;
+                break;
+            case EVID_FAV:
+                fav_mode = !fav_mode;
+                break;
+            case EVID_VIEW:
+                view = LOCATION_VIEW;
+                done = true;
+                break;
+            case EVID_STG:
+                settings();
+                break;
+            }
         }
     }
+
+    sdlx_destroy_texture(t);
 }
 
 // ------------------ PHOTO LOCATION VIEW --------------
@@ -508,34 +530,37 @@ unsigned int * jpeg_file_to_rgba_pixels(char *jpeg_pathname, int w_arg, int h_ar
     
 // ------------------ DELETE PHOTO ---------------------
 
-void delete_photo(int num) // xxx maybe use photoes idx
+void delete_photo(int idx)
 {
-    int i;
+    int num;
     char photo_filename[100], metadata_filename[100];
+
+    // check idx arg
+    if (idx < 0 || idx >= max_photos) {
+        printf("E %s: idx %d out of range 0..%d\n", progname, idx, max_photos);
+        return;
+    }
+    num = photos[idx].num;
+    if (num <= 0) {
+        printf("E %s: invalid num %d\n", progname, num);
+        return;
+    }
 
     // construct photo and metadata filenames
     sprintf(photo_filename, "%06d.jpg", num);
     sprintf(metadata_filename, "%06d.meta", num);
 
-    // search list of photos for num
-    for (i = 0; i < max_photos; i++) {
-        if (photos[i].num == num) {
-            break;
-        }
-    }
-    if (i == max_photos) {
-        printf("E %s: num %d not found in photos list\n", progname, num);
-        return;
-    }
-
     // unmap the metadata
-    if (photos[i].md != NULL) {
-        util_unmap_file(photos[i].md, sizeof(metadata_t));
-        photos[i].md = NULL;
+    if (photos[idx].md != NULL) {
+        util_unmap_file(photos[idx].md, sizeof(metadata_t));
+        photos[idx].md = NULL;
+    } else {
+        printf("E %s: photos[%d].md is NULL, continuing with delete_photo\n", 
+              progname, idx);
     }
 
     // remove the entry from the photos list
-    memmove(&photos[i], &photos[i+1], (max_photos-i-1) * sizeof(photo_t));
+    memmove(&photos[idx], &photos[idx+1], (max_photos-idx-1) * sizeof(photo_t));
     max_photos--;
 
     // delete photo jpg and meta files
@@ -544,6 +569,123 @@ void delete_photo(int num) // xxx maybe use photoes idx
 
     // debug print
     printf("I %s: deleted %s\n", progname, photo_filename);
+}
+
+// ------------------ SHOW PHOTO -----------------------
+
+#define EVID_RST 20
+
+sdlx_texture_t *jpeg_to_texture(char *jpeg_pathname);
+
+void show_photo(int idx)
+{
+    int  num;
+    char jpeg_pathname[200];
+    metadata_t *md;
+    sdlx_texture_t *t;
+    sdlx_loc_t dest;
+    sdlx_event_t event;
+    bool done = false;
+
+    // check idx arg
+    if (idx < 0 || idx >= max_photos) {
+        printf("E %s: idx %d out of range 0..%d\n", progname, idx, max_photos);
+        return;
+    }
+    num = photos[idx].num;
+    if (num <= 0) {
+        printf("E %s: invalid num %d\n", progname, num);
+        return;
+    }
+    md = photos[idx].md;
+    if (md == NULL) {
+        printf("E %s: photos[%d].md is NULL\n", progname, idx);
+        return;
+    }
+        
+    // create texture from jpeg_pathname
+    sprintf(jpeg_pathname, "%s/%06d.jpg", photos_dir, num);
+    printf("I %s: show photo %s\n", progname, jpeg_pathname);
+    t = jpeg_to_texture(jpeg_pathname);
+
+    while (!done) {
+        // init the backbuffer to COLOR_BLACK
+        sdlx_display_init(COLOR_BLACK, PORTRAIT);
+
+        // render the photo texture
+        dest.x = 0;
+        dest.y = 0;
+        dest.w = 1000;
+        dest.h = 1333;
+        sdlx_render_texture(t, NULL, &dest);
+
+        // register events
+        sdlx_register_event(NULL, EVID_PINCH);
+        sdlx_register_event(NULL, EVID_MOTION);
+        sdlx_register_control_events(EVID_RST, "RST",
+                                     EVID_TAKE, "TAKE",
+                                     EVID_QUIT, "X");
+
+        // present the display
+        sdlx_display_present();
+
+        // wait for an event, with infinite timeout
+        sdlx_get_event(-1, &event);
+        if (event.event_id == -1) {
+            continue;
+        }
+
+        switch (event.event_id) {
+        case EVID_QUIT:
+            done = true;
+            break;
+        case EVID_MOTION:
+            //printf("xxxx motion\n");
+            break;
+        case EVID_PINCH:
+            //printf("xxxx pinch\n");
+            break;
+        case EVID_TAKE:
+            take_photo();
+            // update idx to show this photo
+            break;
+        case EVID_RST:
+            // reset pan and zoom
+            break;
+        }
+    }
+
+    sdlx_destroy_texture(t);  // xxx null ok?
+}
+
+sdlx_texture_t *jpeg_to_texture(char *jpeg_pathname)
+{
+    int fd, rc, w, h;
+    sdlx_texture_t *t;
+    unsigned int *pixels;
+
+    fd = open(jpeg_pathname, O_RDONLY, 0);
+    if (fd == -1) {
+        printf("E %s: failed to open %s, %s\n", progname, jpeg_pathname, strerror(errno));
+        return NULL;
+    }
+
+    rc = util_decode_jpeg_to_raw(fd, &w, &h, &pixels);
+    if (rc != 0) {
+        printf("E %s: failed to decode JPEG file, %s\n", progname, strerror(errno));
+        close(fd);
+        return NULL;
+    }
+
+    close(fd);
+    printf("I %s: decode JPEG okay, w/h=%d,%d\n", progname, w, h);
+
+
+    t = sdlx_create_texture(w, h);
+    sdlx_set_texture_pixels(t, pixels);
+    free(pixels);
+
+    return t;
 }
 
 // ------------------ SETTINGS -------------------------
