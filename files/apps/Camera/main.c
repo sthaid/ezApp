@@ -432,7 +432,7 @@ void delete_photo(int idx)
 
 void show_photo(int idx)
 {
-    int             num, w, h, rc;
+    int             num, w, h, rc, tw=0, th=0;
     char            file[50];
     metadata_t     *md;
     sdlx_texture_t *t = NULL;
@@ -470,22 +470,36 @@ void show_photo(int idx)
 
         // create texture xxx check pixels return
         pixels = jpeg_file_to_rgba_pixels(photos_dir, file, &w, &h);
+        if (t != NULL && (w != tw || h != th)) {
+            sdlx_destroy_texture(t);
+            t = NULL; tw = 0; th = 0;
+        }
         if (t == NULL) {
             t = sdlx_create_texture(w, h);
+            tw = w;
+            th = h;
         }
         sdlx_set_texture_pixels(t, pixels);
         free(pixels);
 
+        // xxx need arrow keys
         while (!done && !restart) {
             // init the backbuffer to COLOR_BLACK
             sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
             // render the photo texture
             // xxx handle pan and zoom
-            dest.x = 0;
-            dest.y = 0;
-            dest.w = 1000;
-            dest.h = 1333;
+            if (th > tw) {
+                dest.x = 0;
+                dest.y = 0;
+                dest.w = 1000;
+                dest.h = 1333;
+            } else {
+                dest.x = 0;
+                dest.y = 291;
+                dest.w = 1000;
+                dest.h = 750;
+            }
             sdlx_render_texture(t, NULL, &dest);
 
             // display metadata
