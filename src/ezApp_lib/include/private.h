@@ -73,7 +73,7 @@ void sdlx_sensor_quit(void);
 // sdlx_event.c
 // --------------------
 
-#define EVID_KEYBD   10002
+#define EVID_KEYBD   1000008
 #define CONTROL_AREA_SIZE 150
 
 void sdlx_reset_events(void);

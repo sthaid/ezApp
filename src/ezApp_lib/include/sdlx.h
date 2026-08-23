@@ -541,9 +541,9 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 // - EVID_QUIT:   This event is usually registered by calling 
 //                  sdlx_register_control_events(..., EVID_QUIT, "X");
 //                When the "X" is tapped, the EVID_QUIT event occurs.
-#define EVID_MOTION  10000
-#define EVID_PINCH   10001
-#define EVID_QUIT    10009
+#define EVID_MOTION  1000000
+#define EVID_PINCH   1000001
+#define EVID_QUIT    1000009
 
 // This structure returns the event that occurred, by call to sdlx_get_event.
 // When the display is tapped at a location associated with a registered
