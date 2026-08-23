@@ -430,17 +430,28 @@ void delete_photo(int idx)
 
 // ------------------ SHOW PHOTO -----------------------
 
+    
+/* NOTES for landscape
+                dest.x = 0;
+                dest.y = 291;
+                dest.w = 1000;
+                dest.h = 750;
+*/
+
 void show_photo(int idx)
 {
-    int             num, w, h, rc, tw=0, th=0;
+    int             num, rc, jpeg_w, jpeg_h, texture_w=0, texture_h=0;
     char            file[50];
     metadata_t     *md;
     sdlx_texture_t *t = NULL;
-    sdlx_loc_t      dest;
+    sdlx_loc_t      src, dest;
     sdlx_event_t    event;
     unsigned int   *pixels;
     bool            done = false;
     bool            restart = false;
+
+    double xc, yc, scale;
+    int orientation = PORTRAIT;
 
     // check idx arg
     if (idx < 0 || idx >= max_photos) {
@@ -463,44 +474,63 @@ void show_photo(int idx)
             printf("E %s: photos[%d].md is NULL\n", progname, idx);
             return;
         }
-            
+
         // construct photo filename
         sprintf(file, "%06d.jpg", num);
         printf("I %s: show photo %s\n", progname, file);
 
         // create texture xxx check pixels return
-        pixels = jpeg_file_to_rgba_pixels(photos_dir, file, &w, &h);
-        if (t != NULL && (w != tw || h != th)) {
+        pixels = jpeg_file_to_rgba_pixels(photos_dir, file, &jpeg_w, &jpeg_h);
+        if (t != NULL && (jpeg_w != texture_w || jpeg_h != texture_h)) {
             sdlx_destroy_texture(t);
-            t = NULL; tw = 0; th = 0;
+            t = NULL; texture_w = 0; texture_h = 0;
         }
         if (t == NULL) {
-            t = sdlx_create_texture(w, h);
-            tw = w;
-            th = h;
+            t = sdlx_create_texture(jpeg_w, jpeg_h);
+            texture_w = jpeg_w;
+            texture_h = jpeg_h;
         }
         sdlx_set_texture_pixels(t, pixels);
         free(pixels);
 
+        // xxx
+        xc = jpeg_w / 2;
+        yc = jpeg_h / 2;
+        scale = 1;
+            
         // xxx need arrow keys
         while (!done && !restart) {
             // init the backbuffer to COLOR_BLACK
             sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-            // render the photo texture
-            // xxx handle pan and zoom
-            if (th > tw) {
-                dest.x = 0;
-                dest.y = 0;
-                dest.w = 1000;
-                dest.h = 1333;
-            } else {
-                dest.x = 0;
-                dest.y = 291;
-                dest.w = 1000;
-                dest.h = 750;
+            // determine the image src area that will be displayed, 
+            // based on xc,yc (center coord), and scale variables
+            src.x = xc - jpeg_w / 2 * scale;
+            src.y = yc - jpeg_h / 2 * scale;
+            src.w = jpeg_w * scale;
+            src.h = jpeg_h * scale;
+
+            // if src region extends beyond the bounds of the image
+            // then adjust src to keep it within the image bounds
+            if (src.x < 0) {
+                xc = jpeg_w / 2 * scale;
+            } else if (src.x + src.w >= jpeg_w) {
+                xc = jpeg_w - jpeg_w / 2 * scale;
             }
-            sdlx_render_texture(t, NULL, &dest);
+            if (src.y < 0) {
+                yc = jpeg_h / 2 * scale;
+            } else if (src.y + src.h >= jpeg_h) {
+                yc = jpeg_h - jpeg_h / 2 * scale;
+            }
+            src.x = xc - jpeg_w / 2 * scale;
+            src.y = yc - jpeg_h / 2 * scale;
+
+            // render the photo texture
+            dest.x = 0;
+            dest.y = 0;
+            dest.w = 1000;
+            dest.h = 1333;
+            sdlx_render_texture(t, &src, &dest);
 
             // display metadata
             sdlx_render_printf(0, 1400, "%s\n%s\n%s\n%s\n%.4f %.4f",
@@ -529,11 +559,25 @@ void show_photo(int idx)
             case EVID_QUIT:
                 done = true;
                 break;
-            case EVID_MOTION:
-                //printf("xxxx motion\n");
-                break;
+            case EVID_MOTION: {
+                double k;
+                if (orientation == PORTRAIT) {
+                    k = (double)jpeg_w / sdlx_win_width;
+                } else {
+                    k = (double)jpeg_h / sdlx_win_height;
+                }
+                xc -= event.u.motion.xrel * scale * k;
+                yc -= event.u.motion.yrel * scale * k;
+                break; }
             case EVID_PINCH:
-                //printf("xxxx pinch\n");
+                if (event.u.pinch.scale == 0) break;
+                scale /= event.u.pinch.scale;
+                if (scale > 1) scale = 1;
+                break;
+            case EVID_RST:
+                xc = jpeg_w / 2;
+                yc = jpeg_h / 2;
+                scale = 1;
                 break;
             case EVID_TAKE: {
                 rc = take_photo();
@@ -543,9 +587,6 @@ void show_photo(int idx)
                 restart = true;
                 idx = max_photos-1;
                 break; }
-            case EVID_RST:
-                // reset pan and zoom
-                break;
             }
         }
     } while (restart);
