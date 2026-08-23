@@ -36,7 +36,7 @@ void str_sanitize(char *s);
 void show_file(char *dir, char *filename);
 
 // event registration
-#define EVID_SHOW_README_FILE 9900
+#define EVID_SHOW_README_FILE 999999  // xxx make this 1000000+
 void reg_event(int x, int y, sdlx_color_t color, char *name, int event_id);
 void reg_event_show_readme_file(void);
 

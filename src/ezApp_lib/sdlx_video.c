@@ -1310,8 +1310,8 @@ unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w_arg, int *h_arg)
     SDL_SetRenderTarget(renderer, initial_render_target);
 
     // return w, h, and pixels; caller must free pixels
-    *w_arg = w;
-    *h_arg = h;
+    if (w_arg) *w_arg = w;
+    if (h_arg) *h_arg = h;
     return pixels;
 }
 

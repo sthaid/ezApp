@@ -1,28 +1,45 @@
-// -----------------  ANDROID  ---------------------------
-
-#ifdef ANDROID
-
 #include <std_hdrs.h>
-    
 #include <utils.h>
 #include <private.h>
 
+static char *concat(char *s1, char *s2, char *result)
+{
+    if (s1 && s2) {
+        sprintf(result, "%s/%s", s1, s2);
+    } else if (s1) {
+        strcpy(result, s1);
+    } else if (s2) {
+        strcpy(result, s2);
+    } else {
+        ERROR("both s1 and s2 are null\n");
+        result[0] = '\0';
+    }
+
+    return result;
+}
+
+#ifdef ANDROID
+// -----------------  ANDROID  ---------------------------
+
 #include <android/imagedecoder.h>
 
-/**
- * Decodes a JPEG file descriptor into a raw RGBA_8888 pixel buffer.
- * 
- * @param fd           Open file descriptor of the JPEG file.
- * @param out_width    Pointer to store the output image width.
- * @param out_height   Pointer to store the output image height.
- * @param out_pixels   Pointer to store the allocated raw pixel buffer address.
- * @return             0 on success, negative value on failure.
- */
+// Decodes a JPEG file into a raw RGBA_8888 pixel buffer.
 
-int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, unsigned int** out_pixels) 
+int util_decode_jpeg_to_raw(char *dir, char *file, int* out_width, int* out_height, unsigned int** out_pixels) 
 {
-    if (fd < 0 || !out_width || !out_height || !out_pixels) {
+    int fd;
+    char path[200];
+
+    if (!out_width || !out_height || !out_pixels) {
         ERROR("Invalid arguments provided.");
+        return -1;
+    }
+
+    concat(dir, file, path);
+
+    fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        ERROR("failed to open %s, %s\n", path, strerror(errno));
         return -1;
     }
 
@@ -30,6 +47,7 @@ int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, unsigned in
     int result = AImageDecoder_createFromFd(fd, &decoder);
     if (result != ANDROID_IMAGE_DECODER_SUCCESS || decoder == NULL) {
         ERROR("Failed to create image decoder. Error code: %d", result);
+        close(fd);
         return -2;
     }
 
@@ -43,6 +61,7 @@ int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, unsigned in
     if (result != ANDROID_IMAGE_DECODER_SUCCESS) {
         ERROR("Failed to set output format to RGBA_8888.");
         AImageDecoder_delete(decoder);
+        close(fd);
         return -3;
     }
 
@@ -55,6 +74,7 @@ int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, unsigned in
     if (!pixel_buffer) {
         ERROR("Failed to allocate memory for pixel buffer.");
         AImageDecoder_delete(decoder);
+        close(fd);
         return -4;
     }
 
@@ -64,6 +84,7 @@ int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, unsigned in
         ERROR("Decoding failed. Error code: %d", result);
         free(pixel_buffer);
         AImageDecoder_delete(decoder);
+        close(fd);
         return -5;
     }
 
@@ -74,19 +95,14 @@ int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, unsigned in
 
     // Cleanup and return success
     AImageDecoder_delete(decoder);
+    close(fd);
     return 0;
 }
 
 #else
-
 // -----------------  NOT ANDROID - TEST CODE  ---------------------------
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <jpeglib.h>
-
-#include <utils.h>
 
 // Helper function to read the EXIF orientation marker from a JPEG file descriptor
 static int get_exif_orientation(int fd)
@@ -163,9 +179,22 @@ static int get_exif_orientation(int fd)
 }
 
 // Convert a jpg file to raw 32 bit RGBA pixel format, correcting for EXIF orientation rotation.
-int util_decode_jpeg_to_raw(int fd, int *out_width, int *out_height, unsigned int **out_pixels)
+
+int util_decode_jpeg_to_raw(char *dir, char *file, int* out_width, int* out_height, unsigned int** out_pixels)
 {
-    if (fd < 0 || !out_width || !out_height || !out_pixels) {
+    int fd;
+    char path[200];
+
+    if (!out_width || !out_height || !out_pixels) {
+        ERROR("Invalid arguments provided.");
+        return -1;
+    }
+
+    concat(dir, file, path);
+
+    fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        ERROR("failed to open %s, %s\n", path, strerror(errno));
         return -1;
     }
 
@@ -173,13 +202,11 @@ int util_decode_jpeg_to_raw(int fd, int *out_width, int *out_height, unsigned in
     int orientation = get_exif_orientation(fd);
 
     // Prepare libjpeg structures
-    int fd_copy = dup(fd);
-    if (fd_copy < 0) return -1;
-    lseek(fd_copy, 0, SEEK_SET); // Reset pointer for libjpeg
+    lseek(fd, 0, SEEK_SET); // Reset pointer for libjpeg
     
-    FILE *infile = fdopen(fd_copy, "rb");
+    FILE *infile = fdopen(fd, "rb");
     if (!infile) {
-        close(fd_copy);
+        close(fd);
         return -1;
     }
 
@@ -259,7 +286,7 @@ int util_decode_jpeg_to_raw(int fd, int *out_width, int *out_height, unsigned in
     }
 
     // Clean up libjpeg and file structures;
-    // fclose(infile) also closes fd_copy
+    // fclose(infile) also closes fd
     jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
     fclose(infile);

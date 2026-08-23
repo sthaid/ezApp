@@ -264,7 +264,7 @@ void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int
 
 // Create a texture with width w and height h.
 sdlx_texture_t *sdlx_create_texture(int w, int h);
-// Destroy a texture.
+// Destroy a texture. Texture arg may be NULL.
 void sdlx_destroy_texture(sdlx_texture_t *t);
 // Query a texture for its width and height.
 void sdlx_query_texture(sdlx_texture_t *t, int *w, int *h);
@@ -276,9 +276,9 @@ void sdlx_color_mod_texture(sdlx_texture_t *t, float r, float g, float b);
 
 // Copy pixels to the texture. The pixels arg must contain texture_w * texture_h pixels.
 void sdlx_set_texture_pixels(sdlx_texture_t *t, unsigned int *pixels);
-// Returns array containing the texture pixels; also returns texture width & height.
+// Returns array containing the texture pixels; optionally returns texture width & height.
 // Caller must free the returned pixels array.
-unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w, int *h);
+unsigned int *sdlx_get_texture_pixels(sdlx_texture_t *t, int *w_optional, int *h_optional);
 
 // Copy src_texture src_rect to the rendering_texture dest_rect.
 // If src_rect is NULL, the entire src_texture is copied.

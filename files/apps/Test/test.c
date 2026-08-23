@@ -1577,7 +1577,7 @@ static void page_14_draw(void)
 
 static void page_14_process_event(sdlx_event_t *ev)
 {
-    int fd, rc;
+    int rc;
     unsigned int *out_pixels;
 
     switch (ev->event_id) {
@@ -1591,25 +1591,16 @@ static void page_14_process_event(sdlx_event_t *ev)
         }
         printf("I %s: back from take_picture\n", progname);
 
-        // open photo.jpg,
         // decode photo.jpg, this call returns out_pixels,
-        // done with photo.jpg file, delete it
-        fd = open("tmp/photo.jpg", O_RDONLY, 0);
-        if (fd == -1) {
-            printf("E %s: failed to open JPEG file, %s\n", progname, strerror(errno));
-            break;
-        }
-
-        rc = util_decode_jpeg_to_raw(fd, &jpeg_w, &jpeg_h, &out_pixels);
+        rc = util_decode_jpeg_to_raw("tmp", "photo.jpg", &jpeg_w, &jpeg_h, &out_pixels);
         if (rc != 0) {
             printf("E %s: failed to decode JPEG file, %s\n", progname, strerror(errno));
-            close(fd);
             util_delete_file("tmp", "photo.jpg");
             break;
         }
         printf("I %s: decode JPEG okay, w/h=%d,%d\n", progname, jpeg_w, jpeg_h);
 
-        close(fd);
+        // done with photo.jpg, delete it
         util_delete_file("tmp", "photo.jpg");
 
         // if the texture 't' is already allocated, but has the wrong dimensions, then

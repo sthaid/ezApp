@@ -1426,13 +1426,14 @@ void Util_take_picture(struct ParseState *Parser, struct Value *ReturnValue,
 void Util_decode_jpeg_to_raw(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    int            fd          = Param[0]->Val->Integer;
-    int           *out_width   = Param[1]->Val->Pointer;
-    int           *out_height  = Param[2]->Val->Pointer;
-    unsigned int **out_pixels = Param[3]->Val->Pointer;
+    char          *dir         = Param[0]->Val->Pointer;
+    char          *file        = Param[1]->Val->Pointer;
+    int           *out_width   = Param[2]->Val->Pointer;
+    int           *out_height  = Param[3]->Val->Pointer;
+    unsigned int **out_pixels  = Param[4]->Val->Pointer;
     int            rc;
 
-    rc = util_decode_jpeg_to_raw(fd, out_width, out_height, out_pixels);
+    rc = util_decode_jpeg_to_raw(dir, file, out_width, out_height, out_pixels);
     ReturnValue->Val->Integer = rc;
 }
 
@@ -1499,7 +1500,7 @@ struct LibraryFunction UtilsFunctions[] = {
     { Util_get_playbackcapture_audio, "void util_get_playbackcapture_audio(float *array, int num_array_elements);" },
     // camera support
     { Util_take_picture,        "int util_take_picture(void);" },
-    { Util_decode_jpeg_to_raw,  "int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, unsigned int** out_pixels);" },
+    { Util_decode_jpeg_to_raw,  "int util_decode_jpeg_to_raw(char *dir, char *file, int* out_width, int* out_height, unsigned int** out_pixels);" },
 
     { NULL, NULL } };
 
