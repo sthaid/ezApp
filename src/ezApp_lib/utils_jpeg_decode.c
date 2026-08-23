@@ -19,7 +19,7 @@
  * @return             0 on success, negative value on failure.
  */
 
-int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, void** out_pixels) 
+int util_decode_jpeg_to_raw(int fd, int* out_width, int* out_height, unsigned int** out_pixels) 
 {
     if (fd < 0 || !out_width || !out_height || !out_pixels) {
         ERROR("Invalid arguments provided.");
