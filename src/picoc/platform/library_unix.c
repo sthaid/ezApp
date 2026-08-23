@@ -904,9 +904,9 @@ typedef struct { \n\
 } sdlx_sensor_info_t; \n\
 \n\
 /* events */ \n\
-#define EVID_MOTION  10000 \n\
-#define EVID_PINCH   10001 \n\
-#define EVID_QUIT    10009 \n\
+#define EVID_MOTION  1000000 \n\
+#define EVID_PINCH   1000001 \n\
+#define EVID_QUIT    1000009 \n\
 typedef struct { \n\
     int event_id; \n\
     union { \n\
