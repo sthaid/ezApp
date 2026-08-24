@@ -433,20 +433,14 @@ void delete_photo(int idx)
 
 // ------------------ SHOW PHOTO -----------------------
 
-    
-/* xxx
-  NOTES for landscape
-                dest.x = 0;
-                dest.y = 291;
-                dest.w = 1000;
-                dest.h = 750;
-*/
+void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest);
 
-void get_src_and_dest(int jpeg_w, int jpeg_h, double xc, double yc, double scale, sdlx_loc_t *src, sdlx_loc_t *dest);
+int jpeg_w, jpeg_h;
+double xc, yc, scale;
 
 void show_photo(int idx)
 {
-    int             num, rc, jpeg_w, jpeg_h, texture_w=0, texture_h=0;
+    int             num, rc, texture_w=0, texture_h=0;
     char            file[50];
     metadata_t     *md;
     sdlx_texture_t *t = NULL;
@@ -456,8 +450,7 @@ void show_photo(int idx)
     bool            done = false;
     bool            restart = false;
 
-    double xc, yc, scale;
-    int orientation = PORTRAIT;
+    int orientation = PORTRAIT; // xxx ?
 
     // check idx arg
     if (idx < 0 || idx >= max_photos) {
@@ -509,38 +502,8 @@ void show_photo(int idx)
             // init the backbuffer to COLOR_BLACK
             sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-#if 0
-            // determine the image src area that will be displayed, 
-            // based on xc,yc (center coord), and scale variables
-            src.x = xc - jpeg_w / 2 * scale;
-            src.y = yc - jpeg_h / 2 * scale;
-            src.w = jpeg_w * scale;
-            src.h = jpeg_h * scale;
-
-            // if src region extends beyond the bounds of the image
-            // then adjust src to keep it within the image bounds
-            if (src.x < 0) {
-                xc = jpeg_w / 2 * scale;
-            } else if (src.x + src.w >= jpeg_w) {
-                xc = jpeg_w - jpeg_w / 2 * scale;
-            }
-            if (src.y < 0) {
-                yc = jpeg_h / 2 * scale;
-            } else if (src.y + src.h >= jpeg_h) {
-                yc = jpeg_h - jpeg_h / 2 * scale;
-            }
-            src.x = xc - jpeg_w / 2 * scale;
-            src.y = yc - jpeg_h / 2 * scale;
-
-            // render the photo texture
-            dest.x = 0;
-            dest.y = 0;
-            dest.w = 1000;
-            dest.h = 1333;
-#endif
-            get_src_and_dest(jpeg_w, jpeg_h, xc, yc, scale, &src, &dest);
-
-
+            // xxx comment
+            get_src_and_dest(&src, &dest);
             sdlx_render_texture(t, &src, &dest);
 
             // display metadata
@@ -585,7 +548,7 @@ void show_photo(int idx)
                 if (event.u.pinch.scale == 0) break;
                 scale /= event.u.pinch.scale;
                 if (scale > 1) scale = 1;
-                if (scale < 0.1) scale = 0.1;
+                if (scale < 0.01) scale = 0.01;
                 break;
             case EVID_RST:
                 xc = jpeg_w / 2;
@@ -609,12 +572,9 @@ void show_photo(int idx)
 }
 
 // xxx use nearbyint
-void get_src_and_dest(int jpeg_w, int jpeg_h, double xc, double yc, double scale, sdlx_loc_t *src, sdlx_loc_t *dest)
+void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
 {
     double aspect;
-
-    xc = jpeg_w / 2;
-    yc = jpeg_h / 2;
 
     src->w = jpeg_w * scale;
     src->h = jpeg_h;
@@ -635,6 +595,24 @@ void get_src_and_dest(int jpeg_w, int jpeg_h, double xc, double yc, double scale
     printf("ASPECT = %f\n", aspect);
     printf("SRC %d %d - %d %d\n", src->x, src->y, src->w, src->h);
     printf("DST %d %d - %d %d\n", dest->x, dest->y, dest->w, dest->h);
+
+    // if src region extends beyond the bounds of the image
+    // then adjust src to keep it within the image bounds
+    // xxx cleanup, move prints to bottom, etc
+    if (src->x < 0) {
+        src->x = 0;
+        xc = src->x + src->w / 2;
+    } else if (src->x + src->w >= jpeg_w) {
+        src->x = jpeg_w - src->w;
+        xc = src->x + src->w / 2;
+    }
+    if (src->y < 0) {
+        src->y = 0;
+        yc = src->y + src->h / 2;
+    } else if (src->y + src->h >= jpeg_h) {
+        src->y = jpeg_h - src->h;
+        yc = src->y + src->h / 2;
+    }
 }
 
 // ------------------ SETTINGS -------------------------
