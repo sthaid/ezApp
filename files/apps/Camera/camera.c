@@ -205,6 +205,7 @@ void photo_gallery_view(void)
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
         // xxx display, todo
+        // xxx motion scrolling
         for (int i = 0; i < max_photos; i++) {
             sdlx_set_texture_pixels(t, photos[i].md->pixels);
             dest.x = (i % 3) * 350;
@@ -220,6 +221,8 @@ void photo_gallery_view(void)
                 y = dest.y;
                 reg_event(x, y, COLOR_RED, "X", EVID_DELETE_PHOTO+i);
             }
+
+            // xxx favorites
         }
 
         // register events
@@ -431,12 +434,15 @@ void delete_photo(int idx)
 // ------------------ SHOW PHOTO -----------------------
 
     
-/* NOTES for landscape
+/* xxx
+  NOTES for landscape
                 dest.x = 0;
                 dest.y = 291;
                 dest.w = 1000;
                 dest.h = 750;
 */
+
+void get_src_and_dest(int jpeg_w, int jpeg_h, double xc, double yc, double scale, sdlx_loc_t *src, sdlx_loc_t *dest);
 
 void show_photo(int idx)
 {
@@ -503,6 +509,7 @@ void show_photo(int idx)
             // init the backbuffer to COLOR_BLACK
             sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
+#if 0
             // determine the image src area that will be displayed, 
             // based on xc,yc (center coord), and scale variables
             src.x = xc - jpeg_w / 2 * scale;
@@ -530,6 +537,10 @@ void show_photo(int idx)
             dest.y = 0;
             dest.w = 1000;
             dest.h = 1333;
+#endif
+            get_src_and_dest(jpeg_w, jpeg_h, xc, yc, scale, &src, &dest);
+
+
             sdlx_render_texture(t, &src, &dest);
 
             // display metadata
@@ -550,7 +561,8 @@ void show_photo(int idx)
             sdlx_display_present();
 
             // wait for an event, with timeout
-            sdlx_get_event(ONE_SEC, &event);
+            //xxx sdlx_get_event(ONE_SEC, &event);
+            sdlx_get_event(-1, &event);
             if (event.event_id == -1) {
                 continue;
             }
@@ -573,6 +585,7 @@ void show_photo(int idx)
                 if (event.u.pinch.scale == 0) break;
                 scale /= event.u.pinch.scale;
                 if (scale > 1) scale = 1;
+                if (scale < 0.1) scale = 0.1;
                 break;
             case EVID_RST:
                 xc = jpeg_w / 2;
@@ -593,6 +606,35 @@ void show_photo(int idx)
 
     sdlx_destroy_texture(t);
     t = NULL;
+}
+
+// xxx use nearbyint
+void get_src_and_dest(int jpeg_w, int jpeg_h, double xc, double yc, double scale, sdlx_loc_t *src, sdlx_loc_t *dest)
+{
+    double aspect;
+
+    xc = jpeg_w / 2;
+    yc = jpeg_h / 2;
+
+    src->w = jpeg_w * scale;
+    src->h = jpeg_h;
+    aspect = (double)src->h / src->w;
+    if (aspect > 1.333) {
+        src->h = src->w * 1.333;
+        aspect = 1.333;
+    }
+    src->x = xc - src->w / 2;
+    src->y = yc - src->h / 2;
+
+    dest->w = 1000;
+    dest->h = aspect * dest->w;
+    dest->x = 0;
+    dest->y = (1333 - dest->h) / 2;
+
+    // xxx update prints with progname
+    printf("ASPECT = %f\n", aspect);
+    printf("SRC %d %d - %d %d\n", src->x, src->y, src->w, src->h);
+    printf("DST %d %d - %d %d\n", dest->x, dest->y, dest->w, dest->h);
 }
 
 // ------------------ SETTINGS -------------------------
