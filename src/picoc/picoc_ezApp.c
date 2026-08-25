@@ -21,7 +21,7 @@ int picoc_ezApp(char *args)
     // setjmp for error condition
     if (PicocPlatformSetExitPoint(&pc)) {
         printf("E picoc: '%s' longjmp error exit %d\n", args, pc.PicocExitValue);
-        PicocCleanup(&pc);
+        PicocCleanup(&pc);  // xxx extend cleanup
         return pc.PicocExitValue;
     }
 
@@ -53,6 +53,6 @@ int picoc_ezApp(char *args)
 
     // cleanup and return
     printf("I picoc: normal exit, exit_code=%d\n", pc.PicocExitValue);
-    PicocCleanup(&pc);
+    PicocCleanup(&pc);  // xxx extend cleanup
     return pc.PicocExitValue;
 }

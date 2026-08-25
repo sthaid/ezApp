@@ -169,6 +169,7 @@ extern int sdlx_char_height_dflt;
 //   instead of using default fontid and color.
 // - The flags arg to sdlx_render_printf_ex2 provides additional capabilities, see below.
 // - the returned sdlx_loc_t contains the location of the printed text
+// xxx just one of these
 sdlx_loc_t *sdlx_render_printf_ex1(int x, int y, int fontid, sdlx_color_t color, 
                                    char * fmt, ...)
                                    __attribute__ ((format (printf, 5, 6)));

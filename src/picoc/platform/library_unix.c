@@ -1008,6 +1008,17 @@ void Util_rename_file(struct ParseState *Parser, struct Value *ReturnValue,
     util_rename_file(old_dir, old_fn, new_dir, new_fn);
 }
 
+void Util_copy_file(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    char * src_dir = (char *)Param[0]->Val->Pointer;
+    char * src_fn  = (char *)Param[1]->Val->Pointer;
+    char * eest_dir = (char *)Param[2]->Val->Pointer;
+    char * eest_fn  = (char *)Param[3]->Val->Pointer;
+
+    util_copy_file(src_dir, src_fn, eest_dir, eest_fn);
+}
+
 void Util_file_exists (struct ParseState *Parser, struct Value *ReturnValue,
 	struct Value **Param, int NumArgs)
 {
@@ -1414,12 +1425,12 @@ void Util_get_playbackcapture_audio(struct ParseState *Parser, struct Value *Ret
 // utils camera support
 //
 
-void Util_take_picture(struct ParseState *Parser, struct Value *ReturnValue,
+void Util_take_photo(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
     int rc;
 
-    rc = util_take_picture();
+    rc = util_take_photo();
     ReturnValue->Val->Integer = rc;
 }
 
@@ -1453,6 +1464,7 @@ struct LibraryFunction UtilsFunctions[] = {
     { Util_read_file,        "void *util_read_file(char *dir, char *fn, int *len);" },
     { Util_delete_file,      "void *util_delete_file(char *dir, char *fn);" },
     { Util_rename_file,      "void util_rename_file(char *old_dir, char *old_fn, char *new_dir, char *new_fn);" },
+    { Util_copy_file,        "void util_copy_file(char *src_dir, char *src_fn, char *dest_dir, char *dest_fn);" },
     { Util_file_exists,      "bool util_file_exists(char *dir, char *fn);" },
     { Util_file_mtime,       "long util_file_mtime(char *dir, char *fn);" },
     { Util_file_size,        "long util_file_size(char *dir, char *fn);" },
@@ -1499,7 +1511,7 @@ struct LibraryFunction UtilsFunctions[] = {
     { Util_stop_playbackcapture,      "void util_stop_playbackcapture(void);" },
     { Util_get_playbackcapture_audio, "void util_get_playbackcapture_audio(float *array, int num_array_elements);" },
     // camera support
-    { Util_take_picture,        "int util_take_picture(void);" },
+    { Util_take_photo,          "int util_take_photo(void);" },
     { Util_decode_jpeg_to_raw,  "int util_decode_jpeg_to_raw(char *dir, char *file, int* out_width, int* out_height, unsigned int** out_pixels);" },
 
     { NULL, NULL } };

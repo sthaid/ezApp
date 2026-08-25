@@ -289,6 +289,7 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
                     break;
                 }
             }
+            // xxx should this match 
             if (i >= 0 && AT_LOC(last_pressed_x, last_pressed_y, event_tbl[i].loc)) {
                 event->event_id = event_tbl[i].event_id;
             }

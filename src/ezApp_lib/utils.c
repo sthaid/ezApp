@@ -178,6 +178,19 @@ void util_rename_file(char *old_dir, char *old_fn, char *new_dir, char *new_fn)
     rename(old_path, new_path);
 }
 
+void util_copy_file(char *src_dir, char *src_fn, char *dest_dir, char *dest_fn)
+{
+    char src_path[200], dest_path[200];
+    char cmd[420];
+
+    concat(src_dir, src_fn, src_path);
+    concat(dest_dir, dest_fn, dest_path);
+
+    INFO("copying %s to %s\n", src_path, dest_path);
+    sprintf(cmd, "cp %s %s", src_path, dest_path);
+    system(cmd);
+}
+
 bool util_file_exists(char *dir, char *fn)
 {
     char path[200];
@@ -265,7 +278,7 @@ void *util_map_file(char *dir, char *file, int len_arg, bool create_if_needed, i
     }
 
     // print message
-    INFO("mapping %s len_arg=0x%x adj_len=0x%x create_if_needed=%d\n", path, len_arg, len, create_if_needed);
+    //INFO("mapping %s len_arg=0x%x adj_len=0x%x create_if_needed=%d\n", path, len_arg, len, create_if_needed);
 
     // stat the file to determine if it exists, and its length
     rc = stat(path, &statbuf);
@@ -339,7 +352,7 @@ void util_unmap_file(void *addr, int len_arg)
     len = (len_arg + PAGE_SIZE2 - 1) & ~(PAGE_SIZE2-1);
 
     // print starting msg
-    INFO("unmapping addr %p, len_arg=0x%x adj_len=0x%x\n", addr, len_arg, len);
+    //INFO("unmapping addr %p, len_arg=0x%x adj_len=0x%x\n", addr, len_arg, len);
 
     // sanity check addr arg
     if (addr == NULL) {

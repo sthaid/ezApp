@@ -161,7 +161,7 @@ int util_get_playbackcapture_audio(float *array, int num_array_elements) {
 }
 
 // camera
-int util_take_picture(void) 
+int util_take_photo(void) 
 {
     int rc;
     sdlx_event_t ev;
@@ -179,30 +179,30 @@ int util_take_picture(void)
     // remove existing tmp/photo.jpg file
     util_delete_file(tmp, photo_jpg);
 
-    // take the picture
-    rc = call_java1("take_picture");
+    // take the photo
+    rc = call_java1("take_photo");
     if (rc != 0) {
-        ERROR("take_picture failed, rc=%d\n", rc);
+        ERROR("take_photo failed, rc=%d\n", rc);
         return -1;
     }
 
-    // wait for taking the picture to be completed
+    // wait for taking the photo to be completed
     while (true) {
         // This call to sdlx_get_event ensures that after taking the
-        // picture has completed, and the Android camera code has 
+        // photo has completed, and the Android camera code has 
         // finished with the display, the ezApp display becomes visible.
         // Reason why this is needed is not known.
         sdlx_get_event(100000, &ev);
 
-        // check if the taking of the picture has completed
-        rc = call_java1("take_picture_complete");
+        // check if the taking of the photo has completed
+        rc = call_java1("take_photo_complete");
 
         // if result has been set then break out of loop, 
         // otherwise print that polling continues
         if (rc != RESULT_NOT_SET) {
             break;
         }
-        INFO("polling for take_picture_complete\n");
+        INFO("polling for take_photo_complete\n");
     }
 
     // if rc is not RESULT_OK then return error
@@ -445,7 +445,7 @@ static void remove_trailing_newline(char *s)
 }
 
 // xxx comment
-int util_take_picture(void)
+int util_take_photo(void)
 {
     static bool first_call = true;
     static char *jpg_files[10]; // xxx define

@@ -1,12 +1,10 @@
 // xxx
-// - rename util_take_picture ?  to util_take_photo
 // - replace 'TAKE' with a circle
 // - cleanup needed?
 // - define for 300
-// - allow for metadata location to be INVALID_NUMBER
-// - allow for city and state to be empty
-// - add click when photo taken,  disable via settings
-// - handle favorite setting
+// - also search for yyy
+// - in galery mode, when show photo and go back to gallery, may want to indicate which was the last photo viewed
+// - gallery mode, need control to go to top or bottom
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -30,11 +28,12 @@
 
 #define EVID_TAKE           1
 #define EVID_DEL            2
-#define EVID_FAV            3
 #define EVID_VIEW           4
 #define EVID_STG            5
 #define EVID_CTR            6
 #define EVID_RST            7
+#define EVID_NEXT           8
+#define EVID_PREV           9
 #define EVID_SHOW_PHOTO     10000
 #define EVID_DELETE_PHOTO   20000
 
@@ -42,7 +41,7 @@
 
 // typedefs
 typedef struct {
-    bool favorite;
+    bool spare;    // xxx del,  replace with num, and add magic
     char date[50];
     char time[50];
     char city[50];
@@ -130,14 +129,28 @@ void init(void)
     char        cmd[200], s[100], metadata_filename[100];
     FILE       *fp;
     metadata_t *md;
+    long        t_start;
 
     // init global variable photos_dir
     sprintf(photos_dir, "%s/photos", data_dir);
 
+#if 0 // yyy del
+    // make test files
+    for (int i = 20; i < 1000; i++) {
+        char dest[100];
+        printf("i = %d\n", i);
+        sprintf(dest, "%06d.jpg", i);
+        util_copy_file(photos_dir, "000015.jpg", photos_dir, dest);
+        sprintf(dest, "%06d.meta", i);
+        util_copy_file(photos_dir, "000015.meta", photos_dir, dest);
+    }
+#endif
+
     // initialize the photos array using sorted list of jpg 
     // files that are in the photos dir
-    // xxx check for overflow
-    // xxx time this startup with 1000 files
+
+    t_start = util_microsec_timer();
+
     sprintf(cmd, "find %s -type f -name \"*.jpg\" | sort", photos_dir);
     fp = popen(cmd, "r");
     while (fgets(s, sizeof(s), fp) != NULL) {
@@ -148,7 +161,6 @@ void init(void)
             continue;
         }
 
-        // xxx get the metadata when needed
         // map the metadata file for this photo number
         sprintf(metadata_filename, "%06d.meta", num);
         md = util_map_file(photos_dir, metadata_filename, sizeof(metadata_t), true, NULL);
@@ -161,10 +173,18 @@ void init(void)
         photos[max_photos].num = num;
         photos[max_photos].md = md;
         max_photos++;
+
+        // if photos array is full then break
+        if (max_photos == MAX_PHOTOS) {
+            break;
+        }
     }
     pclose(fp);
 
-#if 0
+    printf("I %s: init complete, max_photos = %d  duration = %ld ms\n", 
+          progname, max_photos, (util_microsec_timer() - t_start) / 1000);
+
+#if 0 // yyy del
     // debug print the photos list
     printf("I %s: max_photos = %d\n", progname, max_photos);
     for (int i = 0; i < max_photos; i++) {
@@ -194,9 +214,9 @@ void photo_gallery_view(void)
     int x, y;
     bool done = false;
     bool del_mode = false;
-    bool fav_mode = false;
     sdlx_texture_t *t;
     sdlx_loc_t dest;
+    double y_top = 0;
 
     t = sdlx_create_texture(300, 300);
 
@@ -207,9 +227,20 @@ void photo_gallery_view(void)
         // xxx display, todo
         // xxx motion scrolling
         for (int i = 0; i < max_photos; i++) {
+            //if (i > 10) break; //xxx
+
+            y = (i / 3) * 350;
+            if (y < y_top - 350) {
+                continue;
+            }
+            if (y > y_top + sdlx_win_height) {
+                break;
+            }
+
             sdlx_set_texture_pixels(t, photos[i].md->pixels);
             dest.x = (i % 3) * 350;
-            dest.y = (i / 3) * 350;
+            //dest.y = (i / 3) * 350;
+            dest.y = y - y_top;
             dest.w = 300;
             dest.h = 300;
             sdlx_render_texture(t, NULL, &dest);
@@ -221,8 +252,6 @@ void photo_gallery_view(void)
                 y = dest.y;
                 reg_event(x, y, COLOR_RED, "X", EVID_DELETE_PHOTO+i);
             }
-
-            // xxx favorites
         }
 
         // register events
@@ -231,7 +260,6 @@ void photo_gallery_view(void)
         }
         y = sdlx_win_height - 1.5 * sdlx_char_height_dflt;
         reg_event(0, y, COLOR_LIGHT_BLUE, "DEL", EVID_DEL);
-        reg_event(sdlx_win_width/2-1.5*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "FAV", EVID_FAV);
         reg_event(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "VIEW", EVID_VIEW);
         sdlx_register_event(NULL, EVID_MOTION);
         sdlx_register_control_events(EVID_STG, "STG", EVID_TAKE, "TAKE", EVID_QUIT, "X");
@@ -258,18 +286,18 @@ void photo_gallery_view(void)
                 show_file(data_dir, "README");
                 break;
             case EVID_MOTION:
+                y_top -= event.u.motion.yrel;
+                if (y_top < 0) y_top = 0;
+                printf("y_top %f\n", y_top);
                 break;
             case EVID_QUIT:
                 end_program = true;
                 break;
             case EVID_TAKE:
-                take_photo();  // xxx returns status now
+                take_photo();
                 break;
             case EVID_DEL:
                 del_mode = !del_mode;
-                break;
-            case EVID_FAV:
-                fav_mode = !fav_mode;
                 break;
             case EVID_VIEW:
                 view = LOCATION_VIEW;
@@ -292,17 +320,15 @@ void photo_location_view(void)
     sdlx_event_t event;
     int y;
     bool done = false;
-    bool favorites_mode = false;
 
     while (!done && !end_program) {
         // init the backbuffer to COLOR_BLACK
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-        // register events xxx add pinch
+        // register events yyy add pinch
         reg_event_show_readme_file();
         y = sdlx_win_height - 1.5 * sdlx_char_height_dflt;
         reg_event(0, y, COLOR_LIGHT_BLUE, "CTR", EVID_CTR);
-        reg_event(sdlx_win_width/2-1.5*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "FAV", EVID_FAV);
         reg_event(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "VIEW", EVID_VIEW);
         sdlx_register_event(NULL, EVID_MOTION);
         sdlx_register_control_events(EVID_STG, "STG", EVID_TAKE, "TAKE", EVID_QUIT, "X");
@@ -332,9 +358,6 @@ void photo_location_view(void)
             break;
         case EVID_CTR:
             break;
-        case EVID_FAV:
-            favorites_mode = !favorites_mode;
-            break;
         case EVID_VIEW:
             view = GALLERY_VIEW;
             done = true;
@@ -354,9 +377,9 @@ int take_photo(void)
     metadata_t *md;
 
     // take photo; this will create file tmp/photo.jpg
-    rc = util_take_picture();  
+    rc = util_take_photo();  
     if (rc != 0) {
-        printf("E %s: util_take_picture failed\n", progname);
+        printf("E %s: util_take_photo failed\n", progname);
         sdlx_show_toast("take picture failed");
         return -1;
     }
@@ -433,6 +456,8 @@ void delete_photo(int idx)
 
 // ------------------ SHOW PHOTO -----------------------
 
+// xxx tighten up this routine, what?
+
 void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest);
 
 int jpeg_w, jpeg_h;
@@ -440,13 +465,17 @@ double xc, yc, scale;
 
 void show_photo(int idx)
 {
-    int             num, rc, texture_w=0, texture_h=0;
+    int             num, rc, texture_w=0, texture_h=0, y;
     char            file[50];
     metadata_t     *md;
     sdlx_texture_t *t = NULL;
     sdlx_loc_t      src, dest;
     sdlx_event_t    event;
     unsigned int   *pixels;
+    sdlx_loc_t     *loc;
+    bool            show;
+    char           *s;
+    long            last_next_prev_time = util_microsec_timer();
     bool            done = false;
     bool            restart = false;
 
@@ -507,15 +536,34 @@ void show_photo(int idx)
             sdlx_render_texture(t, &src, &dest);
 
             // display metadata
-            sdlx_render_printf(0, 1400, "%s\n%s\n%s\n%s\n%.4f %.4f",
-                    md->date,
-                    md->time,
-                    md->city,
-                    md->state,
-                    md->latitude,
-                    md->longitude);
+            y = 1400;
+            sdlx_render_printf(0, y, "%s\n%s", md->date, md->time);
+            y += 2 * sdlx_char_height_dflt;
+            if (md->city[0] != '\0') {
+                sdlx_render_printf(0, y, "%s", md->city);
+                y += sdlx_char_height_dflt;
+            }
+            if (md->state[0] != '\0') {
+                sdlx_render_printf(0, y, "%s", md->state);
+                y += sdlx_char_height_dflt;
+            }
+            if (md->latitude != INVALID_NUMBER && md->longitude != INVALID_NUMBER) {
+                sdlx_render_printf(0, y, "%.4f %.4f", md->latitude, md->longitude);
+                y += sdlx_char_height_dflt;
+            }
 
             // register events
+            show = (util_microsec_timer() - last_next_prev_time) < 3000000;
+            s = (show ? "<" : " ");
+            loc = sdlx_render_printf_ex2(0.5*sdlx_char_width(FONT_LARGE), 1333/2, 
+                                         FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, "%s", s);
+            sdlx_register_event(loc, EVID_PREV);
+
+            s = (show ? ">" : " ");
+            loc = sdlx_render_printf_ex2(sdlx_win_width-0.5*sdlx_char_width(FONT_LARGE), 1333/2, 
+                                         FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, "%s", s);
+            sdlx_register_event(loc, EVID_NEXT);
+
             sdlx_register_event(NULL, EVID_PINCH);
             sdlx_register_event(NULL, EVID_MOTION);
             sdlx_register_control_events(EVID_RST, "RST", EVID_TAKE, "TAKE", EVID_QUIT, "X");
@@ -524,8 +572,7 @@ void show_photo(int idx)
             sdlx_display_present();
 
             // wait for an event, with timeout
-            //xxx sdlx_get_event(ONE_SEC, &event);
-            sdlx_get_event(-1, &event);
+            sdlx_get_event(ONE_SEC, &event);
             if (event.event_id == -1) {
                 continue;
             }
@@ -563,6 +610,16 @@ void show_photo(int idx)
                 restart = true;
                 idx = max_photos-1;
                 break; }
+            case EVID_NEXT:
+                idx = (idx < max_photos-1 ? idx+1 : 0);
+                restart = true;
+                last_next_prev_time = util_microsec_timer();
+                break;
+            case EVID_PREV:
+                idx = (idx > 0 ? idx-1 : max_photos-1);
+                restart = true;
+                last_next_prev_time = util_microsec_timer();
+                break;
             }
         }
     } while (restart);
@@ -591,11 +648,6 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
     dest->x = 0;
     dest->y = (1333 - dest->h) / 2;
 
-    // xxx update prints with progname
-    printf("ASPECT = %f\n", aspect);
-    printf("SRC %d %d - %d %d\n", src->x, src->y, src->w, src->h);
-    printf("DST %d %d - %d %d\n", dest->x, dest->y, dest->w, dest->h);
-
     // if src region extends beyond the bounds of the image
     // then adjust src to keep it within the image bounds
     // xxx cleanup, move prints to bottom, etc
@@ -613,13 +665,20 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
         src->y = jpeg_h - src->h;
         yc = src->y + src->h / 2;
     }
+
+#if 0 // xxx also print the first Src
+    // xxx update prints with progname
+    printf("ASPECT = %f\n", aspect);
+    printf("SRC %d %d - %d %d\n", src->x, src->y, src->w, src->h);
+    printf("DST %d %d - %d %d\n", dest->x, dest->y, dest->w, dest->h);
+#endif
 }
 
 // ------------------ SETTINGS -------------------------
 
 void settings(void)
 {
-    // xxx todo
+    // yyy todo
     return;
 }
 
@@ -705,9 +764,6 @@ metadata_t *create_and_map_metadata_file(int num)
 
     // init metadata struct fields ...
 
-    // - favorite
-    md->favorite = false;
-
     // - date & time
     t = time(NULL);
     tm = localtime(&t);
@@ -763,9 +819,8 @@ metadata_t *create_and_map_metadata_file(int num)
     // sync the metadata file to storage
     util_sync_file(md, sizeof(metadata_t));
 
-    // debug print metadata
+    // debug print metadata yyy check that all fields are printed
     printf("I %s: metadata ...\n", progname);
-    printf("I %s:   favorite   = %d\n",    progname, md->favorite);
     printf("I %s:   date       = %s\n",    progname, md->date);
     printf("I %s:   time       = %s\n",    progname, md->time);
     printf("I %s:   city       = %s\n",    progname, md->city);

@@ -780,7 +780,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     }
 
     // EZAPP take picture
-    public double take_picture() {
+    public double take_photo() {
         // preset result to RESULT_NOT_SET
         mezApp_image_capture_result = RESULT_NOT_SET;
 
@@ -848,7 +848,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     return 0;
     }
 
-    public double take_picture_complete() {
+    public double take_photo_complete() {
         return mezApp_image_capture_result;
     }
 

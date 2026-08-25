@@ -43,6 +43,7 @@ int util_write_file(char *dir, char *fn, void *data, int len);
 void *util_read_file(char *dir, char *fn, int *len_optional);
 void util_delete_file(char *dir, char *fn);
 void util_rename_file(char *old_dir, char *old_fn, char *new_dir, char *new_fn);
+void util_copy_file(char *src_dir, char *src_fn, char *dest_dir, char *dest_fn);
 bool util_file_exists(char *dir, char *fn);
 long util_file_mtime(char *dir, char *fn);
 long util_file_size(char *dir, char *fn);
@@ -227,7 +228,7 @@ int util_get_playbackcapture_audio(float *array, int num_array_elements);
 // Take a picture using the Android camera.
 // The file is saved in "tmp/photo.jpg"
 // Returns 0 for success.
-int util_take_picture(void);
+int util_take_photo(void);
 
 // Convert a jpg file to raw 32 bit RGBA pixel format.
 // Caller must free out_pixels.
