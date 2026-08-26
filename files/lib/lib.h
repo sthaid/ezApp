@@ -37,7 +37,8 @@ void show_file(char *dir, char *filename);
 
 // event registration
 #define EVID_SHOW_README_FILE 999999  // xxx make this 1000000+
-void reg_event(int x, int y, sdlx_color_t color, char *name, int event_id);
+void reg_event_str(int x, int y, sdlx_color_t color, char *event_name, int event_id);
+void reg_event_fill_rect(int x, int y, int w, int h, sdlx_color_t color, int event_id);
 void reg_event_show_readme_file(void);
 
 // init service request

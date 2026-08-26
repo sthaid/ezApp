@@ -6,6 +6,8 @@
 // - in galery mode, when show photo and go back to gallery, may want to indicate which was the last photo viewed
 // - gallery mode, need control to go to top or bottom
 
+// - when take photo, update the scroll location in galery
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -34,6 +36,7 @@
 #define EVID_RST            7
 #define EVID_NEXT           8
 #define EVID_PREV           9
+#define EVID_NOOP           10
 #define EVID_SHOW_PHOTO     10000
 #define EVID_DELETE_PHOTO   20000
 
@@ -210,13 +213,13 @@ void cleanup(void)
 
 void photo_gallery_view(void)
 {
-    sdlx_event_t event;
-    int x, y;
-    bool done = false;
-    bool del_mode = false;
+    sdlx_event_t    event;
+    int             x, y, h;
     sdlx_texture_t *t;
-    sdlx_loc_t dest;
-    double y_top = 0;
+    sdlx_loc_t      dest;
+    double          y_top = 0;
+    bool            del_mode = false;
+    bool            done = false;
 
     t = sdlx_create_texture(300, 300);
 
@@ -250,7 +253,7 @@ void photo_gallery_view(void)
             if (del_mode) {
                 x = dest.x + 300 - sdlx_char_width_dflt;
                 y = dest.y;
-                reg_event(x, y, COLOR_RED, "X", EVID_DELETE_PHOTO+i);
+                reg_event_str(x, y, COLOR_RED, "X", EVID_DELETE_PHOTO+i);
             }
         }
 
@@ -258,10 +261,15 @@ void photo_gallery_view(void)
         if (!del_mode) {
             reg_event_show_readme_file();
         }
+
+        h = 2 * sdlx_char_height_dflt;
+        reg_event_fill_rect(0, sdlx_win_height-h, sdlx_win_width, h, COLOR_BLACK, EVID_NOOP);
+
         y = sdlx_win_height - 1.5 * sdlx_char_height_dflt;
-        reg_event(0, y, COLOR_LIGHT_BLUE, "DEL", EVID_DEL);
-        reg_event(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "VIEW", EVID_VIEW);
+        reg_event_str(0, y, COLOR_LIGHT_BLUE, "DEL", EVID_DEL);
+        reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "VIEW", EVID_VIEW);
         sdlx_register_event(NULL, EVID_MOTION);
+
         sdlx_register_control_events(EVID_STG, "STG", EVID_TAKE, "TAKE", EVID_QUIT, "X");
 
         // present the display
@@ -328,8 +336,8 @@ void photo_location_view(void)
         // register events yyy add pinch
         reg_event_show_readme_file();
         y = sdlx_win_height - 1.5 * sdlx_char_height_dflt;
-        reg_event(0, y, COLOR_LIGHT_BLUE, "CTR", EVID_CTR);
-        reg_event(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "VIEW", EVID_VIEW);
+        reg_event_str(0, y, COLOR_LIGHT_BLUE, "CTR", EVID_CTR);
+        reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "VIEW", EVID_VIEW);
         sdlx_register_event(NULL, EVID_MOTION);
         sdlx_register_control_events(EVID_STG, "STG", EVID_TAKE, "TAKE", EVID_QUIT, "X");
 

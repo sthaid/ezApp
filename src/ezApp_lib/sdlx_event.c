@@ -38,12 +38,18 @@ static bool    event_box_enable;
 // prototypes
 //
 
+static void register_event(sdlx_loc_t *loc, int event_id, bool allow_ctrl_event_area);
 static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event);
 static char *event_type_to_str(enum SDL_EventType evtype) ATTRIBUTE_UNUSED;
 
 // -----------------  REGISTER EVENTS  --------------------
 
 void sdlx_register_event(sdlx_loc_t *loc, int event_id)
+{
+    register_event(loc, event_id, false);
+}
+
+static void register_event(sdlx_loc_t *loc, int event_id, bool allow_ctrl_event_area)
 {
     sdlx_loc_t loc2;
 
@@ -84,6 +90,27 @@ void sdlx_register_event(sdlx_loc_t *loc, int event_id)
         int delta = 150 - loc2.h;
         loc2.h += delta;
         loc2.y -= delta/2;
+    }
+
+    // if loc extends into the control area then 
+    // either shrink the loc, or discard the event 
+    if (!allow_ctrl_event_area) {
+        if (orientation == PORTRAIT) { 
+            if (loc2.y >= sdlx_win_height) {
+                return;
+            }
+            if (loc2.y + loc2.h > sdlx_win_height) {
+                loc2.h = sdlx_win_height - loc2.y;
+            }   
+        } else {
+            // xxx test this
+            if (loc2.x >= sdlx_win_width) {
+                return;
+            }
+            if (loc2.x + loc2.w > sdlx_win_width) {
+                loc2.w = sdlx_win_width - loc2.x;
+            }   
+        }
     }
 
     // event box aids development;
@@ -176,7 +203,7 @@ void sdlx_register_control_events(int evid1, char *evstr1,
                         FONT_NORMAL, FG_COLOR, FLAG_XY_CTR|FLAG_ROT_CTR_270, "%s", evstr[i]);
         }
 
-        sdlx_register_event(loc, evid[i]);
+        register_event(loc, evid[i], true);
     }
 }
 
@@ -290,6 +317,7 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
                 }
             }
             // xxx should this match 
+            // xxx perhaps require minimum deviation to trigger an event
             if (i >= 0 && AT_LOC(last_pressed_x, last_pressed_y, event_tbl[i].loc)) {
                 event->event_id = event_tbl[i].event_id;
             }

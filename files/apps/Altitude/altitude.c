@@ -181,8 +181,8 @@ void draw_display(void)
     sdlx_render_printf_ex2(sdlx_win_width/2, y,
                            FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR,
                            "%d", param_max_y);
-    reg_event(sdlx_win_width/2-COL2X(4.5), y, COLOR_LIGHT_BLUE, "-", EVID_DECR_MAX_Y);
-    reg_event(sdlx_win_width/2+COL2X(3.5), y, COLOR_LIGHT_BLUE, "+", EVID_INCR_MAX_Y);
+    reg_event_str(sdlx_win_width/2-COL2X(4.5), y, COLOR_LIGHT_BLUE, "-", EVID_DECR_MAX_Y);
+    reg_event_str(sdlx_win_width/2+COL2X(3.5), y, COLOR_LIGHT_BLUE, "+", EVID_INCR_MAX_Y);
 
     // register EVID_SHOW_README_FILE event
     reg_event_show_readme_file();

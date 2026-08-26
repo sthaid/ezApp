@@ -176,18 +176,18 @@ void color_organ_display(void)
     if (show_controls) {
         if (orientation == PORTRAIT) {
             int y_controls = COH_P + LINE_SPACING;
-            reg_event(COL2X(11), y_controls, COLOR_LIGHT_BLUE,
-                    color_organ_name[which_color_organ], EVID_COLOR_ORGAN_SLCT);
-            reg_event(COL2X(16), y_controls, COLOR_LIGHT_BLUE, 
-                    filter_name[which_filter], EVID_FILTER_SLCT);
+            reg_event_str(COL2X(11), y_controls, COLOR_LIGHT_BLUE,
+                          color_organ_name[which_color_organ], EVID_COLOR_ORGAN_SLCT);
+            reg_event_str(COL2X(16), y_controls, COLOR_LIGHT_BLUE, 
+                          filter_name[which_filter], EVID_FILTER_SLCT);
         } else {
             int x_controls = sdlx_win_width - 8*sdlx_char_width_dflt;
             int y_controls = 3 * LINE_SPACING;
-            reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE,
-                    color_organ_name[which_color_organ], EVID_COLOR_ORGAN_SLCT);
+            reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE,
+                          color_organ_name[which_color_organ], EVID_COLOR_ORGAN_SLCT);
             y_controls += LINE_SPACING;
-            reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, 
-                    filter_name[which_filter], EVID_FILTER_SLCT);
+            reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, 
+                          filter_name[which_filter], EVID_FILTER_SLCT);
         }
     }
 }

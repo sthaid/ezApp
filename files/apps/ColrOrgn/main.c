@@ -356,20 +356,20 @@ void register_events(void)
 
             // register EVID_MON_REC or EVID_STOP on control line 1, col 0
             if (state == STATE_STOPPED) {
-                reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, "MON/REC", EVID_MON_REC);
+                reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, "MON/REC", EVID_MON_REC);
             } else {
-                reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, "STOP", EVID_STOP);
+                reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, "STOP", EVID_STOP);
             }
 
             // register EVID RECORD, MONITOR, PAUSE, or CONT on control line 1 col 4
             if (state == STATE_MONITORING_DEV) {
-                reg_event(x_controls+5*sdlx_char_width_dflt, y_controls, COLOR_LIGHT_BLUE, "REC", EVID_RECORD);
+                reg_event_str(x_controls+5*sdlx_char_width_dflt, y_controls, COLOR_LIGHT_BLUE, "REC", EVID_RECORD);
             } else if (state == STATE_RECORDING_DEV) {
-                reg_event(x_controls+5*sdlx_char_width_dflt, y_controls, COLOR_LIGHT_BLUE, "MON", EVID_MONITOR);
+                reg_event_str(x_controls+5*sdlx_char_width_dflt, y_controls, COLOR_LIGHT_BLUE, "MON", EVID_MONITOR);
             } else if (state == STATE_PLAYING_FILE) {
-                reg_event(x_controls+5*sdlx_char_width_dflt, y_controls, COLOR_LIGHT_BLUE, "PAUSE", EVID_PAUSE);
+                reg_event_str(x_controls+5*sdlx_char_width_dflt, y_controls, COLOR_LIGHT_BLUE, "PAUSE", EVID_PAUSE);
             } else if (state == STATE_PLAYING_FILE_PAUSED) {
-                reg_event(x_controls+5*sdlx_char_width_dflt, y_controls, COLOR_LIGHT_BLUE, "CONT", EVID_CONT);
+                reg_event_str(x_controls+5*sdlx_char_width_dflt, y_controls, COLOR_LIGHT_BLUE, "CONT", EVID_CONT);
             }
         } else {  // LANDSCAPE
             x_controls = sdlx_win_width - 8*sdlx_char_width_dflt;
@@ -377,28 +377,28 @@ void register_events(void)
 
             // register EVID_MON_REC or EVID_STOP on control line 1, col 0
             if (state == STATE_STOPPED) {
-                reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, "MON/REC", EVID_MON_REC);
+                reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, "MON/REC", EVID_MON_REC);
             } else {
-                reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, "STOP", EVID_STOP);
+                reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, "STOP", EVID_STOP);
             }
 
             // register EVID RECORD, MONITOR, PAUSE, or CONT on control line 1 col 4
             y_controls += LINE_SPACING;
             if (state == STATE_MONITORING_DEV) {
-                reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, "REC", EVID_RECORD);
+                reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, "REC", EVID_RECORD);
             } else if (state == STATE_RECORDING_DEV) {
-                reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, "MON", EVID_MONITOR);
+                reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, "MON", EVID_MONITOR);
             } else if (state == STATE_PLAYING_FILE) {
-                reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, "PAUSE", EVID_PAUSE);
+                reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, "PAUSE", EVID_PAUSE);
             } else if (state == STATE_PLAYING_FILE_PAUSED) {
-                reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, "CONT", EVID_CONT);
+                reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, "CONT", EVID_CONT);
             }
 
             // register EVID_PLAY_GO_FWD and EVID_PLAY_GO_BACK
             y_controls += 3*LINE_SPACING;
             if (state == STATE_PLAYING_FILE || state == STATE_PLAYING_FILE_PAUSED) {
-                reg_event(x_controls, y_controls, COLOR_LIGHT_BLUE, "< ", EVID_PLAY_GO_BACK);
-                reg_event(x_controls+4*sdlx_char_width_dflt, y_controls, COLOR_LIGHT_BLUE, ">", EVID_PLAY_GO_FWD);
+                reg_event_str(x_controls, y_controls, COLOR_LIGHT_BLUE, "< ", EVID_PLAY_GO_BACK);
+                reg_event_str(x_controls+4*sdlx_char_width_dflt, y_controls, COLOR_LIGHT_BLUE, ">", EVID_PLAY_GO_FWD);
             }
         }
 
@@ -450,21 +450,21 @@ void register_events(void)
             } else {
                 color = COLOR_LIGHT_BLUE;
             }
-            reg_event(0, y, color, files_noext[i], EVID_PLAY_FILE+i);
+            reg_event_str(0, y, color, files_noext[i], EVID_PLAY_FILE+i);
 
             // when in PORTRAIT orientation register additional events associated 
             // with each filenname
             if (orientation == PORTRAIT) {
                 // register event to rename and delete the file;
                 if (color == COLOR_LIGHT_BLUE) {
-                    reg_event(sdlx_win_width-8*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, " REN", EVID_RENAME_FILE+i);
-                    reg_event(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, " DEL", EVID_DELETE_FILE+i);
+                    reg_event_str(sdlx_win_width-8*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, " REN", EVID_RENAME_FILE+i);
+                    reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, " DEL", EVID_DELETE_FILE+i);
                 }
 
                 // register events to adjust playback time forward or backward
                 if (color == COLOR_GREEN) {
-                    reg_event(sdlx_win_width-8*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "  < ", EVID_PLAY_GO_BACK);
-                    reg_event(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "  > ", EVID_PLAY_GO_FWD);
+                    reg_event_str(sdlx_win_width-8*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "  < ", EVID_PLAY_GO_BACK);
+                    reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "  > ", EVID_PLAY_GO_FWD);
                 }
             }
         }
@@ -475,7 +475,7 @@ void register_events(void)
 #ifndef ANDROID
         // if not running on android then provide control to simulate landscape orientation;
         // this is provided for development test
-        reg_event(COL2X(1), 0, COLOR_LIGHT_BLUE, "H", EVID_TEST_FORCE_LANDSCAPE);
+        reg_event_str(COL2X(1), 0, COLOR_LIGHT_BLUE, "H", EVID_TEST_FORCE_LANDSCAPE);
 #endif
     }
 

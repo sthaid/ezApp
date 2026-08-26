@@ -468,18 +468,30 @@ void show_file(char *data_dir, char *filename)
 
 // -----------------  EVENT REGISTRATION  -------------------------
 
-void reg_event(int x, int y, sdlx_color_t color, char *name, int event_id)
+void reg_event_str(int x, int y, sdlx_color_t color, char *event_name, int event_id)
 {
     sdlx_loc_t *loc;
 
-    loc = sdlx_render_printf_ex1(x, y, FONT_NORMAL, color, "%s", name);
+    loc = sdlx_render_printf_ex1(x, y, FONT_NORMAL, color, "%s", event_name);
     sdlx_register_event(loc, event_id);
+}
+
+void reg_event_fill_rect(int x, int y, int w, int h, sdlx_color_t color, int event_id)
+{
+    sdlx_loc_t loc;
+
+    sdlx_render_fill_rect(x, y, w, h, color);
+    loc.x = x;
+    loc.y = y;
+    loc.w = w;
+    loc.h = h;
+    sdlx_register_event(&loc, event_id);
 }
 
 void reg_event_show_readme_file(void)
 {
-    reg_event(sdlx_win_width-2*sdlx_char_width(FONT_NORMAL), 0, 
-              COLOR_LIGHT_BLUE, "?", EVID_SHOW_README_FILE);
+    reg_event_str(sdlx_win_width-2*sdlx_char_width(FONT_NORMAL), 0, 
+                  COLOR_LIGHT_BLUE, "?", EVID_SHOW_README_FILE);
 }
 
 // -----------------  SERVICE REQUEST INITIALIZER  ----------------
