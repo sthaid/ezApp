@@ -2,6 +2,7 @@
 // - bring in noto fonts
 // - home end, pgup pgdn
 // - when take photo, update the scroll location in galery
+// - recreate metadata, or delete photo if bad metadata, or skip photo if bad metadata
 //
 // - replace 'TAKE' with a circle
 // - cleanup needed?
@@ -54,6 +55,7 @@
 // typedefs
 typedef struct {
     int magic;  // yyy validate magic , also add sizeof check
+    int size;
     int num;
     char day[50];
     char date[50];
@@ -815,8 +817,9 @@ metadata_t *create_and_map_metadata_file(int num)
 
     // init metadata struct fields ...
 
-    // - magic and num
+    // - magic, size and num
     md->magic = METADATA_MAGIC;
+    md->size = sizeof(metadata_t);
     md->num = num;
 
     // - date & time
@@ -878,6 +881,7 @@ metadata_t *create_and_map_metadata_file(int num)
     // debug print metadata yyy check that all fields are printed
     printf("I %s: metadata ...\n", progname);
     printf("I %s:   magic      = 0x%x\n",  progname, md->magic);
+    printf("I %s:   size       = %d\n",    progname, md->size);
     printf("I %s:   num        = %d\n",    progname, md->num);
     printf("I %s:   day        = %s\n",    progname, md->day);
     printf("I %s:   date       = %s\n",    progname, md->date);
