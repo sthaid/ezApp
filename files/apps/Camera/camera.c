@@ -1,4 +1,6 @@
 // xxx
+// - tap dispaly to show arrow controls
+// - display the photo nuber position adjust
 // - bring in noto fonts
 // - home end, pgup pgdn
 // - when take photo, update the scroll location in galery
@@ -265,7 +267,8 @@ void photo_gallery_view(void)
 
             sdlx_register_event(&dest, EVID_SHOW_PHOTO+i);
 
-            sdlx_render_printf_ex2(dest.x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
+            int tmp_x = ((dest.x == 0 && dest.y == 0) ? 40 : dest.x);
+            sdlx_render_printf_ex2(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
             sdlx_render_printf_ex2(dest.x+THUMB/2, dest.y+THUMB-sdlx_char_height(FONT_SMALL), 
                                    FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%s", md->date);
 
@@ -586,7 +589,8 @@ void show_photo(int idx)
             sdlx_render_texture(t, &src, &dest);
 
             // display photo num at top left of photo
-            sdlx_render_printf_ex2(dest.x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
+            int tmp_x = ((dest.x == 0 && dest.y == 0) ? 40 : dest.x);
+            sdlx_render_printf_ex2(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
 
             // display metadata below photo
             y = 1400;
@@ -643,6 +647,7 @@ void show_photo(int idx)
                 }
                 xc -= event.u.motion.xrel * scale * k;
                 yc -= event.u.motion.yrel * scale * k;
+                last_next_prev_time = util_microsec_timer();
                 break; }
             case EVID_PINCH:
                 if (event.u.pinch.scale == 0) break;
