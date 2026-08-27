@@ -1,12 +1,12 @@
 // xxx
+// - bring in noto fonts
+// - home end, pgup pgdn
+// - when take photo, update the scroll location in galery
+//
 // - replace 'TAKE' with a circle
 // - cleanup needed?
-// - define for 300
-// - also search for yyy
 // - in galery mode, when show photo and go back to gallery, may want to indicate which was the last photo viewed
-// - gallery mode, need control to go to top or bottom
-
-// - when take photo, update the scroll location in galery
+// - also search for yyy
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -37,21 +37,32 @@
 #define EVID_NEXT           8
 #define EVID_PREV           9
 #define EVID_NOOP           10
+#define EVID_HOME           11
+#define EVID_END            12
+#define EVID_PGUP           13
+#define EVID_PGDN           14
 #define EVID_SHOW_PHOTO     10000
 #define EVID_DELETE_PHOTO   20000
 
 #define ONE_SEC 1000000
 
+#define THUMB 475
+#define SPACING 525
+
+#define METADATA_MAGIC 0x12345678
+
 // typedefs
 typedef struct {
-    bool spare;    // xxx del,  replace with num, and add magic
+    int magic;  // yyy validate magic , also add sizeof check
+    int num;
+    char day[50];
     char date[50];
     char time[50];
     char city[50];
     char state[50];
     double latitude;
     double longitude;
-    unsigned int pixels[300*300];
+    unsigned int pixels[THUMB*THUMB];
 } metadata_t;
 
 typedef struct {
@@ -214,44 +225,50 @@ void cleanup(void)
 void photo_gallery_view(void)
 {
     sdlx_event_t    event;
-    int             x, y, h;
+    int             x, y, ctrls_h, images_h, y_last;
     sdlx_texture_t *t;
     sdlx_loc_t      dest;
     double          y_top = 0;
     bool            del_mode = false;
     bool            done = false;
 
-    t = sdlx_create_texture(300, 300);
+    t = sdlx_create_texture(THUMB, THUMB);
+
+    ctrls_h = 3.5 * sdlx_char_height_dflt;
+    images_h = sdlx_win_height - ctrls_h;  // yyx not used?
 
     while (!done && !end_program) {
         // init the backbuffer to COLOR_BLACK
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-        // xxx display, todo
-        // xxx motion scrolling
+        // xxx todo
+        // xxx optimize loop start
         for (int i = 0; i < max_photos; i++) {
-            //if (i > 10) break; //xxx
+            metadata_t *md = photos[i].md;
 
-            y = (i / 3) * 350;
-            if (y < y_top - 350) {
+            y = (i / 2) * SPACING;
+            if (y < y_top - SPACING) {
                 continue;
             }
             if (y > y_top + sdlx_win_height) {
                 break;
             }
 
-            sdlx_set_texture_pixels(t, photos[i].md->pixels);
-            dest.x = (i % 3) * 350;
-            //dest.y = (i / 3) * 350;
+            sdlx_set_texture_pixels(t, md->pixels);
+            dest.x = (i % 2) * SPACING;
             dest.y = y - y_top;
-            dest.w = 300;
-            dest.h = 300;
+            dest.w = THUMB;
+            dest.h = THUMB;
             sdlx_render_texture(t, NULL, &dest);
 
             sdlx_register_event(&dest, EVID_SHOW_PHOTO+i);
 
+            sdlx_render_printf_ex2(dest.x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
+            sdlx_render_printf_ex2(dest.x+THUMB/2, dest.y+THUMB-sdlx_char_height(FONT_SMALL), 
+                                   FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%s", md->date);
+
             if (del_mode) {
-                x = dest.x + 300 - sdlx_char_width_dflt;
+                x = dest.x + THUMB - sdlx_char_width_dflt;
                 y = dest.y;
                 reg_event_str(x, y, COLOR_RED, "X", EVID_DELETE_PHOTO+i);
             }
@@ -262,15 +279,22 @@ void photo_gallery_view(void)
             reg_event_show_readme_file();
         }
 
-        h = 2 * sdlx_char_height_dflt;
-        reg_event_fill_rect(0, sdlx_win_height-h, sdlx_win_width, h, COLOR_BLACK, EVID_NOOP);
+        reg_event_fill_rect(0, sdlx_win_height-ctrls_h, sdlx_win_width, ctrls_h, COLOR_BLACK, EVID_NOOP);
 
-        y = sdlx_win_height - 1.5 * sdlx_char_height_dflt;
-        reg_event_str(0, y, COLOR_LIGHT_BLUE, "DEL", EVID_DEL);
-        reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "VIEW", EVID_VIEW);
+        y = sdlx_win_height - ROW2Y(3);
+
+        reg_event_str(COL2X(0), y, COLOR_LIGHT_BLUE, "Home", EVID_HOME);
+        reg_event_str(COL2X(7), y, COLOR_LIGHT_BLUE, "Up", EVID_PGUP);
+        reg_event_str(COL2X(12), y, COLOR_LIGHT_BLUE, "Dn", EVID_PGDN);
+        reg_event_str(COL2X(17), y, COLOR_LIGHT_BLUE, "End", EVID_END);
+
+        y += 1.5 * sdlx_char_height_dflt;
+        reg_event_str(0, y, COLOR_LIGHT_BLUE, "Del", EVID_DEL);
+        reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "View", EVID_VIEW);
+
         sdlx_register_event(NULL, EVID_MOTION);
 
-        sdlx_register_control_events(EVID_STG, "STG", EVID_TAKE, "TAKE", EVID_QUIT, "X");
+        sdlx_register_control_events(EVID_STG, "Stg", EVID_TAKE, "Take", EVID_QUIT, "X");
 
         // present the display
         sdlx_display_present();
@@ -290,22 +314,34 @@ void photo_gallery_view(void)
             show_photo(idx);
         } else {
             switch (event.event_id) {
-            case EVID_SHOW_README_FILE:
-                show_file(data_dir, "README");
-                break;
-            case EVID_MOTION:
-                y_top -= event.u.motion.yrel;
-                if (y_top < 0) y_top = 0;
-                printf("y_top %f\n", y_top);
-                break;
             case EVID_QUIT:
                 end_program = true;
                 break;
+            case EVID_SHOW_README_FILE:
+                show_file(data_dir, "README");
+                break;
             case EVID_TAKE:
                 take_photo();
+                y_last = (max_photos == 0 ? 0 : ((max_photos + 1) / 2 - 1) * SPACING);
+                y_top = y_last - 2 * SPACING;
                 break;
             case EVID_DEL:
                 del_mode = !del_mode;
+                break;
+            case EVID_MOTION:
+                y_top -= event.u.motion.yrel;
+                break;
+            case EVID_HOME:
+                y_top = 0;
+                break;
+            case EVID_END:
+                y_top = 1e99; //xxx do this like take
+                break;
+            case EVID_PGUP:
+                y_top -= (3 * SPACING);
+                break;
+            case EVID_PGDN:
+                y_top += (3 * SPACING);
                 break;
             case EVID_VIEW:
                 view = LOCATION_VIEW;
@@ -315,6 +351,11 @@ void photo_gallery_view(void)
                 settings();
                 break;
             }
+
+            y_last = (max_photos == 0 ? 0 : ((max_photos + 1) / 2 - 1) * SPACING);
+
+            if (y_top > y_last - 2 * SPACING) y_top = y_last - 2 * SPACING;
+            if (y_top < 0) y_top = 0;
         }
     }
 
@@ -464,7 +505,7 @@ void delete_photo(int idx)
 
 // ------------------ SHOW PHOTO -----------------------
 
-// xxx tighten up this routine, what?
+// yyy tighten up this routine, what?
 
 void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest);
 
@@ -487,7 +528,7 @@ void show_photo(int idx)
     bool            done = false;
     bool            restart = false;
 
-    int orientation = PORTRAIT; // xxx ?
+    int orientation = PORTRAIT; // yyy ?
 
     // check idx arg
     if (idx < 0 || idx >= max_photos) {
@@ -495,11 +536,11 @@ void show_photo(int idx)
         return;
     }
 
-    // xxx comment
+    // yyy comment
     do {
         restart = false;
 
-        // xxx
+        // yyy
         num = photos[idx].num;
         if (num <= 0) {
             printf("E %s: invalid num %d\n", progname, num);
@@ -515,7 +556,7 @@ void show_photo(int idx)
         sprintf(file, "%06d.jpg", num);
         printf("I %s: show photo %s\n", progname, file);
 
-        // create texture xxx check pixels return
+        // create texture yyy check pixels return
         pixels = jpeg_file_to_rgba_pixels(photos_dir, file, &jpeg_w, &jpeg_h);
         if (t != NULL && (jpeg_w != texture_w || jpeg_h != texture_h)) {
             sdlx_destroy_texture(t);
@@ -529,23 +570,25 @@ void show_photo(int idx)
         sdlx_set_texture_pixels(t, pixels);
         free(pixels);
 
-        // xxx
+        // yyy
         xc = jpeg_w / 2;
         yc = jpeg_h / 2;
         scale = 1;
             
-        // xxx need arrow keys
         while (!done && !restart) {
             // init the backbuffer to COLOR_BLACK
             sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-            // xxx comment
+            // yyy comment
             get_src_and_dest(&src, &dest);
             sdlx_render_texture(t, &src, &dest);
 
-            // display metadata
+            // display photo num at top left of photo
+            sdlx_render_printf_ex2(dest.x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
+
+            // display metadata below photo
             y = 1400;
-            sdlx_render_printf(0, y, "%s\n%s", md->date, md->time);
+            sdlx_render_printf(0, y, "%s %s\n%s", md->day, md->date, md->time);
             y += 2 * sdlx_char_height_dflt;
             if (md->city[0] != '\0') {
                 sdlx_render_printf(0, y, "%s", md->city);
@@ -574,7 +617,7 @@ void show_photo(int idx)
 
             sdlx_register_event(NULL, EVID_PINCH);
             sdlx_register_event(NULL, EVID_MOTION);
-            sdlx_register_control_events(EVID_RST, "RST", EVID_TAKE, "TAKE", EVID_QUIT, "X");
+            sdlx_register_control_events(EVID_RST, "Rst", EVID_TAKE, "Take", EVID_QUIT, "X");
 
             // present the display
             sdlx_display_present();
@@ -636,7 +679,7 @@ void show_photo(int idx)
     t = NULL;
 }
 
-// xxx use nearbyint
+// yyy use nearbyint
 void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
 {
     double aspect;
@@ -658,7 +701,7 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
 
     // if src region extends beyond the bounds of the image
     // then adjust src to keep it within the image bounds
-    // xxx cleanup, move prints to bottom, etc
+    // yyy cleanup, move prints to bottom, etc
     if (src->x < 0) {
         src->x = 0;
         xc = src->x + src->w / 2;
@@ -674,8 +717,8 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
         yc = src->y + src->h / 2;
     }
 
-#if 0 // xxx also print the first Src
-    // xxx update prints with progname
+#if 0 // yyy also print the first Src
+    // yyy update prints with progname
     printf("ASPECT = %f\n", aspect);
     printf("SRC %d %d - %d %d\n", src->x, src->y, src->w, src->h);
     printf("DST %d %d - %d %d\n", dest->x, dest->y, dest->w, dest->h);
@@ -772,10 +815,15 @@ metadata_t *create_and_map_metadata_file(int num)
 
     // init metadata struct fields ...
 
+    // - magic and num
+    md->magic = METADATA_MAGIC;
+    md->num = num;
+
     // - date & time
     t = time(NULL);
     tm = localtime(&t);
-    strftime(md->date, sizeof(md->date), "%a %b %d %Y", tm);
+    strftime(md->day, sizeof(md->day), "%a", tm);
+    strftime(md->date, sizeof(md->date), "%b %d %Y", tm);
     strftime(md->time, sizeof(md->time), "%H:%M %Z", tm);
 
     // - latitude & longitude
@@ -815,13 +863,13 @@ metadata_t *create_and_map_metadata_file(int num)
 
     // - pixels
     sprintf(photo_filename, "%06d.jpg", num);
-    pixels = jpeg_file_to_rgba_pixels_scaled(photos_dir, photo_filename, 300, 300);
+    pixels = jpeg_file_to_rgba_pixels_scaled(photos_dir, photo_filename, THUMB, THUMB);
     if (pixels == NULL) {
         util_unmap_file(md, sizeof(metadata_t));
         util_delete_file(photos_dir, metadata_filename);
         return NULL;
     }
-    memcpy(md->pixels, pixels, 4*300*300);
+    memcpy(md->pixels, pixels, 4*THUMB*THUMB);
     free(pixels);
 
     // sync the metadata file to storage
@@ -829,6 +877,9 @@ metadata_t *create_and_map_metadata_file(int num)
 
     // debug print metadata yyy check that all fields are printed
     printf("I %s: metadata ...\n", progname);
+    printf("I %s:   magic      = 0x%x\n",  progname, md->magic);
+    printf("I %s:   num        = %d\n",    progname, md->num);
+    printf("I %s:   day        = %s\n",    progname, md->day);
     printf("I %s:   date       = %s\n",    progname, md->date);
     printf("I %s:   time       = %s\n",    progname, md->time);
     printf("I %s:   city       = %s\n",    progname, md->city);
