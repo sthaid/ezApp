@@ -51,6 +51,10 @@
 
 #define METADATA_MAGIC 0x12345678
 
+// large filled circle char, U+2B24,
+// picoc does not support syntax "\u2B24"
+#define TAKE "\xE2\xAC\xA4"
+
 // typedefs
 typedef struct {
     int magic;  // xxx validate magic , also add sizeof check
@@ -205,7 +209,7 @@ void cleanup(void)
 void photo_gallery_view(void)
 {
     sdlx_event_t    event;
-    int             x, y, ctrls_h, y_last;
+    int             x, y, y_last;
     sdlx_texture_t *t;
     sdlx_loc_t      dest;
     double          y_top = 0;
@@ -214,7 +218,6 @@ void photo_gallery_view(void)
 
     // init
     t = sdlx_create_texture(THUMB, THUMB);
-    ctrls_h = 3.5 * sdlx_char_height_dflt;
 
     while (!done && !end_program) {
         // init the backbuffer to COLOR_BLACK
@@ -260,21 +263,22 @@ void photo_gallery_view(void)
             reg_event_show_readme_file();
         }
 
-        reg_event_fill_rect(0, sdlx_win_height-ctrls_h, sdlx_win_width, ctrls_h, COLOR_BLACK, EVID_NOOP);
+        int ctrls_h = 300;
+        reg_event_fill_rect(0, sdlx_win_height-ctrls_h-25, sdlx_win_width, ctrls_h+25, COLOR_BLACK, EVID_NOOP);
 
-        y = sdlx_win_height - ROW2Y(3);
+        y = sdlx_win_height - ctrls_h + (150 - sdlx_char_height_dflt) / 2;
         reg_event_str(COL2X(0), y, COLOR_LIGHT_BLUE, "Home", EVID_HOME);
         reg_event_str(COL2X(7), y, COLOR_LIGHT_BLUE, "Up", EVID_PGUP);
         reg_event_str(COL2X(12), y, COLOR_LIGHT_BLUE, "Dn", EVID_PGDN);
         reg_event_str(COL2X(17), y, COLOR_LIGHT_BLUE, "End", EVID_END);
 
-        y += 1.5 * sdlx_char_height_dflt;
+        y += 150;
         reg_event_str(0, y, COLOR_LIGHT_BLUE, "Del", EVID_DEL);
         reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "View", EVID_VIEW);
 
         sdlx_register_event(NULL, EVID_MOTION);
 
-        sdlx_register_control_events(EVID_STG, "Stg", EVID_TAKE, "Take", EVID_QUIT, "X");
+        sdlx_register_control_events(EVID_STG, "Stg", EVID_TAKE, TAKE, EVID_QUIT, "X");
 
         // present the display
         sdlx_display_present();
@@ -363,7 +367,7 @@ void photo_location_view(void)
         reg_event_str(0, y, COLOR_LIGHT_BLUE, "CTR", EVID_CTR);
         reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "VIEW", EVID_VIEW);
         sdlx_register_event(NULL, EVID_MOTION);
-        sdlx_register_control_events(EVID_STG, "STG", EVID_TAKE, "TAKE", EVID_QUIT, "X");
+        sdlx_register_control_events(EVID_STG, "STG", EVID_TAKE, TAKE, EVID_QUIT, "X");
 
         // present the display
         sdlx_display_present();
@@ -615,7 +619,7 @@ void show_photo(int idx)
 
             sdlx_register_event(NULL, EVID_PINCH);
             sdlx_register_event(NULL, EVID_MOTION);
-            sdlx_register_control_events(EVID_RST, "Rst", EVID_TAKE, "Take", EVID_QUIT, "X");
+            sdlx_register_control_events(EVID_RST, "Rst", EVID_TAKE, TAKE, EVID_QUIT, "X");
 
             // present the display
             sdlx_display_present();

@@ -12,7 +12,7 @@
 // defines
 // 
 
-#define FONT_FILE_PATH  "FreeMonoBold.ttf"
+#define FONT_FILE_PATH  "fonts/FreeMonoBold.ttf"
 
 #define ONE_MS 1000
 #define TEN_MS 10000

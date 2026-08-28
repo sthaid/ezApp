@@ -275,6 +275,7 @@ try_again:
     return;
 }
 
+// xxx review prints in here
 static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
 {
     #define AT_LOC(X,Y,loc) (((X) >= (loc).x)            && \
@@ -283,15 +284,12 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
                              ((Y) <  (loc).y + (loc).h))
 
     int i;
+    static double total_motion;
     static bool pinching;
 
     switch (ev->type) {
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP: {
-        static int last_pressed_x = -1;
-        static int last_pressed_y = -1;
-        int x, y;
-
         if (pinching) {
             break;
         }
@@ -304,48 +302,58 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         //        ev->button.x,
         //        ev->button.y);
 
-        x = ev->button.x / scale_events_x;
-        y = ev->button.y / scale_events_y;
-
         if (ev->button.down) {
-            last_pressed_x = x;
-            last_pressed_y = y;
+            total_motion = 0;
         } else {
+            int x, y;  //xxx comments
+
+            x = ev->button.x / scale_events_x;
+            y = ev->button.y / scale_events_y;
+
+            if (total_motion > 50) {
+                break;
+            }
+
             for (i = max_event-1; i >= 0; i--) {
                 if (AT_LOC(x, y, event_tbl[i].loc)) {
                     break;
                 }
             }
-            // xxx should this match 
-            // xxx perhaps require minimum deviation to trigger an event
-            if (i >= 0 && AT_LOC(last_pressed_x, last_pressed_y, event_tbl[i].loc)) {
+
+            if (i >= 0) {
                 event->event_id = event_tbl[i].event_id;
             }
         }
         break; }
 
     case SDL_EVENT_MOUSE_MOTION: {
+        if ((ev->motion.state & SDL_BUTTON_LMASK) != 0) {
+            total_motion += fabs(ev->motion.xrel/scale_events_x) + fabs(ev->motion.yrel/scale_events_y);
+        }
+
+        // consolidate possible additional MOUSE_MOTION events into this event
+        while (true) {
+            SDL_Event tmp_ev;
+            int rc = SDL_PeepEvents(
+                        &tmp_ev, 1, SDL_GETEVENT,
+                        SDL_EVENT_MOUSE_MOTION, SDL_EVENT_MOUSE_MOTION);
+            if (rc != 1) break;
+            if ((tmp_ev.motion.state & SDL_BUTTON_LMASK) == 0) break;
+
+            total_motion += fabs(tmp_ev.motion.xrel/scale_events_x) + fabs(tmp_ev.motion.yrel/scale_events_y);
+
+            ev->motion.x     = tmp_ev.motion.x;
+            ev->motion.y     = tmp_ev.motion.y;
+            ev->motion.xrel += tmp_ev.motion.xrel;
+            ev->motion.yrel += tmp_ev.motion.yrel;
+        }
+
         if ((ev->motion.state & SDL_BUTTON_LMASK) && evid_motion_registered && !pinching) {
             //INFO("MOUSE_MOTION x=%f y=%f xrel=%f yrel=%f\n",
             //    ev->motion.x,
             //    ev->motion.y,
             //    ev->motion.xrel,
             //    ev->motion.yrel);
-
-            // consolidate possible additional MOUSE_MOTION events into this event
-            while (true) {
-                SDL_Event tmp_ev;
-                int rc = SDL_PeepEvents(
-                            &tmp_ev, 1, SDL_GETEVENT,
-                            SDL_EVENT_MOUSE_MOTION, SDL_EVENT_MOUSE_MOTION);
-                if (rc != 1) break;
-                if ((tmp_ev.motion.state & SDL_BUTTON_LMASK) == 0) break;
-
-                ev->motion.x     = tmp_ev.motion.x;
-                ev->motion.y     = tmp_ev.motion.y;
-                ev->motion.xrel += tmp_ev.motion.xrel;
-                ev->motion.yrel += tmp_ev.motion.yrel;
-            }
 
             event->event_id = EVID_MOTION;
             if (orientation == PORTRAIT) {

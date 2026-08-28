@@ -1485,8 +1485,8 @@ static void page_13_draw(void)
 
 // -----------------  PAGE 14: CAMERA  ------------------------
 
-#define EVID_TAKE_PICTURE 10
-#define EVID_RESET_PICTURE 11
+#define EVID_TAKE_PHOTO  10
+#define EVID_RESET_PHOTO 11
 
 sdlx_texture_t *t;
 double          xc, yc, scale;
@@ -1561,14 +1561,14 @@ static void page_14_draw(void)
         sdlx_render_texture(t, &src, &dest);
     }
 
-    // register events to TAKE_PICTURE, and RESET_PICTURE pan/zoom
+    // register events to TAKE_PHOTO, and RESET_PHOTO pan/zoom
     loc = sdlx_render_printf_ex1(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-2*sdlx_char_height_dflt, 
                                  FONT_NORMAL, COLOR_LIGHT_BLUE, "TAKE");
-    sdlx_register_event(loc, EVID_TAKE_PICTURE);
+    sdlx_register_event(loc, EVID_TAKE_PHOTO);
 
     loc = sdlx_render_printf_ex1(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-4*sdlx_char_height_dflt, 
                                  FONT_NORMAL, COLOR_LIGHT_BLUE, "RESET");
-    sdlx_register_event(loc, EVID_RESET_PICTURE);
+    sdlx_register_event(loc, EVID_RESET_PHOTO);
 
     // register for MOTION and PINCH events
     sdlx_register_event(NULL, EVID_MOTION);
@@ -1581,15 +1581,15 @@ static void page_14_process_event(sdlx_event_t *ev)
     unsigned int *out_pixels;
 
     switch (ev->event_id) {
-    case EVID_TAKE_PICTURE:
-        // take the picture, this should create file tmp/photo.hpg
-        printf("I %s: calling take_picture\n", progname);
-        rc = util_take_picture();
+    case EVID_TAKE_PHOTO:
+        // take the photo, this should create file tmp/photo.hpg
+        printf("I %s: calling take_photo\n", progname);
+        rc = util_take_photo();
         if (rc != 0) {
-            printf("E %s: util_take_picture failed\n", progname);
+            printf("E %s: util_take_photo failed\n", progname);
             break;
         }
-        printf("I %s: back from take_picture\n", progname);
+        printf("I %s: back from take_photo\n", progname);
 
         // decode photo.jpg, this call returns out_pixels,
         rc = util_decode_jpeg_to_raw("tmp", "photo.jpg", &jpeg_w, &jpeg_h, &out_pixels);
@@ -1653,7 +1653,7 @@ static void page_14_process_event(sdlx_event_t *ev)
         scale /= ev->u.pinch.scale;
         if (scale > 1) scale = 1;
         break;
-    case EVID_RESET_PICTURE:
+    case EVID_RESET_PHOTO:
         xc = jpeg_w / 2;
         yc = jpeg_h / 2;
         scale = 1;
