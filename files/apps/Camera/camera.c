@@ -1,15 +1,12 @@
 // xxx
-// - tap dispaly to show arrow controls
-// - display the photo nuber position adjust
 // - bring in noto fonts
-// - home end, pgup pgdn
-// - when take photo, update the scroll location in galery
 // - recreate metadata, or delete photo if bad metadata, or skip photo if bad metadata
-//
 // - replace 'TAKE' with a circle
-// - cleanup needed?
 // - in galery mode, when show photo and go back to gallery, may want to indicate which was the last photo viewed
-// - also search for yyy
+// - make script to create the test files
+// - change the large EVID numbers to 1000000000
+
+// - full review and comments
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -56,7 +53,7 @@
 
 // typedefs
 typedef struct {
-    int magic;  // yyy validate magic , also add sizeof check
+    int magic;  // xxx validate magic , also add sizeof check
     int size;
     int num;
     char day[50];
@@ -152,23 +149,9 @@ void init(void)
     // init global variable photos_dir
     sprintf(photos_dir, "%s/photos", data_dir);
 
-#if 0 // yyy del
-    // make test files
-    for (int i = 20; i < 1000; i++) {
-        char dest[100];
-        printf("i = %d\n", i);
-        sprintf(dest, "%06d.jpg", i);
-        util_copy_file(photos_dir, "000015.jpg", photos_dir, dest);
-        sprintf(dest, "%06d.meta", i);
-        util_copy_file(photos_dir, "000015.meta", photos_dir, dest);
-    }
-#endif
-
     // initialize the photos array using sorted list of jpg 
     // files that are in the photos dir
-
     t_start = util_microsec_timer();
-
     sprintf(cmd, "find %s -type f -name \"*.jpg\" | sort", photos_dir);
     fp = popen(cmd, "r");
     while (fgets(s, sizeof(s), fp) != NULL) {
@@ -194,6 +177,7 @@ void init(void)
 
         // if photos array is full then break
         if (max_photos == MAX_PHOTOS) {
+            printf("E %s: photos array is full\n", progname);
             break;
         }
     }
@@ -201,14 +185,6 @@ void init(void)
 
     printf("I %s: init complete, max_photos = %d  duration = %ld ms\n", 
           progname, max_photos, (util_microsec_timer() - t_start) / 1000);
-
-#if 0 // yyy del
-    // debug print the photos list
-    printf("I %s: max_photos = %d\n", progname, max_photos);
-    for (int i = 0; i < max_photos; i++) {
-        printf("I %s: photo num = %d  md = %p\n", progname, photos[i].num, photos[i].md);
-    }
-#endif
 }
 
 void cleanup(void)
@@ -229,17 +205,16 @@ void cleanup(void)
 void photo_gallery_view(void)
 {
     sdlx_event_t    event;
-    int             x, y, ctrls_h, images_h, y_last;
+    int             x, y, ctrls_h, y_last;
     sdlx_texture_t *t;
     sdlx_loc_t      dest;
     double          y_top = 0;
     bool            del_mode = false;
     bool            done = false;
 
+    // init
     t = sdlx_create_texture(THUMB, THUMB);
-
     ctrls_h = 3.5 * sdlx_char_height_dflt;
-    images_h = sdlx_win_height - ctrls_h;  // yyx not used?
 
     while (!done && !end_program) {
         // init the backbuffer to COLOR_BLACK
@@ -247,6 +222,7 @@ void photo_gallery_view(void)
 
         // xxx todo
         // xxx optimize loop start
+        // xxx comment
         for (int i = 0; i < max_photos; i++) {
             metadata_t *md = photos[i].md;
 
@@ -287,7 +263,6 @@ void photo_gallery_view(void)
         reg_event_fill_rect(0, sdlx_win_height-ctrls_h, sdlx_win_width, ctrls_h, COLOR_BLACK, EVID_NOOP);
 
         y = sdlx_win_height - ROW2Y(3);
-
         reg_event_str(COL2X(0), y, COLOR_LIGHT_BLUE, "Home", EVID_HOME);
         reg_event_str(COL2X(7), y, COLOR_LIGHT_BLUE, "Up", EVID_PGUP);
         reg_event_str(COL2X(12), y, COLOR_LIGHT_BLUE, "Dn", EVID_PGDN);
@@ -304,7 +279,7 @@ void photo_gallery_view(void)
         // present the display
         sdlx_display_present();
 
-        // wait for an event, with timeout
+        // wait for an event, with 1 sec timeout
         sdlx_get_event(ONE_SEC, &event);
         if (event.event_id == -1) {
             continue;
@@ -340,7 +315,8 @@ void photo_gallery_view(void)
                 y_top = 0;
                 break;
             case EVID_END:
-                y_top = 1e99; //xxx do this like take
+                y_last = (max_photos == 0 ? 0 : ((max_photos + 1) / 2 - 1) * SPACING);
+                y_top = y_last - 2 * SPACING;
                 break;
             case EVID_PGUP:
                 y_top -= (3 * SPACING);
@@ -357,8 +333,8 @@ void photo_gallery_view(void)
                 break;
             }
 
+            // limit the min/max value of y_top 
             y_last = (max_photos == 0 ? 0 : ((max_photos + 1) / 2 - 1) * SPACING);
-
             if (y_top > y_last - 2 * SPACING) y_top = y_last - 2 * SPACING;
             if (y_top < 0) y_top = 0;
         }
@@ -375,11 +351,13 @@ void photo_location_view(void)
     int y;
     bool done = false;
 
+    // xxx todo
+    // - add pinch event
     while (!done && !end_program) {
         // init the backbuffer to COLOR_BLACK
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-        // register events yyy add pinch
+        // register events
         reg_event_show_readme_file();
         y = sdlx_win_height - 1.5 * sdlx_char_height_dflt;
         reg_event_str(0, y, COLOR_LIGHT_BLUE, "CTR", EVID_CTR);
@@ -390,7 +368,7 @@ void photo_location_view(void)
         // present the display
         sdlx_display_present();
 
-        // wait for event, with timeout
+        // wait for event, with 1 sec timeout
         sdlx_get_event(ONE_SEC, &event);
         if (event.event_id == -1) {
             continue;
@@ -438,7 +416,7 @@ int take_photo(void)
         return -1;
     }
 
-    // determine next photo num
+    // determine the photo number
     if (max_photos == 0) {
         num = 1;
     } else {
@@ -510,8 +488,6 @@ void delete_photo(int idx)
 
 // ------------------ SHOW PHOTO -----------------------
 
-// yyy tighten up this routine, what?
-
 void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest);
 
 int jpeg_w, jpeg_h;
@@ -533,19 +509,17 @@ void show_photo(int idx)
     bool            done = false;
     bool            restart = false;
 
-    int orientation = PORTRAIT; // yyy ?
-
     // check idx arg
     if (idx < 0 || idx >= max_photos) {
         printf("E %s: idx %d out of range 0..%d\n", progname, idx, max_photos);
         return;
     }
 
-    // yyy comment
+    // this loop supports moving to the next or prev photo
     do {
         restart = false;
 
-        // yyy
+        // get the photo num and the metadata ptr
         num = photos[idx].num;
         if (num <= 0) {
             printf("E %s: invalid num %d\n", progname, num);
@@ -561,34 +535,52 @@ void show_photo(int idx)
         sprintf(file, "%06d.jpg", num);
         printf("I %s: show photo %s\n", progname, file);
 
-        // create texture yyy check pixels return
+        // get jpeg pixels, and jpeg width & height;
+        // create texture 't', with the jpeg_w,jpeg_h dimensions
+        // copy the pixels to the texture 't'
         pixels = jpeg_file_to_rgba_pixels(photos_dir, file, &jpeg_w, &jpeg_h);
+        if (pixels == NULL) {
+            printf("E %s: jpeg_file_to_rgba_pixels returned NULL\n", progname);
+            if (t != NULL) {
+                sdlx_destroy_texture(t);
+                t = NULL; texture_w = 0; texture_h = 0;
+            }
+            return;
+        }
         if (t != NULL && (jpeg_w != texture_w || jpeg_h != texture_h)) {
             sdlx_destroy_texture(t);
             t = NULL; texture_w = 0; texture_h = 0;
         }
         if (t == NULL) {
             t = sdlx_create_texture(jpeg_w, jpeg_h);
+            if (t == NULL) {
+                printf("E %s: sdlx_create_texture failed\n", progname);
+                return;
+            }
             texture_w = jpeg_w;
             texture_h = jpeg_h;
         }
         sdlx_set_texture_pixels(t, pixels);
         free(pixels);
 
-        // yyy
+        // init scale and center, so that the full photo will be displayed
         xc = jpeg_w / 2;
         yc = jpeg_h / 2;
         scale = 1;
             
+        // display the photo and handle events, 
+        // until eiter the EVID_QUIT or EVID_NEXT/PREV envents rcvd
         while (!done && !restart) {
             // init the backbuffer to COLOR_BLACK
             sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-            // yyy comment
+            // display the scaled photo
             get_src_and_dest(&src, &dest);
             sdlx_render_texture(t, &src, &dest);
 
-            // display photo num at top left of photo
+            // display photo num at top left of photo;
+            // the x coord is adjusted when at the top left of the photo because
+            //  that is mostly obscured by the bezel
             int tmp_x = ((dest.x == 0 && dest.y == 0) ? 40 : dest.x);
             sdlx_render_printf_ex2(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
 
@@ -628,7 +620,7 @@ void show_photo(int idx)
             // present the display
             sdlx_display_present();
 
-            // wait for an event, with timeout
+            // wait for an event, with 1 sec timeout
             sdlx_get_event(ONE_SEC, &event);
             if (event.event_id == -1) {
                 continue;
@@ -640,11 +632,7 @@ void show_photo(int idx)
                 break;
             case EVID_MOTION: {
                 double k;
-                if (orientation == PORTRAIT) {
-                    k = (double)jpeg_w / sdlx_win_width;
-                } else {
-                    k = (double)jpeg_h / sdlx_win_height;
-                }
+                k = (double)jpeg_w / sdlx_win_width;
                 xc -= event.u.motion.xrel * scale * k;
                 yc -= event.u.motion.yrel * scale * k;
                 last_next_prev_time = util_microsec_timer();
@@ -686,11 +674,11 @@ void show_photo(int idx)
     t = NULL;
 }
 
-// yyy use nearbyint
 void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
 {
     double aspect;
 
+    // determine the src image rectangle
     src->w = jpeg_w * scale;
     src->h = jpeg_h;
     aspect = (double)src->h / src->w;
@@ -701,6 +689,7 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
     src->x = xc - src->w / 2;
     src->y = yc - src->h / 2;
 
+    // determine the destination (display) rectangle
     dest->w = 1000;
     dest->h = aspect * dest->w;
     dest->x = 0;
@@ -708,7 +697,6 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
 
     // if src region extends beyond the bounds of the image
     // then adjust src to keep it within the image bounds
-    // yyy cleanup, move prints to bottom, etc
     if (src->x < 0) {
         src->x = 0;
         xc = src->x + src->w / 2;
@@ -724,8 +712,8 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
         yc = src->y + src->h / 2;
     }
 
-#if 0 // yyy also print the first Src
-    // yyy update prints with progname
+#if 0
+    // debug prints
     printf("ASPECT = %f\n", aspect);
     printf("SRC %d %d - %d %d\n", src->x, src->y, src->w, src->h);
     printf("DST %d %d - %d %d\n", dest->x, dest->y, dest->w, dest->h);
@@ -736,12 +724,13 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
 
 void settings(void)
 {
-    // yyy todo
+    // xxx todo
     return;
 }
 
 // ------------------ UTILS ----------------------------
 
+// caller must free returned pixels
 unsigned int *jpeg_file_to_rgba_pixels(char *dir, char *file, int *w_arg, int *h_arg)
 {
     int           rc, w, h;
@@ -760,6 +749,7 @@ unsigned int *jpeg_file_to_rgba_pixels(char *dir, char *file, int *w_arg, int *h
     return pixels;
 }
 
+// caller must free returned pixels
 unsigned int *jpeg_file_to_rgba_pixels_scaled(char *dir, char *file, int w, int h)
 {
     int jpeg_w, jpeg_h, rc;
@@ -822,7 +812,7 @@ metadata_t *create_and_map_metadata_file(int num)
 
     // init metadata struct fields ...
 
-    // - magic, size and num
+    // - magic, size, num
     md->magic = METADATA_MAGIC;
     md->size = sizeof(metadata_t);
     md->num = num;
@@ -883,7 +873,7 @@ metadata_t *create_and_map_metadata_file(int num)
     // sync the metadata file to storage
     util_sync_file(md, sizeof(metadata_t));
 
-    // debug print metadata yyy check that all fields are printed
+    // debug print metadata
     printf("I %s: metadata ...\n", progname);
     printf("I %s:   magic      = 0x%x\n",  progname, md->magic);
     printf("I %s:   size       = %d\n",    progname, md->size);
