@@ -206,6 +206,10 @@ static void page_hndlr()
         // draw title line
         sdlx_render_printf_ex2(sdlx_win_width/2, 50, FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%s", page_title[pagenum]);
 
+        // xxx del
+        sdlx_render_printf_ex2(sdlx_win_width/2, 150, FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
+            "xxx%sxxx%sxxx\u0042xxx", "\u2b24", "\u2b24");
+
         // draw display
         switch (pagenum) {
         case 0: page_0_draw(); break;

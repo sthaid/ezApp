@@ -28,7 +28,7 @@ static enum LexToken LexGetNumber(Picoc *pc, struct LexState *Lexer, struct Valu
 static enum LexToken LexGetWord(Picoc *pc, struct LexState *Lexer, struct Value *Value);
 static unsigned char LexUnEscapeCharacterConstant(const char **From,
     unsigned char FirstChar, int Base);
-static unsigned char LexUnEscapeCharacter(const char **From, const char *End);
+static unsigned char LexUnEscapeCharacter(const char **From, const char *End, unsigned char *utf8, Picoc *pc);
 static enum LexToken LexGetStringConstant(Picoc *pc, struct LexState *Lexer,
     struct Value *Value, char EndChar);
 static enum LexToken LexGetCharacterConstant(Picoc *pc, struct LexState *Lexer,
@@ -326,10 +326,50 @@ unsigned char LexUnEscapeCharacterConstant(const char **From,
     return Total;
 }
 
+/* return 0 for success, -1 for error */
+int code_point_to_utf8(unsigned int cp, unsigned char *utf8)
+{
+    memset(utf8, 0, 4);
+
+    if (cp == 0) {
+        return -1;
+    } else if (cp <= 0x7F) {
+        utf8[0] = (unsigned char)cp;
+        return 0;
+    } else if (cp <= 0x7FF) {
+        utf8[0] = (unsigned char)((cp >> 6) | 0xC0);
+        utf8[1] = (unsigned char)((cp & 0x3F) | 0x80);
+        return 0;
+    } else if (cp <= 0xFFFF) {
+        utf8[0] = (unsigned char)((cp >> 12) | 0xE0);
+        utf8[1] = (unsigned char)(((cp >> 6) & 0x3F) | 0x80);
+        utf8[2] = (unsigned char)((cp & 0x3F) | 0x80);
+        return 0;
+    } else if (cp <= 0x10FFFF) {
+        utf8[0] = (unsigned char)((cp >> 18) | 0xF0);
+        utf8[1] = (unsigned char)(((cp >> 12) & 0x3F) | 0x80);
+        utf8[2] = (unsigned char)(((cp >> 6) & 0x3F) | 0x80);
+        utf8[3] = (unsigned char)((cp & 0x3F) | 0x80);
+        return 0;
+    }
+    return -1;
+}
+
 /* unescape a character from a string or character constant */
-unsigned char LexUnEscapeCharacter(const char **From, const char *End)
+/* utf8 buffer is optional, if provided it must be at least 5 bytes, and initialized to zero */
+unsigned char LexUnEscapeCharacter(const char **From, const char *End, unsigned char *utf8, Picoc *pc)
 {
     unsigned char ThisChar;
+
+    /* if a utf8 char is available then return it */
+    if (utf8 && utf8[0]) {
+        unsigned char ret_char = utf8[0];
+        memmove(utf8, utf8+1, 4);
+        if (utf8[0] == 0) {
+            *From += 4;
+        }
+        return ret_char;
+    }
 
     while (*From != End && **From == '\\' &&
             &(*From)[1] != End && (*From)[1] == '\n' )
@@ -378,12 +418,51 @@ unsigned char LexUnEscapeCharacter(const char **From, const char *End)
             return LexUnEscapeCharacterConstant(From, ThisChar, 8);
         case 'x':
             return LexUnEscapeCharacterConstant(From, '0', 16);
+        case 'u': {
+            char s[5], *end;
+            unsigned int cp;
+
+            /* if utf8 buffer not provided then error */
+            if (!utf8) {
+                ProgramFailNoParser(pc, "utf8 must be in a string");
+                return 0;
+            }
+
+            /* if less than 4 chars in From then error */
+            if (End - *From < 4) {
+                ProgramFailNoParser(pc, "utf8 string too short");
+                return 0;
+            }
+
+            /* convert 4 chars of the From str to code point */
+            memcpy(s, *From, 4);
+            s[4] = '\0';
+            cp = strtol(s, &end, 16);
+            if (*end != '\0') {
+                ProgramFailNoParser(pc, "utf8 must contain 4 hex digits");
+                return 0;
+            }
+
+            /* convert code point to utf8 array */
+            if (code_point_to_utf8(cp, utf8) == -1) {
+                ProgramFailNoParser(pc, "utf8 invalid code point 0x%04x", cp);
+                return 0;
+            }
+
+            /* return first utf8 char */
+            unsigned char ret_char = utf8[0];
+            memmove(utf8, utf8+1, 4);
+            if (utf8[0] == 0) {
+                *From += 4;
+            }
+            return ret_char;
+            break; }
         default:
             return ThisChar;
         }
-    }
-    else
+    } else {
         return *(*From)++;
+    }
 }
 
 /* get a string constant - used while scanning */
@@ -397,6 +476,7 @@ enum LexToken LexGetStringConstant(Picoc *pc, struct LexState *Lexer,
     char *EscBufPos;
     char *RegString;
     struct Value *ArrayValue;
+    unsigned char utf8[8] = { 0 };
 
     while (Lexer->Pos != Lexer->End && (*Lexer->Pos != EndChar || Escape)) {
         /* find the end */
@@ -423,8 +503,10 @@ enum LexToken LexGetStringConstant(Picoc *pc, struct LexState *Lexer,
     if (EscBuf == NULL)
         LexFail(pc, Lexer, "(LexGetStringConstant) out of memory");
 
-    for (EscBufPos = EscBuf, Lexer->Pos = StartPos; Lexer->Pos != EndPos;)
-        *EscBufPos++ = LexUnEscapeCharacter(&Lexer->Pos, EndPos);
+    for (EscBufPos = EscBuf, Lexer->Pos = StartPos; Lexer->Pos != EndPos;) {
+        char x = LexUnEscapeCharacter(&Lexer->Pos, EndPos, utf8, pc);
+        *EscBufPos++ = x;
+    }
 
     /* try to find an existing copy of this string literal */
     RegString = TableStrRegister2(pc, EscBuf, EscBufPos - EscBuf);
@@ -452,7 +534,7 @@ enum LexToken LexGetCharacterConstant(Picoc *pc, struct LexState *Lexer,
     struct Value *Value)
 {
     Value->Typ = &pc->CharType;
-    Value->Val->Character = LexUnEscapeCharacter(&Lexer->Pos, Lexer->End);
+    Value->Val->Character = LexUnEscapeCharacter(&Lexer->Pos, Lexer->End, NULL, pc);
     if (Lexer->Pos != Lexer->End && *Lexer->Pos != '\'')
         LexFail(pc, Lexer, "expected \"'\"");
 
