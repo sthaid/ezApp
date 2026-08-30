@@ -8,94 +8,13 @@
 
 // - full review and comments
 
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
-#include <errno.h>
-#include <time.h>
+// ==================================
 
-#include <sdlx.h>
-#include <utils.h>
+#include "apps/Camera/common.h"
 
-#include "lib/lib.h"
-#include "svcs/Location/location.h"
-
-// defines
-#define MAX_PHOTOS    1000
-#define GALLERY_VIEW  0
-#define LOCATION_VIEW 1
-
-#define EVID_TAKE           1
-#define EVID_DEL            2
-#define EVID_VIEW           4
-#define EVID_STG            5
-#define EVID_CTR            6
-#define EVID_RST            7
-#define EVID_NEXT           8
-#define EVID_PREV           9
-#define EVID_NOOP           10
-#define EVID_HOME           11
-#define EVID_END            12
-#define EVID_PGUP           13
-#define EVID_PGDN           14
-#define EVID_SHOW_PHOTO     10000
-#define EVID_DELETE_PHOTO   20000
-
-#define ONE_SEC 1000000
-
-#define THUMB 475
-#define SPACING 525
-
-#define METADATA_MAGIC 0x12345678
-
-#define TAKE "\u2b24"  // large filled circle
-
-// typedefs
-typedef struct {
-    int magic;  // xxx validate magic , also add sizeof check
-    int size;
-    int num;
-    char day[50];
-    char date[50];
-    char time[50];
-    char city[50];
-    char state[50];
-    double latitude;
-    double longitude;
-    unsigned int pixels[THUMB*THUMB];
-} metadata_t;
-
-typedef struct {
-    int num;
-    metadata_t *md;
-} photo_t;
-
-// variables
-char *progname;
-char *data_dir;
-bool  end_program;
-
-int   view = GALLERY_VIEW;
-
-char  photos_dir[100];
-photo_t   photos[MAX_PHOTOS];
-int   max_photos;
-    
 // prototypes
 void init(void);
 void cleanup(void);
-
-void photo_gallery_view(void);
-void photo_location_view(void);
-
-int take_photo(void);
-void delete_photo(int idx);
-void show_photo(int idx);
-
-void settings(void);
 
 unsigned int *jpeg_file_to_rgba_pixels(char *dir, char *file, int *w, int *h);
 unsigned int *jpeg_file_to_rgba_pixels_scaled(char *dir, char *file, int w, int h);
@@ -123,10 +42,10 @@ int main(int argc, char **argv)
     while (!end_program) {
         switch (view) {
         case GALLERY_VIEW:
-            photo_gallery_view();
+            gallery_view();
             break;
         case LOCATION_VIEW:
-            photo_location_view();
+            location_view();
             break;
         default:
             printf("E %s: invalid view %d\n", progname, view);
@@ -199,206 +118,6 @@ void cleanup(void)
         }
         util_unmap_file(photos[i].md, sizeof(metadata_t));
         photos[i].md = NULL;
-    }
-}
-
-// ------------------ PHOTO GALLERY VIEW ---------------
-
-void photo_gallery_view(void)
-{
-    sdlx_event_t    event;
-    int             x, y, y_last;
-    sdlx_texture_t *t;
-    sdlx_loc_t      dest;
-    double          y_top = 0;
-    bool            del_mode = false;
-    bool            done = false;
-
-    // init
-    t = sdlx_create_texture(THUMB, THUMB);
-
-    while (!done && !end_program) {
-        // init the backbuffer to COLOR_BLACK
-        sdlx_display_init(COLOR_BLACK, PORTRAIT);
-
-        // xxx todo
-        // xxx optimize loop start
-        // xxx comment
-        for (int i = 0; i < max_photos; i++) {
-            metadata_t *md = photos[i].md;
-
-            y = (i / 2) * SPACING;
-            if (y < y_top - SPACING) {
-                continue;
-            }
-            if (y > y_top + sdlx_win_height) {
-                break;
-            }
-
-            sdlx_set_texture_pixels(t, md->pixels);
-            dest.x = (i % 2) * SPACING;
-            dest.y = y - y_top;
-            dest.w = THUMB;
-            dest.h = THUMB;
-            sdlx_render_texture(t, NULL, &dest);
-
-            sdlx_register_event(&dest, EVID_SHOW_PHOTO+i);
-
-            int tmp_x = ((dest.x == 0 && dest.y == 0) ? 40 : dest.x);
-            sdlx_render_printf_ex2(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
-            sdlx_render_printf_ex2(dest.x+THUMB/2, dest.y+THUMB-sdlx_char_height(FONT_SMALL), 
-                                   FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%s", md->date);
-
-            if (del_mode) {
-                x = dest.x + THUMB - sdlx_char_width_dflt;
-                y = dest.y;
-                reg_event_str(x, y, COLOR_RED, "X", EVID_DELETE_PHOTO+i);
-            }
-        }
-
-        // register events
-        if (!del_mode) {
-            reg_event_show_readme_file();
-        }
-
-        int ctrls_h = 300;
-        reg_event_fill_rect(0, sdlx_win_height-ctrls_h-25, sdlx_win_width, ctrls_h+25, COLOR_BLACK, EVID_NOOP);
-
-        y = sdlx_win_height - ctrls_h + (150 - sdlx_char_height_dflt) / 2;
-        reg_event_str(COL2X(0), y, COLOR_LIGHT_BLUE, "Home", EVID_HOME);
-        reg_event_str(COL2X(7), y, COLOR_LIGHT_BLUE, "Up", EVID_PGUP);
-        reg_event_str(COL2X(12), y, COLOR_LIGHT_BLUE, "Dn", EVID_PGDN);
-        reg_event_str(COL2X(17), y, COLOR_LIGHT_BLUE, "End", EVID_END);
-
-        y += 150;
-        reg_event_str(0, y, COLOR_LIGHT_BLUE, "Del", EVID_DEL);
-        reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "View", EVID_VIEW);
-
-        sdlx_register_event(NULL, EVID_MOTION);
-
-        sdlx_register_control_events(EVID_STG, "Stg", EVID_TAKE, TAKE, EVID_QUIT, "X");
-
-        // present the display
-        sdlx_display_present();
-
-        // wait for an event, with 1 sec timeout
-        sdlx_get_event(ONE_SEC, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
-
-        // process events
-        if (event.event_id >= EVID_DELETE_PHOTO && event.event_id < EVID_DELETE_PHOTO+max_photos) {
-            int idx = event.event_id - EVID_DELETE_PHOTO;
-            delete_photo(idx);
-        } else if (event.event_id >= EVID_SHOW_PHOTO && event.event_id < EVID_SHOW_PHOTO+max_photos) {
-            int idx = event.event_id - EVID_SHOW_PHOTO;
-            show_photo(idx);
-        } else {
-            switch (event.event_id) {
-            case EVID_QUIT:
-                end_program = true;
-                break;
-            case EVID_SHOW_README_FILE:
-                show_file(data_dir, "README");
-                break;
-            case EVID_TAKE:
-                take_photo();
-                y_last = (max_photos == 0 ? 0 : ((max_photos + 1) / 2 - 1) * SPACING);
-                y_top = y_last - 2 * SPACING;
-                break;
-            case EVID_DEL:
-                del_mode = !del_mode;
-                break;
-            case EVID_MOTION:
-                y_top -= event.u.motion.yrel;
-                break;
-            case EVID_HOME:
-                y_top = 0;
-                break;
-            case EVID_END:
-                y_last = (max_photos == 0 ? 0 : ((max_photos + 1) / 2 - 1) * SPACING);
-                y_top = y_last - 2 * SPACING;
-                break;
-            case EVID_PGUP:
-                y_top -= (3 * SPACING);
-                break;
-            case EVID_PGDN:
-                y_top += (3 * SPACING);
-                break;
-            case EVID_VIEW:
-                view = LOCATION_VIEW;
-                done = true;
-                break;
-            case EVID_STG:
-                settings();
-                break;
-            }
-
-            // limit the min/max value of y_top 
-            y_last = (max_photos == 0 ? 0 : ((max_photos + 1) / 2 - 1) * SPACING);
-            if (y_top > y_last - 2 * SPACING) y_top = y_last - 2 * SPACING;
-            if (y_top < 0) y_top = 0;
-        }
-    }
-
-    sdlx_destroy_texture(t);
-}
-
-// ------------------ PHOTO LOCATION VIEW --------------
-
-void photo_location_view(void)
-{
-    sdlx_event_t event;
-    int y;
-    bool done = false;
-
-    // xxx todo
-    // - add pinch event
-    while (!done && !end_program) {
-        // init the backbuffer to COLOR_BLACK
-        sdlx_display_init(COLOR_BLACK, PORTRAIT);
-
-        // register events
-        reg_event_show_readme_file();
-        y = sdlx_win_height - 1.5 * sdlx_char_height_dflt;
-        reg_event_str(0, y, COLOR_LIGHT_BLUE, "CTR", EVID_CTR);
-        reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "VIEW", EVID_VIEW);
-        sdlx_register_event(NULL, EVID_MOTION);
-        sdlx_register_control_events(EVID_STG, "STG", EVID_TAKE, TAKE, EVID_QUIT, "X");
-
-        // present the display
-        sdlx_display_present();
-
-        // wait for event, with 1 sec timeout
-        sdlx_get_event(ONE_SEC, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
-
-        // process events
-        switch (event.event_id) {
-        case EVID_SHOW_README_FILE:
-            show_file(data_dir, "README");
-            break;
-        case EVID_STG:
-            settings();
-            break;
-        case EVID_TAKE:
-            take_photo();
-            break;
-        case EVID_QUIT:
-            end_program = true;
-            break;
-        case EVID_CTR:
-            break;
-        case EVID_VIEW:
-            view = GALLERY_VIEW;
-            done = true;
-            break;
-        case EVID_MOTION:
-            break;
-        }
     }
 }
 
@@ -722,13 +441,6 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
 #endif
 }
 
-// ------------------ SETTINGS -------------------------
-
-void settings(void)
-{
-    // xxx todo
-    return;
-}
 
 // ------------------ UTILS ----------------------------
 
@@ -786,6 +498,7 @@ unsigned int *jpeg_file_to_rgba_pixels_scaled(char *dir, char *file, int w, int 
     return pixels2;
 }
 
+// metadata must be unmapped when program terminates
 metadata_t *create_and_map_metadata_file(int num)
 {
     char        photo_filename[100];
