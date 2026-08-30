@@ -2,7 +2,7 @@
 
 // ------------------ PHOTO GALLERY VIEW ---------------
 
-void gallery_view(void)
+void gallery(void)
 {
     sdlx_event_t    event;
     int             x, y, y_last;

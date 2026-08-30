@@ -90,8 +90,8 @@ int     max_photos;
 // prototypes
 //
 
-void gallery_view(void);
-void location_view(void);
+void gallery(void);
+void location(void);
 
 int take_photo(void);
 void delete_photo(int idx);

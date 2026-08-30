@@ -1,12 +1,11 @@
 // xxx
-// - bring in noto fonts
 // - recreate metadata, or delete photo if bad metadata, or skip photo if bad metadata
-// - replace 'TAKE' with a circle
-// - in galery mode, when show photo and go back to gallery, may want to indicate which was the last photo viewed
-// - make script to create the test files
 // - change the large EVID numbers to 1000000000
-
 // - full review and comments
+
+// xxx maybe later
+// - bring in noto fonts
+// - make script to create the test files
 
 // ==================================
 
@@ -42,10 +41,10 @@ int main(int argc, char **argv)
     while (!end_program) {
         switch (view) {
         case GALLERY_VIEW:
-            gallery_view();
+            gallery();
             break;
         case LOCATION_VIEW:
-            location_view();
+            location();
             break;
         default:
             printf("E %s: invalid view %d\n", progname, view);

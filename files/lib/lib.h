@@ -44,4 +44,15 @@ void reg_event_show_readme_file(void);
 // init service request
 svc_req_t *svc_req_init(int req_id, char *data, int data_len);
 
+// double linked list
+typedef struct node {
+    struct node *next;
+    struct node *prev;
+} node_t;
+
+void init_list_head(node_t *head);
+void add_to_list_head(node_t *head, node_t *new_elem);
+void add_to_list_tail(node_t *head, node_t *new_elem);
+void remove_from_list(node_t *remove_elem);
+
 #endif
