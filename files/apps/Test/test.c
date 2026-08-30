@@ -37,7 +37,9 @@ static void page_hndlr(void);
 static void page_0_draw(void);
 static void page_0_process_event(sdlx_event_t *event);
 
+static void page_1_init(void);
 static void page_1_draw(void);
+static void page_1_process_event(sdlx_event_t *event);
 
 static void page_2_draw(void);
 
@@ -146,7 +148,7 @@ int main(int argc, char **argv)
 // NOTE: picoc does not support this being static, causes crash;
 //      if declared static, the number of array elements must be provided
 char *page_title[] = {     // Page
-        "TEST",            //   0
+        "Clock",           //   0
         "Font",            //   1
         "Sizeof",          //   2
         "Multi Lines",     //   3
@@ -163,7 +165,7 @@ char *page_title[] = {     // Page
         "Camera",          //  14
         "Pinch",           //  15
             };
-static int pagenum = 14;  // xxx temp, revert to 0
+static int pagenum = 0;
 
 #define LAST_PAGE (sizeof(page_title)/sizeof(char*)-1)
 
@@ -177,6 +179,7 @@ static void page_hndlr()
 
     // call the page specific init routine, if provided
     switch (pagenum) {
+    case 1: page_1_init(); break;
     case 3: page_3_init(); break;
     case 5: page_5_init(); break;
     case 7: page_7_init(); break;
@@ -205,10 +208,6 @@ static void page_hndlr()
 
         // draw title line
         sdlx_render_printf_ex2(sdlx_win_width/2, 50, FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%s", page_title[pagenum]);
-
-        // xxx del
-        sdlx_render_printf_ex2(sdlx_win_width/2, 150, FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
-            "xxx%sxxx%sxxx\u0042xxx", "\u2b24", "\u2b24");
 
         // draw display
         switch (pagenum) {
@@ -287,6 +286,7 @@ static void page_hndlr()
         // call the page specific event hndlr, if provided
         switch (pagenum) {
         case 0: page_0_process_event(&event); break;
+        case 1: page_1_process_event(&event); break;
         case 3: page_3_process_event(&event); break;
         case 7: page_7_process_event(&event); break;
         case 8: page_8_process_event(&event); break;
@@ -432,19 +432,97 @@ static void page_0_process_event(sdlx_event_t *ev)
 
 // -----------------  PAGE 1: FONT  ---------------------------
 
+#define  EVID_NEXT 10
+#define  EVID_PREV 11
+#define  EVID_GOTO 12
+
+#define LAST_CP  0x10FFFF
+#define INVLD_CP 0x10FFFF  // displays '?' in a box
+
+unsigned char * code_point_to_utf8(unsigned int cp)
+{
+    static unsigned char utf8[5];
+
+    memset(utf8, 0, 5);
+    
+    if (cp == 0 || cp > LAST_CP) {
+        cp = INVLD_CP;
+    }
+
+    if (cp <= 0x7F) {
+        utf8[0] = (unsigned char)cp;
+    } else if (cp <= 0x7FF) {
+        utf8[0] = (unsigned char)((cp >> 6) | 0xC0);
+        utf8[1] = (unsigned char)((cp & 0x3F) | 0x80);
+    } else if (cp <= 0xFFFF) {
+        utf8[0] = (unsigned char)((cp >> 12) | 0xE0);
+        utf8[1] = (unsigned char)(((cp >> 6) & 0x3F) | 0x80);
+        utf8[2] = (unsigned char)((cp & 0x3F) | 0x80);
+    } else {  // cp <= LAST_CP
+        utf8[0] = (unsigned char)((cp >> 18) | 0xF0); 
+        utf8[1] = (unsigned char)(((cp >> 12) & 0x3F) | 0x80);
+        utf8[2] = (unsigned char)(((cp >> 6) & 0x3F) | 0x80);
+        utf8[3] = (unsigned char)((cp & 0x3F) | 0x80);
+    }
+
+    return utf8;
+}
+
+unsigned int base_cp = 0;
+
+static void page_1_init(void)
+{
+    base_cp = 0;
+}
+
 static void page_1_draw(void)
 {
-    int i, ch=0;
-    char str[32];
+    int i;
+    char str[100], *p;
 
-    for (i = 0; i < 16; i++) {
-        sprintf(str, "%02x %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c",
-                i*16,
-                ch+0, ch+1, ch+2, ch+3, ch+4, ch+5, ch+6, ch+7,
-                ch+8, ch+9, ch+10, ch+11, ch+12, ch+13, ch+14, ch+15);
+    for (i = 0; i < 256; i++) {
+        if ((i % 16) == 0) {
+            p = str;
+            p += sprintf(p, "%04x ", base_cp+i);
+        }
 
-        sdlx_render_printf(0, ROW2Y(i+2), "%s", str);
-        ch += 16;
+        unsigned int cp = base_cp + i;
+        if (cp == '\n' || cp == '\r') {
+            cp = INVLD_CP;
+        }
+        p += sprintf(p, "%s", code_point_to_utf8(cp));
+
+        if ((i % 16) == 15) {
+            sdlx_render_printf_ex2(0, ROW2Y(i/16+2), 22, COLOR_WHITE, 0, "%s", str);
+        }
+    }
+
+    reg_event_str(0, sdlx_win_height-2*sdlx_char_height_dflt, 
+                  COLOR_LIGHT_BLUE, "PREV", EVID_PREV);
+    reg_event_str(sdlx_win_width-sdlx_char_width_dflt*4, sdlx_win_height-2*sdlx_char_height_dflt, 
+                  COLOR_LIGHT_BLUE, "NEXT", EVID_NEXT);
+    reg_event_str(sdlx_win_width/2-sdlx_char_width_dflt*2, sdlx_win_height-2*sdlx_char_height_dflt, 
+                  COLOR_LIGHT_BLUE, "GOTO", EVID_GOTO);
+}
+
+static void page_1_process_event(sdlx_event_t *event)
+{
+    switch (event->event_id) {
+    case EVID_PREV:
+        if (base_cp > 0) {
+            base_cp -= 256;
+        }
+        break;
+    case EVID_NEXT:
+        if (base_cp < (LAST_CP & ~0xff)) {
+            base_cp += 256;
+        }
+        break;
+    case EVID_GOTO:
+        char *s = sdlx_get_input_str("base_cp", true, NULL);
+        sscanf(s, "%x", &base_cp);
+        base_cp = base_cp & ~0xff;
+        break;
     }
 }
 

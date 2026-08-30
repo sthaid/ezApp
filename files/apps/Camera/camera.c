@@ -51,9 +51,7 @@
 
 #define METADATA_MAGIC 0x12345678
 
-// large filled circle char, U+2B24,
-// picoc does not support syntax "\u2B24"
-#define TAKE "\xE2\xAC\xA4"
+#define TAKE "\u2b24"  // large filled circle
 
 // typedefs
 typedef struct {
