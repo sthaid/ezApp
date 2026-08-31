@@ -9,6 +9,7 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
+#include <math.h>
 
 #include <sdlx.h>
 #include <utils.h>
@@ -68,6 +69,7 @@ typedef struct {
 } metadata_t;
 
 typedef struct {
+    node_t node;
     int num;
     metadata_t *md;
 } photo_t;
@@ -98,5 +100,8 @@ void delete_photo(int idx);
 void show_photo(int idx);
 
 void settings(void);
+
+void find_nearest_city(double latitude, double longitude,
+                       char *city_arg, int sizeof_city, char *state_arg, int sizeof_state);
 
 #endif

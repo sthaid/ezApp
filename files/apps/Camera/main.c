@@ -66,6 +66,9 @@ void init(void)
     metadata_t *md;
     long        t_start;
 
+    // xxx
+    view = LOCATION_VIEW;
+
     // init global variable photos_dir
     sprintf(photos_dir, "%s/photos", data_dir);
 
@@ -505,9 +508,6 @@ metadata_t *create_and_map_metadata_file(int num)
     metadata_t *md;
     time_t      t;
     struct tm  *tm;
-    int         rc;
-    char        req_data[MAX_SVC_REQ_DATA];
-    svc_req_t  *req;
     unsigned int *pixels;
 
     // create and map zero filled metadata file
@@ -541,37 +541,8 @@ metadata_t *create_and_map_metadata_file(int num)
     // - latitude & longitude
     util_get_location(&md->latitude, &md->longitude, NULL, NULL);
 
-    // - city & state
-    memset(req_data, 0, sizeof(req_data));
-    *(double*)(&req_data[0]) = md->latitude;
-    *(double*)(&req_data[8]) = md->longitude;
-    req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_NAME_FROM_LAT_LONG, req_data, sizeof(req_data));
-    rc = svc_make_req("Location", req, 5);
-    if (rc != 0) {
-        strcpy(md->city, "Unknown");
-    } else {
-        // expected response format: <city>\n<state>\n\0
-        // either city or state can be empty strings, or can contain space chars
-        char *newline, *city, *state;
-
-        // for safety
-        req_data[MAX_SVC_REQ_DATA-3] = '\n';
-        req_data[MAX_SVC_REQ_DATA-2] = '\n';
-        req_data[MAX_SVC_REQ_DATA-1] = '\0';
-
-        // copy city and state from req_data to metadata
-        city = req->data;
-        newline = strchr(city, '\n'); *newline = '\0';
-        state = newline + 1;
-        newline = strchr(state, '\n'); *newline = '\0';
-        strncpy(md->city, city, sizeof(md->city)-1);
-        strncpy(md->state, state, sizeof(md->state)-1);
-
-        // if city and state are both empty then set city to Unknown
-        if (md->city[0] == '\0' && md->state[0] == '\0') {
-            strcpy(md->city, "Unknown");
-        }
-    }
+    // - city & state xxx does this check for invalid number
+    find_nearest_city(md->latitude, md->longitude, md->city, sizeof(md->city), md->state, sizeof(md->state));
 
     // - pixels
     sprintf(photo_filename, "%06d.jpg", num);
@@ -603,4 +574,56 @@ metadata_t *create_and_map_metadata_file(int num)
 
     // return mapped ptr to the new metadata file
     return md;
+}
+
+void find_nearest_city(double latitude, double longitude, 
+                       char *city, int sizeof_city, char *state, int sizeof_state)
+{
+    svc_req_t *req;
+    char       req_data[MAX_SVC_REQ_DATA];
+    int        rc;
+
+    // preset return city and state strings
+    memset(city, 0, sizeof_city);
+    memset(state, 0, sizeof_state);
+    strncpy(city, "Unknown", sizeof_city-1);
+
+    // if no location info then return preset city,state strings
+    if (latitude == INVALID_NUMBER || longitude == INVALID_NUMBER) {
+        printf("E %s: invalid latitude or longitude\n", progname);
+        return;
+    }
+
+    // request nearest city,state names from Location svc
+    memset(req_data, 0, sizeof(req_data));
+    *(double*)(&req_data[0]) = latitude;
+    *(double*)(&req_data[8]) = longitude;
+    req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_NAME_FROM_LAT_LONG, req_data, sizeof(req_data));
+    rc = svc_make_req("Location", req, 5);
+    if (rc != 0) {
+        printf("E %s: failed to get city,state names\n", progname);
+        return;
+    }
+
+    // extract city and state strings from the response
+    // - expected response format: <city>\n<state>\n\0
+    // - either city or state can be empty strings, or can contain space chars
+    req_data[MAX_SVC_REQ_DATA-3] = '\n';
+    req_data[MAX_SVC_REQ_DATA-2] = '\n';
+    req_data[MAX_SVC_REQ_DATA-1] = '\0';
+
+    char *newline, *city_tmp, *state_tmp;
+    city_tmp = req->data;
+    newline = strchr(city_tmp, '\n'); *newline = '\0';
+    state_tmp = newline + 1;
+    newline = strchr(state_tmp, '\n'); *newline = '\0';
+
+    if (city_tmp[0] == '\0' && state_tmp[0] == '\0') {
+        printf("E %s: city and state are both empty strings\n", progname);
+        return;
+    }
+
+    // return city and state to caller
+    strncpy(city, city_tmp, sizeof_city-1);
+    strncpy(state, state_tmp, sizeof_state-1);
 }

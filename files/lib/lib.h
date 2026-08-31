@@ -51,6 +51,7 @@ typedef struct node {
 } node_t;
 
 void init_list_head(node_t *head);
+bool is_list_empty(node_t *head);
 void add_to_list_head(node_t *head, node_t *new_elem);
 void add_to_list_tail(node_t *head, node_t *new_elem);
 void remove_from_list(node_t *remove_elem);

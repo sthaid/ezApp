@@ -537,6 +537,11 @@ void init_list_head(node_t *head)
     head->prev = head;
 }
 
+bool is_list_empty(node_t *head)
+{
+    return head->next == head->prev;
+}
+
 void add_to_list_head(node_t *head, node_t *new_elem)
 {
     add_to_list(head, new_elem);
