@@ -211,6 +211,7 @@ void delete_photo(int idx)
 
 // ------------------ SHOW PHOTO -----------------------
 
+// xxx move to new file
 void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest);
 
 int jpeg_w, jpeg_h;
@@ -579,6 +580,11 @@ metadata_t *create_and_map_metadata_file(int num)
 void find_nearest_city(double latitude, double longitude, 
                        char *city, int sizeof_city, char *state, int sizeof_state)
 {
+    //xxx
+    strncpy(city, "Bolton", sizeof_city-1);
+    strncpy(state, "Massachusetts", sizeof_state-1);
+    return;
+    
     svc_req_t *req;
     char       req_data[MAX_SVC_REQ_DATA];
     int        rc;

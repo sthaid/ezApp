@@ -517,8 +517,6 @@ svc_req_t *svc_req_init(int req_id, char *data, int data_len)
 
 // -----------------  DOUBLE LINKED LIST  --------------------------
 
-// xxx add is_list_empty
-
 void add_to_list(node_t *loc, node_t *new_elem)
 {
     node_t *elem1 = loc;
@@ -535,11 +533,6 @@ void init_list_head(node_t *head)
 {
     head->next = head;
     head->prev = head;
-}
-
-bool is_list_empty(node_t *head)
-{
-    return head->next == head->prev;
 }
 
 void add_to_list_head(node_t *head, node_t *new_elem)
@@ -564,3 +557,18 @@ void remove_from_list(node_t *remove_elem)
     remove_elem->prev = NULL;
 }
 
+bool is_list_empty(node_t *head)
+{
+    return head->next == head;
+}
+
+int num_list_elements(node_t *head)
+{
+    int n = 0;
+    node_t *node;
+
+    for (node = head->next; node != head; node = node->next) {
+        n++;
+    }
+    return n;
+}

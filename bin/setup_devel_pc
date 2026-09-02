@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # To get this script: 
-# - if working on a branch, replace 'main' with the branch name
 # - wget https://raw.githubusercontent.com/sthaid/ezApp/refs/heads/main/bin/setup_devel_pc  
 # - chmod +x setup_devel_pc
 
@@ -10,9 +9,9 @@
 # - Ubuntu 26.04, on bare metal
 
 # Prerequisites:
-# - must be running on Ubuntu (preferably 26.04 or newer)
+# - must be running on Ubuntu (preferably 26.04 or newer), either bare metal or WSL
 # - user must be member of sudo group
-# - config values must be set, refer to function config_init
+# - config values must be set, refer to function config_init, which is in this script
 #   - path_to_rsa_key_dir: must be set to directory containing id_rsa and id_rsa.pub;
 #       this can be ~/.ssh if the rsa key is already present in that directory
 #   - path_to_android_tools: must be path to android sdk tools zip file;
@@ -24,6 +23,8 @@
 #   - create_vimrc: if true a ~/.vimrc file will be created
 #   - ezapp_device: ip address of your Android device
 #   - ezapp_passwd: the ezApp Devel_Password, min length 4 chars
+#       ezapp_device and ezapp_passwd are written to ~/.bashrc_ezApp, and
+#       can be changed later
 #   - accept_sdk_license: set true to automatically accept the sdk license;
 #       set this true only if you understand and accept the Android SDK license conditions
 #   - run_build: set true if you want this script to also build ezApp
@@ -31,7 +32,7 @@
 # This script performs the following steps:
 # - display and validate the config settings
 # - issues prompt to continue
-# - copies your provided rsa key to ~/.ssh
+# - copies your rsa key to ~/.ssh
 # - install and configure git
 # - git clone ezApp
 # - install required linux packages
@@ -60,25 +61,24 @@ met all the prerequisites (y/n)? " yn
     echo
 
     # Modify the following config values.
-    # Avoid using spaces in the paths, spaces in the path config values
-    #  have not been tested.
+    # Avoid using spaces in the paths, spaces in path config values have not been tested.
     if [ "$running_on" = ubuntu_wsl ]; then
-        path_to_rsa_key_dir=/mnt/c/Users/STEVEN~1/.ssh
-        path_to_android_tools=/mnt/c/Users/STEVEN~1/Downloads/commandlinetools-linux-15859902_latest.zip
+        path_to_rsa_key_dir=/mnt/c/Users/name/.ssh
+        path_to_android_tools=/mnt/c/Users/name/Downloads/commandlinetools-linux-15859902_latest.zip
     elif [ "$running_on" = ubuntu_linux ]; then
         path_to_rsa_key_dir=~/.ssh
-        path_to_android_tools=/home/haid/Downloads/commandlinetools-linux-15859902_latest.zip
+        path_to_android_tools=/home/name/Downloads/commandlinetools-linux-15859902_latest.zip
     else
         echo "BUG: unexpected value for running_on=$running_on"
         exit 1
     fi
-    your_name="Steven Haid"
-    your_email=stevenhaid@gmail.com
+    your_name="Your Name"
+    your_email=your.name@gmail.com
     branch_name=main
-    git_clone_using_ssh=true
+    git_clone_using_ssh=false
     create_vimrc=true
-    ezapp_device=192.168.1.243
-    ezapp_passwd=secret
+    ezapp_device=192.168.1.99
+    ezapp_passwd=MySecret
     accept_sdk_licenses=true
     run_build=false
 
@@ -165,7 +165,7 @@ function get_rsa_key()
     # if path_to_rsa_key_dir = ~/.ssh then nothing to do, just return
     tmp1=$(readlink -f ~/.ssh)
     tmp2=$(readlink -f "$path_to_rsa_key_dir")
-    if [ "$tmp1" = " $tmp2" ]; then 
+    if [ "$tmp1" = "$tmp2" ]; then 
         return
     fi
 

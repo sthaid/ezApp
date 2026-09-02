@@ -10,12 +10,12 @@ void gallery(void)
     sdlx_loc_t      dest;
     double          y_top = 0;
     bool            del_mode = false;
-    bool            done = false;
+    bool            switch_view = false;
 
     // init
     t = sdlx_create_texture(THUMB, THUMB);
 
-    while (!done && !end_program) {
+    while (!switch_view && !end_program) {
         // init the backbuffer to COLOR_BLACK
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
@@ -126,7 +126,7 @@ void gallery(void)
                 break;
             case EVID_VIEW:
                 view = LOCATION_VIEW;
-                done = true;
+                switch_view = true;
                 break;
             case EVID_STG:
                 settings();
