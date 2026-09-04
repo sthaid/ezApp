@@ -91,7 +91,7 @@ int main(int argc, char **argv)
             settings_changed ||
             loc_hist->count != last_loc_hist_count)
         {
-            svc_req_t *req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_INFO, NULL, 0);
+            svc_req_t *req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_DATA_STR, NULL, 0);
             rc = svc_make_req("Location", req, 5);
             if (rc != 0) {
                 strcpy(loc_curr, "ERROR");

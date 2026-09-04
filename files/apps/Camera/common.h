@@ -21,18 +21,24 @@
 // defines
 //
 
-#define MAX_PHOTOS    1000
+#define WIN_W 1000  // xxx use these in main.c and gallery.c
+#define WIN_H 2000
+
+#define MAX_PHOTOS 1000
 
 #define GALLERY_VIEW  0
 #define LOCATION_VIEW 1
 
 #define ONE_SEC 1000000
 
+#define DEG_TO_RAD (M_PI / 180.0)
+
 #define THUMB   475
 #define SPACING 525
 
-#define TAKE "\u2b24"  // large filled circle
+#define UNICODE_CIRCLE "\u2b24"  // large filled circle
 
+// xxx why isnt EVID_NOOP here
 #define EVID_TAKE           1
 #define EVID_DEL            2
 #define EVID_VIEW           4
@@ -48,6 +54,12 @@
 #define EVID_PGDN           14
 #define EVID_SHOW_PHOTO     10000
 #define EVID_DELETE_PHOTO   20000
+#define EVID_MAP            30000
+
+// used for testing, xxx del
+#define HOME_LATITUDE     42.4222
+#define HOME_LONGITUDE   -71.6226
+#define HOME_ALTITUDE_FT  454.0
 
 //
 // typedefs
@@ -101,7 +113,8 @@ void show_photo(int idx);
 
 void settings(void);
 
-void find_nearest_city(double latitude, double longitude,
-                       char *city_arg, int sizeof_city, char *state_arg, int sizeof_state);
+void find_nearest_city(double req_latitude, double req_longitude,
+                       char *city, int sizeof_city, char *state, int sizeof_state,
+                       double *actual_latitude, double *actual_longitude);
 
 #endif

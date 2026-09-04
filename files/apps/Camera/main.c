@@ -339,7 +339,7 @@ void show_photo(int idx)
 
             sdlx_register_event(NULL, EVID_PINCH);
             sdlx_register_event(NULL, EVID_MOTION);
-            sdlx_register_control_events(EVID_RST, "Rst", EVID_TAKE, TAKE, EVID_QUIT, "X");
+            sdlx_register_control_events(EVID_RST, "Rst", EVID_TAKE, UNICODE_CIRCLE, EVID_QUIT, "X");
 
             // present the display
             sdlx_display_present();
@@ -543,7 +543,9 @@ metadata_t *create_and_map_metadata_file(int num)
     util_get_location(&md->latitude, &md->longitude, NULL, NULL);
 
     // - city & state xxx does this check for invalid number
-    find_nearest_city(md->latitude, md->longitude, md->city, sizeof(md->city), md->state, sizeof(md->state));
+    find_nearest_city(md->latitude, md->longitude, 
+                      md->city, sizeof(md->city), md->state, sizeof(md->state),
+                      NULL, NULL);
 
     // - pixels
     sprintf(photo_filename, "%06d.jpg", num);
@@ -577,59 +579,91 @@ metadata_t *create_and_map_metadata_file(int num)
     return md;
 }
 
-void find_nearest_city(double latitude, double longitude, 
-                       char *city, int sizeof_city, char *state, int sizeof_state)
+void find_nearest_city(double req_latitude, double req_longitude, 
+                       char *city, int sizeof_city, char *state, int sizeof_state,
+                       double *actual_latitude, double *actual_longitude)
 {
-    //xxx
+#if 0
+    //xxx for testing
     strncpy(city, "Bolton", sizeof_city-1);
     strncpy(state, "Massachusetts", sizeof_state-1);
+    xxx
     return;
+#endif
     
     svc_req_t *req;
     char       req_data[MAX_SVC_REQ_DATA];
     int        rc;
 
-    // preset return city and state strings
-    memset(city, 0, sizeof_city);
-    memset(state, 0, sizeof_state);
-    strncpy(city, "Unknown", sizeof_city-1);
+    // preset return values
+    if (city) memset(city, 0, sizeof_city);
+    if (state) memset(state, 0, sizeof_state);
+    if (actual_latitude) *actual_latitude = INVALID_NUMBER;
+    if (actual_longitude) *actual_longitude = INVALID_NUMBER;
 
-    // if no location info then return preset city,state strings
-    if (latitude == INVALID_NUMBER || longitude == INVALID_NUMBER) {
+    // if no location info then return the preset values
+    if (req_latitude == INVALID_NUMBER || req_longitude == INVALID_NUMBER) {
         printf("E %s: invalid latitude or longitude\n", progname);
         return;
     }
 
-    // request nearest city,state names from Location svc
+    // request nearest city info from Location svc
     memset(req_data, 0, sizeof(req_data));
-    *(double*)(&req_data[0]) = latitude;
-    *(double*)(&req_data[8]) = longitude;
-    req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_NAME_FROM_LAT_LONG, req_data, sizeof(req_data));
+    *(double*)(&req_data[0]) = req_latitude;
+    *(double*)(&req_data[8]) = req_longitude;
+    req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_INFO, req_data, sizeof(req_data));
     rc = svc_make_req("Location", req, 5);
     if (rc != 0) {
         printf("E %s: failed to get city,state names\n", progname);
         return;
     }
 
-    // extract city and state strings from the response
-    // - expected response format: <city>\n<state>\n\0
+    // extract city, state, actual_latitude/longitude  strings from the response
+    // - expected response format: <city>\n<state>\n<actual_latitude>\n<actual_longitude>\n\0
     // - either city or state can be empty strings, or can contain space chars
+    req_data[MAX_SVC_REQ_DATA-5] = '\n';
+    req_data[MAX_SVC_REQ_DATA-4] = '\n';
     req_data[MAX_SVC_REQ_DATA-3] = '\n';
     req_data[MAX_SVC_REQ_DATA-2] = '\n';
     req_data[MAX_SVC_REQ_DATA-1] = '\0';
 
-    char *newline, *city_tmp, *state_tmp;
+    char *newline, *city_tmp, *state_tmp, *actual_latitude_str_tmp, *actual_longitude_str_tmp;
+
     city_tmp = req->data;
     newline = strchr(city_tmp, '\n'); *newline = '\0';
+
     state_tmp = newline + 1;
     newline = strchr(state_tmp, '\n'); *newline = '\0';
 
+    actual_latitude_str_tmp = newline + 1;
+    newline = strchr(actual_latitude_str_tmp, '\n'); *newline = '\0';
+
+    actual_longitude_str_tmp = newline + 1;
+    newline = strchr(actual_longitude_str_tmp, '\n'); *newline = '\0';
+
+    // if both city and state strings are empty then return the preset values
     if (city_tmp[0] == '\0' && state_tmp[0] == '\0') {
         printf("E %s: city and state are both empty strings\n", progname);
         return;
     }
 
-    // return city and state to caller
-    strncpy(city, city_tmp, sizeof_city-1);
-    strncpy(state, state_tmp, sizeof_state-1);
+    // decode the actual_latitude_str and actual_longitude_str
+    double lat=INVALID_NUMBER, lng=INVALID_NUMBER;
+    sscanf(actual_latitude_str_tmp, "%lf", &lat);
+    sscanf(actual_longitude_str_tmp, "%lf", &lng);
+    if (lat == INVALID_NUMBER || lng == INVALID_NUMBER) {
+        printf("E %s: failed to decode lat/long strings '%s' '%s'\n",
+               progname, actual_latitude_str_tmp, actual_longitude_str_tmp);
+        return;
+    }
+
+    // debug print result
+    printf("I %s: find_neareset_city return: '%s' '%s' %0.4f %0.4f\n",
+            progname, city_tmp, state_tmp, lat, lng);
+
+    // return info to caller
+    if (city)             strncpy(city, city_tmp, sizeof_city-1);
+    if (state)            strncpy(state, state_tmp, sizeof_state-1);
+    if (actual_latitude)  *actual_latitude = lat;
+    if (actual_longitude) *actual_longitude = lng;
 }

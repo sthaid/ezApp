@@ -286,6 +286,7 @@ void init_mag_decl(void)
     util_delete_file(data_dir, MAG_DECL_JSON);
 
     // execute curl cmd to get mag declination from NOAA, in json format
+    // xxx don't need to run curl if file already exists
     sprintf(url, 
       "\"https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination?lat1=%0.4f&lon1=%0.4f&key=%s&resultFormat=json\"",
       latitude, longitude, KEY);
@@ -332,12 +333,12 @@ void init_mag_decl(void)
     memset(req_data, 0, sizeof(req_data));
     *(double*)(&req_data[0]) = latitude;
     *(double*)(&req_data[8]) = longitude;
-    svc_req_t *req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_NAME_FROM_LAT_LONG, req_data, sizeof(req_data));
+    svc_req_t *req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_INFO, req_data, sizeof(req_data)); //xxx
     rc = svc_make_req("Location", req, 5);
     if (rc == 0) {
-        strncpy(mag_decl_locname, req->data, sizeof(mag_decl_locname)-1);
+        strncpy(mag_decl_locname, req->data, sizeof(mag_decl_locname)-1); //xxx
     } else {
-        strncpy(mag_decl_locname, "Loc Not Found", sizeof(mag_decl_locname)-1);
+        strncpy(mag_decl_locname, "Loc Not Found", sizeof(mag_decl_locname)-1); // xxx just dont print
     }
 
     // save mag_decl in params

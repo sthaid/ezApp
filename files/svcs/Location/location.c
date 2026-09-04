@@ -133,11 +133,12 @@ void periodic_processing(void)
 
     // find location in database that is closest to current lat/long;
     util_get_location(&latitude, &longitude, NULL, NULL);
-    find_closest_loc_data(latitude, longitude, name, state);
+    find_closest_loc_data(latitude, longitude, name, state, NULL, NULL);
 
     // if name is different than most recent entry in loc_file
     // then add new entry to loc file, 
     if (name[0] != '\0' && strcmp(most_recent_loc_hist_name(), name) != 0) {
+        // xxx this is the lat and long where entered, maybe don't display that
         add_entry_to_loc_hist(time(NULL), latitude, longitude, name, state);
     }
 }
@@ -151,27 +152,28 @@ void process_req(svc_req_t *req)
         svc_req_completed(progname, req, 0);
         end_program = true;
         break;
-    case SVC_LOCATION_REQ_GET_LOC_INFO: {
+    case SVC_LOCATION_REQ_GET_LOC_DATA_STR: {
         double latitude, longitude, altitude;
         char name[MAX_NAME];
         char state[MAX_NAME];
         bool alt_is_wgs84;
 
         util_get_location(&latitude, &longitude, &altitude, &alt_is_wgs84);
-        find_closest_loc_data(latitude, longitude, name, state);
+        find_closest_loc_data(latitude, longitude, name, state, NULL, NULL);
         create_loc_data_str(time(NULL), latitude, longitude, altitude, alt_is_wgs84, name, state, req->data);
         svc_req_completed(progname, req, 0);
         break; }
-    case SVC_LOCATION_REQ_GET_LOC_NAME_FROM_LAT_LONG: {
-        double latitude, longitude;
+    case SVC_LOCATION_REQ_GET_LOC_INFO: { // xxx used by Compass and Camera
+        double req_latitude, req_longitude;
+        double actual_latitude, actual_longitude;
         char name[MAX_NAME];
         char state[MAX_NAME];
 
-        latitude = *(double*)(&req->data[0]);
-        longitude = *(double*)(&req->data[8]);
-        find_closest_loc_data(latitude, longitude, name, state);
+        req_latitude = *(double*)(&req->data[0]);
+        req_longitude = *(double*)(&req->data[8]);
+        find_closest_loc_data(req_latitude, req_longitude, name, state, &actual_latitude, &actual_longitude);
 
-        sprintf(req->data, "%s\n%s\n", name, state);
+        sprintf(req->data, "%s\n%s\n%0.4f\n%0.4f\n", name, state, actual_latitude, actual_longitude);
         svc_req_completed(progname, req, 0);
         break; }
     case SVC_LOCATION_REQ_ADD_COUNTRY_INFO: {
@@ -361,7 +363,7 @@ void add_simulated_entries_to_loc_hist(void)
         longitude = -(69.93 + (73.50 - 69.93) * rand_double());
 
         // find closest location from loc_data
-        find_closest_loc_data(latitude, longitude, name, state);
+        find_closest_loc_data(latitude, longitude, name, state, NULL, NULL);
 
         // add to loc_hist file
         add_entry_to_loc_hist(t, latitude, longitude, name, state);

@@ -10,7 +10,10 @@ char *data_dir;
 // routines provided in loc_data.c
 int read_loc_data(void);
 void free_loc_data(void);
-void find_closest_loc_data(double latitude, double longitude, char *name, char *state);
+void find_closest_loc_data(
+            double req_latitude, double req_longitude,
+            char *name, char *state,
+            double *actual_latitude, double *actual_longitude);
 int download_country_loc_data(char *id);
 
 #endif

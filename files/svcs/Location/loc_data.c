@@ -78,98 +78,117 @@ void free_loc_data(void)
 // at the poles. For a specific location, you can calculate this distance by
 // multiplying the distance at the equator by the cosine of your latitude
 
-void find_closest_loc_data(double latitude, double longitude, char *name, char *state)
+void find_closest_loc_data(
+            double req_latitude, double req_longitude, 
+            char *name, char *state,
+            double *actual_latitude, double *actual_longitude)
 {
-    double delta_lat, delta_long, cos_lat;
-    double ns, ew, distance_squared, min_distance_squared;
-    double point5_div_cos_lat;
-    char   closest_name[MAX_NAME];
-    char   closest_state[MAX_NAME];
+    double cos_req_lat, point5_div_cos_req_lat;
 
-    static double save_latitude;
-    static double save_longitude;
-    static char   save_name[MAX_NAME];
-    static char   save_state[MAX_NAME];
+    char dummy_name[50];
+    char dummy_state[50];
+    double dummy_actual_latitude;
+    double dummy_actual_longitude;
 
-    // if latitude or longitude are invalid then return empty strings for name and state
-    if (latitude == INVALID_NUMBER || longitude == INVALID_NUMBER) {
-        name[0] = '\0';
-        state[0] = '\0';
+    static double save_req_latitude;
+    static double save_req_longitude;
+    static char   save_actual_name[MAX_NAME];
+    static char   save_actual_state[MAX_NAME];
+    static double save_actual_latitude;
+    static double save_actual_longitude;
+
+    // if arg not supplied then use dummy value
+    if (!name) name = dummy_name;
+    if (!state) state = dummy_state;
+    if (!actual_latitude) actual_latitude = &dummy_actual_latitude;
+    if (!actual_longitude) actual_longitude = &dummy_actual_longitude;
+
+    // init
+    cos_req_lat = cos(req_latitude * DEG2RAD);
+    point5_div_cos_req_lat = 0.5 / cos_req_lat;
+
+    // preset return values to invalid
+    memset(name, 0, sizeof(MAX_NAME));
+    memset(state, 0, sizeof(MAX_NAME));
+    *actual_latitude = INVALID_NUMBER;
+    *actual_longitude = INVALID_NUMBER;
+
+    // if latitude or longitude are invalid then return 
+    if (req_latitude == INVALID_NUMBER || req_longitude == INVALID_NUMBER) {
         return;
     }
 
-    // init
-    min_distance_squared = 1e99;
-    cos_lat = cos(latitude * DEG2RAD);
-    point5_div_cos_lat = 0.5 / cos_lat;
-    closest_name[0] = '\0';
-    closest_state[0] = '\0';
-
     // if requested latitude/longitude is within 0.25 miles of saved result then
-    // return the saved result
-    if (save_name[0] != '\0') {
-        // ns, ew are in miles
-        ns = (latitude - save_latitude) * 69.0;
-        ew = ((longitude - save_longitude) * cos_lat) * 69.0;
-        distance_squared = (ns * ns) + (ew * ew);
+    // return the saved result; note: ns, ew are in miles
+    if (save_actual_name[0] != '\0') {
+        double ns = (req_latitude - save_req_latitude) * 69.0;
+        double ew = ((req_longitude - save_req_longitude) * cos_req_lat) * 69.0;
+        double distance_squared = (ns * ns) + (ew * ew);
         if (distance_squared < 0.0625) {
-            strcpy(name, save_name);
-            strcpy(state, save_state);
-            //printf("I %s: returning saved location %s ^s\n", progname, save_name, save_state);
+            strcpy(name, save_actual_name);
+            strcpy(state, save_actual_state);
+            *actual_latitude = save_actual_latitude;
+            *actual_longitude = save_actual_longitude;
+            printf("I %s: returning saved location %s %s %0.4f %0.4f\n", 
+                   progname, save_actual_name, save_actual_state, 
+                   save_actual_latitude, save_actual_longitude);
             return;
         }
     }
 
     // loop over all locations, and find the closest
+    double min_distance_squared = 1e99;
+    loc_data_t *min_loc_data = NULL;
     for (int i = 0; i < max_loc_data; i++) {
         loc_data_t *x = &loc_data[i];
+        double delta_lat, delta_long, ns, ew, distance_squared;
 
-        delta_lat = fabs(latitude - x->latitude);
+        delta_lat = fabs(req_latitude - x->latitude);
         if (delta_lat > 0.5) {
             continue;
         }
 
-        delta_long = fabs(longitude - x->longitude);
+        delta_long = fabs(req_longitude - x->longitude);
         if (delta_long > 350) {
             delta_long = 360 - delta_long;
         }
-        if (delta_long > point5_div_cos_lat) {
+        if (delta_long > point5_div_cos_req_lat) {
             continue;
         }
 
         ns = delta_lat;
-        ew = delta_long * cos_lat;
+        ew = delta_long * cos_req_lat;
         distance_squared = (ns * ns) + (ew * ew);
 
         if (distance_squared < min_distance_squared) {
-            strncpy(closest_name, x->name, MAX_NAME);
-            closest_name[MAX_NAME-1] = '\0';
-            strncpy(closest_state, x->state, MAX_NAME);
-            closest_state[MAX_NAME-1] = '\0';
+            min_loc_data = x;
             min_distance_squared = distance_squared;
         }
     }
 
     // if no closest location found then return
-    if (closest_name[0] == '\0') {
-        printf("I %s: closest not found for %0.3f %0.3f\n", progname, latitude, longitude);
-        strcpy(name, "");
-        strcpy(state, "");
+    if (min_loc_data == NULL) {
+        printf("I %s: closest not found for %0.4f %0.4f\n", progname, req_latitude, req_longitude);
         return;
     }
         
     // return name, state and distance of the closest location
-    strcpy(name, closest_name);
-    strcpy(state, closest_state);
-    printf("I %s: found closest to %0.3f %0.3f - name=%s\n",
-           progname, latitude, longitude, name);
+    strncpy(name, min_loc_data->name, MAX_NAME-1);
+    strncpy(state, min_loc_data->state, MAX_NAME-1);
+    *actual_latitude = min_loc_data->latitude;
+    *actual_longitude = min_loc_data->longitude;
+    printf("I %s: found closest to %0.4f %0.4f - name=%s %s %0.4f %0.4f\n",
+           progname, req_latitude, req_longitude, 
+           name, state, *actual_latitude, *actual_longitude);
 
     // save result, so a subsequent call can use the result if the
     // subsequent call lat/long is close to the saved lat/long
-    save_latitude = latitude;
-    save_longitude = longitude;
-    strcpy(save_name, name);
-    strcpy(save_state, state);
+    save_req_latitude = req_latitude;
+    save_req_longitude = req_longitude;
+    strcpy(save_actual_name, name);
+    strcpy(save_actual_state, state);
+    save_actual_latitude = *actual_latitude;
+    save_actual_longitude = *actual_longitude;
 }
 
 // -----------------  COUNTRY LOC DATA DOWNLOAD  --------------------

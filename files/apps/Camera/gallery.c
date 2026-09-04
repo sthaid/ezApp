@@ -74,7 +74,7 @@ void gallery(void)
 
         sdlx_register_event(NULL, EVID_MOTION);
 
-        sdlx_register_control_events(EVID_STG, "Stg", EVID_TAKE, TAKE, EVID_QUIT, "X");
+        sdlx_register_control_events(EVID_STG, "Stg", EVID_TAKE, UNICODE_CIRCLE, EVID_QUIT, "X");
 
         // present the display
         sdlx_display_present();
