@@ -16,13 +16,18 @@
 #define MAX_MAPI  7
 #define MAX_MAPJ  5
 
-#define MAP_H     700
-#define PHOTOS_H  1000
-#define CTRLS_H   300
-
 #define MAP_Y     0
 #define PHOTOS_Y  700
 #define CTRLS_Y   1700
+
+#define MAP_W     1000
+#define MAP_H     700
+#define PHTOOS_W  1000
+#define PHOTOS_H  1000
+#define CTRLS_W   1000
+#define CTRLS_H   300
+
+// xxx define for 69.17
 
 //
 // typedefs
@@ -60,7 +65,8 @@ void display_init(void);
 void display_photos(void);
 void display_map(void);
 
-void lat_long_to_map_pixel_coord(double latitude, double longitude, int *x, int *y);
+void lat_long_to_map_xy(double latitude, double longitude, int *x, int *y);
+double cosd(double degrees);
 
 // ------------------ LOCATION VIEW --------------
 
@@ -71,7 +77,7 @@ void location(void)
     bool         switch_view = false;
 
     // init 
-    map_w_miles = 5;
+    map_w_miles = 60;
 
     util_get_location(&map_latitude_ctr, &map_longitude_ctr, NULL, NULL); //yyy dont let these be invalid
     if (map_latitude_ctr == INVALID_NUMBER || map_longitude_ctr == INVALID_NUMBER) {
@@ -94,7 +100,7 @@ void location(void)
         // register events 
         // - override any SHOW_PHOTO events that have been
         //   registered in the controls area
-        reg_event_fill_rect(0, CTRLS_Y, WIN_W, CTRLS_H, COLOR_BLACK, EVID_NOOP);
+        reg_event_fill_rect(0, CTRLS_Y, CTRLS_W, CTRLS_H, COLOR_BLACK, EVID_NOOP);
         // - HOME, PGUP, PGDN, and END
         y = CTRLS_Y + 50;
         reg_event_str(COL2X(0), y, COLOR_LIGHT_BLUE, "Home", EVID_HOME);
@@ -104,9 +110,11 @@ void location(void)
         // - DEL and VIEW
         y += 130;
         reg_event_str(0, y, COLOR_LIGHT_BLUE, "Del", EVID_DEL);
-        reg_event_str(WIN_W-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "View", EVID_VIEW);
-        // - MOTION, STG, TAKE, QUIT, and show-readme-file
+        reg_event_str(CTRLS_W-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "View", EVID_VIEW);
+        // - MOTION, PINCH
         sdlx_register_event(NULL, EVID_MOTION);
+        sdlx_register_event(NULL, EVID_PINCH);
+        // - show-readme-file, STG, TAKE, QUIT
         reg_event_show_readme_file();
         sdlx_register_control_events(EVID_STG, "Stg", EVID_TAKE, UNICODE_CIRCLE, EVID_QUIT, "X");
 
@@ -121,8 +129,9 @@ void location(void)
 
         // process events
         if (event.event_id >= EVID_MAP && event.event_id < EVID_MAP+(MAX_MAPI*MAX_MAPJ)) {
-            int i = (event.event_id - EVID_MAP) / MAX_MAPI; //yyy check range?
-            int j = (event.event_id - EVID_MAP) % MAX_MAPI;
+            int i = (event.event_id - EVID_MAP) % MAX_MAPI; //yyy check range?
+            int j = (event.event_id - EVID_MAP) / MAX_MAPI;
+            printf("GOT ij %d %d\n", i,j);
             head[i][j].selected = !head[i][j].selected;
         } else if (event.event_id >= EVID_SHOW_PHOTO && event.event_id < EVID_SHOW_PHOTO+max_photos) {
             int idx = event.event_id - EVID_SHOW_PHOTO; 
@@ -145,7 +154,22 @@ void location(void)
                 del_mode = !del_mode;
                 break;
             case EVID_MOTION:
-                y_top -= event.u.motion.yrel;
+                if (event.u.motion.y >= PHOTOS_Y) {
+                    y_top -= event.u.motion.yrel;
+                } else {
+                    double map_h_miles = map_w_miles * ((double)MAP_H / MAP_W);
+                    map_latitude_ctr  += event.u.motion.yrel * (map_h_miles / MAP_H) / 
+                                         69.17;
+                    map_longitude_ctr -= event.u.motion.xrel * (map_w_miles / MAP_W) / 
+                                         (69.17 * cosd(map_latitude_ctr));
+
+                    printf("map motion  map_h_miles = %0.3f\n", map_h_miles);
+                    // xxx limit lat long,  is long 0 to 360 or -180 to 180
+                }
+                break;
+            case EVID_PINCH:
+                map_w_miles *= event.u.pinch.scale;
+                // xxx limit
                 break;
             case EVID_HOME:
                 y_top = 0;
@@ -190,8 +214,9 @@ void display_init(void)
         metadata_t *md = photos[idx].md;
         int         x, y;
 
-        lat_long_to_map_pixel_coord(md->latitude, md->longitude, &x, &y);
+        lat_long_to_map_xy(md->latitude, md->longitude, &x, &y);
 
+        // xxx check this
         i = x / ((double)PHOTOS_H / MAX_MAPI);
         j = y / ((double)MAP_H / MAX_MAPJ);
         if (i < 0 || i >= MAX_MAPI || j < 0 || j >= MAX_MAPJ) {
@@ -295,7 +320,7 @@ void display_map(void)
     int i, j, x, y;
     sdlx_loc_t loc;
 
-    sdlx_render_fill_rect(0, MAP_Y, WIN_W, MAP_H, COLOR_BLACK);
+    sdlx_render_fill_rect(0, MAP_Y, MAP_W, MAP_H, COLOR_BLACK);
 
     for (i = 0; i < MAX_MAPI; i++) {
         for (j = 0; j < MAX_MAPJ; j++) {
@@ -305,13 +330,14 @@ void display_map(void)
                 continue;
             }
 
-            loc.w = (double)WIN_W / MAX_MAPI;
+            loc.w = (double)MAP_W / MAX_MAPI;
             loc.h = (double)MAP_H / MAX_MAPJ;
             loc.x = i * loc.w;
             loc.y = j * loc.h + MAP_Y;
             sdlx_color_t color = (hd->selected ? COLOR_ORANGE : COLOR_WHITE);
             sdlx_render_fill_rect(loc.x+10, loc.y+10, loc.w-20, loc.h-20, color);
-            sdlx_register_event(&loc, EVID_MAP + i*MAX_MAPI + j);
+            printf("reg event %d\n", EVID_MAP + i + j * MAX_MAPI);
+            sdlx_register_event(&loc, EVID_MAP + i + j*MAX_MAPI);
         }
     }
 
@@ -326,13 +352,13 @@ void display_map(void)
     if (map_latitude_ctr != last_map_latitude_ctr || map_longitude_ctr != last_map_longitude_ctr) {
         char city[50], state[50];
 
-        printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
         find_nearest_city(map_latitude_ctr, map_longitude_ctr, 
                           city, sizeof(city), state, sizeof(state),
                           &nearest_city_latitude, &nearest_city_longitude);
         snprintf(nearest_city_name, sizeof(nearest_city_name), "%s %s", city, state);
-        printf("GOT '%s' %0.4f %0.4f\n", nearest_city_name,
-           nearest_city_latitude, nearest_city_longitude);
+        printf("I %s: nearest city '%s' %0.4f %0.4f\n", 
+               progname, nearest_city_name,
+               nearest_city_latitude, nearest_city_longitude);
 
         last_map_latitude_ctr = map_latitude_ctr;
         last_map_longitude_ctr = map_longitude_ctr;
@@ -348,18 +374,16 @@ void display_map(void)
                                FONT_SMALL, COLOR_WHITE, 
                                "%s", nearest_city_name);
 
+#if 0
         // display a color blue point on the map at the city location
-        lat_long_to_map_pixel_coord(nearest_city_latitude, nearest_city_longitude, &x, &y);
+        // xxx check this
+        lat_long_to_map_xy(nearest_city_latitude, nearest_city_longitude, &x, &y);
         printf("XY %d %d\n", x, y);
-        if (x >= 0 && x < WIN_W &&
-            y >= MAP_Y && y < (MAP_Y+MAP_H))
-        {
-            printf("PRINT POINT AT xy %d %d\n", x, y);
-            sdlx_render_point(x,y,COLOR_BLUE,MAX_POINT_SIZE);
+        if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
+            sdlx_render_point(x,y+MAP_Y,COLOR_BLUE,MAX_POINT_SIZE);
         }
-    } else {
-        printf("OPPS\n");
     }
+#endif
 }
 
 // -----------------  UTILS  -------------------------------------
@@ -367,28 +391,31 @@ void display_map(void)
 // what is distance and true bearing between 42.4222 -71.6226 and 42.4342 -71.6098 
 
 // yyy return error if out of range ?
-void lat_long_to_map_pixel_coord(double latitude, double longitude, int *x, int *y)
+// yyy comment on what returned x,y are
+void lat_long_to_map_xy(double latitude, double longitude, int *x, int *y)
 {
-    double map_h_miles = map_w_miles * ((double)MAP_H / WIN_W);
+    double map_h_miles = map_w_miles * ((double)MAP_H / MAP_W);
 
-    double ns_miles, ew_miles, bearing;
-    ns_miles = -(map_latitude_ctr - latitude) * 69.17;
-    ew_miles = (longitude - map_longitude_ctr) * (69.17 * cos(map_latitude_ctr * DEG_TO_RAD));
-    printf("zzzzzzzzzzzzzzzzzzzz \n");
-    printf("ns_miles = %0.3f  ew_miles = %0.3f\n", ns_miles, ew_miles);
-    printf("total_miles = %0.3f\n", sqrt(ns_miles * ns_miles + ew_miles * ew_miles));
+    //double ns_miles, ew_miles, bearing;
+    //ns_miles = -(map_latitude_ctr - latitude) * 69.17;
+    //ew_miles = (longitude - map_longitude_ctr) * (69.17 * cosd(map_latitude_ctr));
+    //printf("zzzzzzzzzzzzzzzzzzzz \n");
+    //printf("ns_miles = %0.3f  ew_miles = %0.3f\n", ns_miles, ew_miles);
+    //printf("total_miles = %0.3f\n", sqrt(ns_miles * ns_miles + ew_miles * ew_miles));
     //bearing = atan2(ns_miles, ew_miles) * 180.0 / M_PI;
-    bearing = 90 - (180/M_PI) * atan(ns_miles / ew_miles);
-    printf("bearing = %0.3f\n", bearing);
-    printf("^^^^^^^^^^^^^^^^^^^^ \n");
+    //bearing = 90 - (180/M_PI) * atan(ns_miles / ew_miles);
+    //printf("bearing = %0.3f\n", bearing);
+    //printf("^^^^^^^^^^^^^^^^^^^^ \n");
 
 
-    *x = (longitude - map_longitude_ctr) * 
-         (69.17 * cos(map_latitude_ctr * DEG_TO_RAD)) / 
-         (map_w_miles / 2) * PHOTOS_H + (PHOTOS_H/2);
-    *y = (map_latitude_ctr - latitude) * 
-         (69.17) / 
-         (map_h_miles / 2) * MAP_H + (MAP_H/2);
+    *x = (longitude - map_longitude_ctr) * (69.17 * cosd(map_latitude_ctr)) * (MAP_W / map_w_miles) + (MAP_W/2);
+    *y = (map_latitude_ctr - latitude) * (69.17) * (MAP_H / map_h_miles) + (MAP_H/2);
+
 
     // yyy use nearbyint
+}
+
+double cosd(double degrees)
+{
+    return cos(degrees * DEG2RAD);
 }

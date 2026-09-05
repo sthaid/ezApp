@@ -31,7 +31,7 @@
 
 #define ONE_SEC 1000000
 
-#define DEG_TO_RAD (M_PI / 180.0)
+#define DEG2RAD (M_PI / 180.0)
 
 #define THUMB   475
 #define SPACING 525
