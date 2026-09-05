@@ -317,7 +317,7 @@ void display_photos(void)
 
 void display_map(void)
 {
-    int i, j, x, y;
+    int i, j;
     sdlx_loc_t loc;
 
     sdlx_render_fill_rect(0, MAP_Y, MAP_W, MAP_H, COLOR_BLACK);
@@ -382,8 +382,8 @@ void display_map(void)
         if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
             sdlx_render_point(x,y+MAP_Y,COLOR_BLUE,MAX_POINT_SIZE);
         }
-    }
 #endif
+    }
 }
 
 // -----------------  UTILS  -------------------------------------
