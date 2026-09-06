@@ -1,3 +1,4 @@
+// xxx work on zoom,  maybe don't pingh,  use +,-
 // xxx dont cary motion over from photos to map, or vice versa
 
 // xxx consider a way to also support multiple selections
