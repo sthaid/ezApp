@@ -13,8 +13,8 @@
 // defines
 //
 
-#define MAX_MAPI  7
-#define MAX_MAPJ  5
+//#define MAX_MAPI  7
+//#define MAX_MAPJ  5
 
 #define MAP_Y     0
 #define PHOTOS_Y  700
@@ -22,10 +22,12 @@
 
 #define MAP_W     1000
 #define MAP_H     700
-#define PHTOOS_W  1000
+#define PHOTOS_W  1000
 #define PHOTOS_H  1000
 #define CTRLS_W   1000
 #define CTRLS_H   300
+
+#define MAX_HEAD  48
 
 // xxx define for 69.17
 
@@ -35,8 +37,10 @@
 
 typedef struct {
     node_t node;
-    bool   selected;
+    //bool   selected;
     int    num_entries;
+    int    n_idx; //xxx make unsigned
+    int    e_idx;
 } head_t;
 
 //
@@ -49,7 +53,7 @@ double  map_longitude_ctr;
 double  map_w_miles;
 
 // list of photos indexed by location on map
-head_t  head[MAX_MAPI][MAX_MAPJ];
+head_t  head[MAX_HEAD];
 
 // used for scolling photos
 double  y_top;
@@ -68,6 +72,11 @@ void display_map(void);
 void lat_long_to_map_xy(double latitude, double longitude, int *x, int *y);
 double cosd(double degrees);
 
+void set_selected(unsigned long e_idx, unsigned long n_idx);
+void clr_selected(unsigned long e_idx, unsigned long n_idx);
+bool is_selected(unsigned long e_idx, unsigned long n_idx);
+void toggle_selected(unsigned long e_idx, unsigned long n_idx);
+
 // ------------------ LOCATION VIEW --------------
 
 void location(void)
@@ -77,7 +86,7 @@ void location(void)
     bool         switch_view = false;
 
     // init 
-    map_w_miles = 60;
+    map_w_miles = 70;
 
     util_get_location(&map_latitude_ctr, &map_longitude_ctr, NULL, NULL); //yyy dont let these be invalid
     if (map_latitude_ctr == INVALID_NUMBER || map_longitude_ctr == INVALID_NUMBER) {
@@ -94,8 +103,8 @@ void location(void)
 
         // yyy 
         display_init();  // yyy move init to inside photos ?
-        display_photos();
         display_map();
+        display_photos();
 
         // register events 
         // - override any SHOW_PHOTO events that have been
@@ -128,11 +137,10 @@ void location(void)
         }
 
         // process events
-        if (event.event_id >= EVID_MAP && event.event_id < EVID_MAP+(MAX_MAPI*MAX_MAPJ)) {
-            int i = (event.event_id - EVID_MAP) % MAX_MAPI; //yyy check range?
-            int j = (event.event_id - EVID_MAP) / MAX_MAPI;
-            printf("GOT ij %d %d\n", i,j);
-            head[i][j].selected = !head[i][j].selected;
+        if (event.event_id >= EVID_MAP && event.event_id < EVID_MAP+MAX_HEAD) {
+            int i = event.event_id - EVID_MAP;
+            head_t *hd = &head[i];
+            toggle_selected(hd->e_idx, hd->n_idx);
         } else if (event.event_id >= EVID_SHOW_PHOTO && event.event_id < EVID_SHOW_PHOTO+max_photos) {
             int idx = event.event_id - EVID_SHOW_PHOTO; 
             show_photo(idx);
@@ -163,12 +171,13 @@ void location(void)
                     map_longitude_ctr -= event.u.motion.xrel * (map_w_miles / MAP_W) / 
                                          (69.17 * cosd(map_latitude_ctr));
 
-                    printf("map motion  map_h_miles = %0.3f\n", map_h_miles);
+                    //printf("map motion  map_h_miles = %0.3f\n", map_h_miles);
                     // xxx limit lat long,  is long 0 to 360 or -180 to 180
                 }
                 break;
             case EVID_PINCH:
                 map_w_miles *= event.u.pinch.scale;
+                printf("map_w_miles = %0.0f\n", map_w_miles);
                 // xxx limit
                 break;
             case EVID_HOME:
@@ -197,8 +206,180 @@ void location(void)
 
 // -----------------  DISPLAY ROTUINES  --------------------------
 
+// xxx which need to be global
+double map_n, map_e, map_h, map_w;
+double head_w, head_h;
+//double head_h, head_w, head_n, head_e;
+
 void display_init(void)
 {
+    static double cos_map_lat;
+    int    i, j, head_n_idx, head_e_idx, head_e_first_idx;
+
+    if (cos_map_lat == 0) cos_map_lat = cosd(map_latitude_ctr);
+    //if (map_e < 0) map_e += 15000;
+
+    map_w = map_w_miles;
+    map_h = map_w_miles * ((double)MAP_H / MAP_W);
+
+    head_w = map_w / 7;
+    head_h = map_h / 5;
+
+    printf("map w h = %0.0f %0.0f\n", map_w, map_h);
+    map_n = (map_latitude_ctr + 90) * 69 + map_h/2;
+    map_e = (map_longitude_ctr + 180) * (69 * cos_map_lat) - map_w/2;
+
+    map_n -= head_h;
+    map_e += head_w;
+
+    printf("map n,e,w,h = %0.0f %0.0f %0.0f %0.0f\n", map_n, map_e, map_w, map_h);
+
+    head_n_idx = map_n / head_h + 1;
+    head_e_idx = map_e / head_w;
+    head_e_first_idx = head_e_idx;
+    printf("head n,e,w,h = %d %d %0.0f %0.0f\n", head_n_idx, head_e_idx, head_w, head_h);
+
+    for (i = 0; i < MAX_HEAD; i++) {
+        head_t *hd = &head[i];
+
+        init_list_head(&hd->node);
+        //hd->selected    = false;
+        hd->num_entries = 0;
+        hd->e_idx       = head_e_idx;
+        hd->n_idx       = head_n_idx;
+        //printf("NEW HD  e_idx, n_idx = %d %d\n", hd->e_idx, hd->n_idx);
+        
+        head_e_idx++;
+        if (head_e_idx > head_e_first_idx + 7) {
+            head_e_idx = head_e_first_idx;
+            head_n_idx--;
+        }
+    }
+
+    printf("----------------\n");
+    for (i = 0; i < max_photos; i++) {
+        metadata_t *md = photos[i].md;
+        double photo_n, photo_e;
+        int photo_n_idx, photo_e_idx;
+        
+        photo_e = (md->longitude + 180) * 69 * cos_map_lat;
+        photo_n = (md->latitude + 90) * 69;
+
+#if 0
+        if (photo_n < map_n - map_h) continue;
+        if (photo_e > map_e + map_w) continue;
+        if (photo_n > map_n + head_h) continue;
+        if (photo_e < map_e - head_w) continue;
+#endif
+
+        photo_e_idx = photo_e / head_w;
+        photo_n_idx = photo_n / head_h;
+        //printf("photo %d  en = %d %d\n", i, photo_e_idx, photo_n_idx);
+
+#if 1
+        if (photo_e_idx < head[0].e_idx) continue;
+        if (photo_n_idx > head[0].n_idx) continue;
+        if (photo_e_idx > head[MAX_HEAD-1].e_idx) continue;
+        if (photo_n_idx < head[MAX_HEAD-1].n_idx) continue;
+#endif
+
+
+        for (j = 0; j < MAX_HEAD; j++) {
+            head_t *hd = &head[j];
+            if (hd->n_idx == photo_n_idx && hd->e_idx == photo_e_idx) {
+                //printf("hd=%d  hd en idx = %d %d  photo en idx= %d %d\n",
+                    //j, hd->e_idx, hd->n_idx, photo_e_idx, photo_n_idx);
+                add_to_list_tail(&hd->node, &photos[i].node);
+                hd->num_entries++;
+                //hd->selected = true;
+                break;
+            }
+        }
+    }
+
+#if 0
+    // clear selected flag for lists that have no entries
+    for (i = 0; i < MAX_HEAD; i++) { 
+        if (head[i].num_entries == 0) {
+            head[i].selected = false;
+        }
+    }  
+#endif
+}
+
+void display_map(void)
+{
+    sdlx_color_t color;
+    int i;
+    sdlx_loc_t loc;
+    char name[9];
+    bool slctd;
+
+    for (i = 0; i < MAX_HEAD; i++) {
+        head_t *hd = &head[i];
+
+        if (hd->num_entries == 0) {
+            continue;
+        }
+        //bool ok;
+        //ok = (i == 0 || i == 7 || i == 40 || i == 47 ||
+              //i == 19 || i == 20 || i == 27 || i == 28);
+        //ok |= (hd->num_entries != 0);
+        //if (!ok) continue;
+
+        slctd = is_selected(hd->e_idx, hd->n_idx);
+        color = (slctd ? COLOR_ORANGE : COLOR_WHITE);
+
+        //if (!is_list_empty(&hd->node)) {
+            photo_t *photo = (photo_t*)(hd->node.next);
+            metadata_t *md = photo->md;
+            printf("NAME %s\n", md->city);
+            strncpy(name, md->city, 8);
+            name[8] = '\0';
+        //} else {
+            //strcpy(name, "123");
+        //}
+
+        loc.w = head_w * (1000 / map_w);
+        loc.h = head_h * (700 / map_h);
+        loc.x = ((hd->e_idx * head_w)  - map_e) * (1000 / map_w);
+        loc.y = (map_n - (hd->n_idx * head_h)) * (700 / map_h);
+        sdlx_render_fill_rect(loc.x+10, loc.y+10, loc.w-20, loc.h-20, color);
+
+        sdlx_render_printf_ex2(loc.x+15, loc.y+15, 35, COLOR_BLACK, loc.w-30, "%s", name);
+
+        printf("reg event %d\n", EVID_MAP + i);
+        sdlx_register_event(&loc, EVID_MAP + i);
+
+
+    }
+
+    sdlx_render_fill_rect(0, PHOTOS_Y, PHOTOS_W, PHOTOS_H, COLOR_YELLOW);
+
+    sdlx_render_printf(0, 1500, "lat = %0.4f\n", map_latitude_ctr);
+    sdlx_render_printf(0, 1600, "lng = %0.4f\n", map_longitude_ctr);
+}
+
+#if 0
+    for (i = 0; i < 48; i++) {
+        head_t *hd = &head[i];
+
+        // node_t node;
+        // bool   selected;
+        // int    num_entries;
+        // double lat_ctr;
+        // double long_ctr;
+
+        init_list_head(&hd->node);
+        hd->selected = false;
+        hd->num_entries = 0;
+        hd->lat_ctr = xxx;
+
+        hd->long_ctr = xxx;
+    }
+#endif
+
+#if 0
     int           i, j, idx;
 
     // init photo list heads all to empty list
@@ -235,23 +416,24 @@ void display_init(void)
             }
         }
     }
-}
+#endif
 
 void display_photos(void)
 {
-    int i, j, num_selected_photos, max_y_top;
+    int i, num_selected_photos, max_y_top;
     node_t *node;
     int cnt = -1;
     sdlx_texture_t *t;
 
+    bool slctd[MAX_HEAD];
+
     // determine number of selected photos
     num_selected_photos = 0;
-    for (i = 0; i < MAX_MAPI; i++) {
-        for (j = 0; j < MAX_MAPJ; j++) {
-            head_t *hd = &head[i][j];
-            if (hd->selected) {
-                num_selected_photos += hd->num_entries;
-            }
+    for (i = 0; i < MAX_HEAD; i++) {
+        head_t *hd = &head[i];
+        slctd[i] = is_selected(hd->e_idx, hd->n_idx);
+        if (slctd[i]) {
+            num_selected_photos += hd->num_entries;
         }
     }
 
@@ -264,60 +446,59 @@ void display_photos(void)
     t = sdlx_create_texture(THUMB, THUMB);
 
     // loop over map list heads
-    for (i = 0; i < MAX_MAPI; i++) {
-        for (j = 0; j < MAX_MAPJ; j++) {
-            head_t *hd = &head[i][j];
+    for (i = 0; i < MAX_HEAD; i++) {
+        head_t *hd = &head[i];
 
-            // if list head is not selected then continue
-            if (!hd->selected) {
+        // if list head is not selected then continue
+        if (!slctd[i]) {
+            continue;
+        }
+
+        // loop over all photos in the list 
+        for (node = hd->node.next; node != &hd->node; node = node->next) {
+            photo_t *photo = (photo_t*)node;
+            metadata_t *md = photo->md;
+            sdlx_loc_t dest;
+            int y, idx;
+
+            cnt++;
+
+            y = (cnt / 2) * SPACING;
+            if (y < y_top - SPACING) {
                 continue;
             }
-
-            // loop over all photos in the list 
-            for (node = hd->node.next; node != &hd->node; node = node->next) {
-                photo_t *photo = (photo_t*)node;
-                metadata_t *md = photo->md;
-                sdlx_loc_t dest;
-                int y, idx;
-
-                cnt++;
-
-                y = (cnt / 2) * SPACING;
-                if (y < y_top - SPACING) {
-                    continue;
-                }
-                if (y > y_top + PHOTOS_H) {
-                    break;
-                }
-
-                sdlx_set_texture_pixels(t, md->pixels);
-                dest.x = (cnt % 2) * SPACING;
-                dest.y = y - y_top + PHOTOS_Y;
-                dest.w = THUMB;
-                dest.h = THUMB;
-                sdlx_render_texture(t, NULL, &dest);
-
-                idx = ((char*)photo - (char*)&photos[0]) / sizeof(photo_t); //yyy comment picoc issue
-                sdlx_register_event(&dest, EVID_SHOW_PHOTO+idx);
-
-                if (del_mode) {
-                    reg_event_str(dest.x + THUMB - sdlx_char_width_dflt, dest.y,
-                                  COLOR_RED, "X", EVID_DELETE_PHOTO+idx);
-                }
-
-                sdlx_render_printf_ex2(dest.x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
-                sdlx_render_printf_ex2(dest.x+THUMB/2, dest.y+THUMB-sdlx_char_height(FONT_SMALL), 
-                                       FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%s", md->date);
+            if (y > y_top + PHOTOS_H) {
+                break;
             }
+
+            sdlx_set_texture_pixels(t, md->pixels);
+            dest.x = (cnt % 2) * SPACING;
+            dest.y = y - y_top + PHOTOS_Y;
+            dest.w = THUMB;
+            dest.h = THUMB;
+            sdlx_render_texture(t, NULL, &dest);
+
+            idx = ((char*)photo - (char*)&photos[0]) / sizeof(photo_t); //yyy comment picoc issue
+            sdlx_register_event(&dest, EVID_SHOW_PHOTO+idx);
+
+            if (del_mode) {
+                reg_event_str(dest.x + THUMB - sdlx_char_width_dflt, dest.y,
+                              COLOR_RED, "X", EVID_DELETE_PHOTO+idx);
+            }
+
+            sdlx_render_printf_ex2(dest.x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
+            sdlx_render_printf_ex2(dest.x+THUMB/2, dest.y+THUMB-sdlx_char_height(FONT_SMALL), 
+                                   FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%s", md->date);
         }
     }
 
     sdlx_destroy_texture(t);
 }
 
+#if 0
 void display_map(void)
 {
-    int i, j;
+    int i, j, x, y;
     sdlx_loc_t loc;
 
     sdlx_render_fill_rect(0, MAP_Y, MAP_W, MAP_H, COLOR_BLACK);
@@ -382,8 +563,8 @@ void display_map(void)
         if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) {
             sdlx_render_point(x,y+MAP_Y,COLOR_BLUE,MAX_POINT_SIZE);
         }
-#endif
     }
+#endif
 }
 
 // -----------------  UTILS  -------------------------------------
@@ -414,8 +595,68 @@ void lat_long_to_map_xy(double latitude, double longitude, int *x, int *y)
 
     // yyy use nearbyint
 }
+#endif
 
 double cosd(double degrees)
 {
     return cos(degrees * DEG2RAD);
+}
+
+
+unsigned long selected[10];
+
+void set_selected(unsigned long e_idx, unsigned long n_idx)
+{
+    unsigned long slctd = (e_idx << 32) | (n_idx);
+
+    for (int i = 0; i < 10; i++) {
+        if (selected[i] == 0) {
+            selected[i] = slctd;
+        }
+    }
+    printf("SET SLCTD %lx\n", slctd);
+}
+
+void clr_selected(unsigned long e_idx, unsigned long n_idx)
+{
+    unsigned long slctd = (e_idx << 32) | (n_idx);
+
+    for (int i = 0; i < 10; i++) {
+        if (selected[i] == slctd) {
+            selected[i] = 0;
+        }
+    }
+    printf("SET SLCTD %lx\n", slctd);
+}
+
+bool is_selected(unsigned long e_idx, unsigned long n_idx)
+{
+    unsigned long slctd = (e_idx << 32) | (n_idx);
+
+    for (int i = 0; i < 10; i++) {
+        if (selected[i] == slctd) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void toggle_selected(unsigned long e_idx, unsigned long n_idx)
+{
+    unsigned long slctd = (e_idx << 32) | (n_idx);
+    int avail = -1;
+
+    for (int i = 0; i < 10; i++) {
+        if (selected[i] == slctd) {
+            selected[i] = 0;
+            return;
+        }
+        if (selected[i] == 0) {
+            avail = i;
+        }
+    }
+
+    if (avail != -1) {
+        selected[avail] = slctd;
+    }
 }
