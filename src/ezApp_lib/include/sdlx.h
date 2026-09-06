@@ -197,6 +197,7 @@ int sdlx_char_width(int fontid);
 int sdlx_char_height(int fontid);
 
 // Values for the flags arg to sdlx_render_printf_ex2 ...
+// xxx add FLAG_NONE
 #define FLAG_WRAP_MASK     0x00000fff   // wrap text at this number of pixels; 
                                         // use zero for wrapping text only on newline char
 #define FLAG_X_CTR         0x00001000   // x arg is text center instead of left

@@ -1,3 +1,10 @@
+// xxx scrolling map moves boex to cover the photos
+
+// xxx when taking test photos, assign city name to Bolton  ? Maybe not needed
+
+// xxx all apps need a sdlevent timeout, or an event trigger when coming out of doze
+
+
 // yyy todo
 // - comments
 // - make ctrls same in gallery
@@ -13,6 +20,7 @@
 // defines
 //
 
+#define FLAG_NONE 0  // xxx move to API
 //#define MAX_MAPI  7
 //#define MAX_MAPJ  5
 
@@ -103,8 +111,8 @@ void location(void)
 
         // yyy 
         display_init();  // yyy move init to inside photos ?
-        display_map();
         display_photos();
+        display_map();
 
         // register events 
         // - override any SHOW_PHOTO events that have been
@@ -315,6 +323,8 @@ void display_map(void)
     char name[9];
     bool slctd;
 
+    sdlx_render_fill_rect(0, MAP_Y, MAP_W, MAP_H, COLOR_DARK_GRAY);
+
     for (i = 0; i < MAX_HEAD; i++) {
         head_t *hd = &head[i];
 
@@ -354,10 +364,12 @@ void display_map(void)
 
     }
 
-    sdlx_render_fill_rect(0, PHOTOS_Y, PHOTOS_W, PHOTOS_H, COLOR_YELLOW);
-
-    sdlx_render_printf(0, 1500, "lat = %0.4f\n", map_latitude_ctr);
-    sdlx_render_printf(0, 1600, "lng = %0.4f\n", map_longitude_ctr);
+    //sdlx_render_fill_rect(0, PHOTOS_Y, PHOTOS_W, PHOTOS_H, COLOR_YELLOW);
+    //sdlx_render_printf(0, 1500, "lat = %0.4f\n", map_latitude_ctr);
+    //sdlx_render_printf(0, 1600, "lng = %0.4f\n", map_longitude_ctr);
+    sdlx_render_printf_ex2(MAP_W/2, MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
+                           FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%0.4f %0.4f", 
+                           map_latitude_ctr, map_longitude_ctr);
 }
 
 #if 0
