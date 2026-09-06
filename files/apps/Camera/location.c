@@ -1,3 +1,11 @@
+// xxx dont cary motion over from photos to map, or vice versa
+
+// xxx consider a way to also support multiple selections
+ 
+// xxx may want to desect others when selecting
+
+// xxx the < > arrows go through all photos not just those selected
+
 // xxx scrolling map moves boex to cover the photos
 
 // xxx when taking test photos, assign city name to Bolton  ? Maybe not needed
@@ -614,7 +622,7 @@ double cosd(double degrees)
     return cos(degrees * DEG2RAD);
 }
 
-
+#if 0
 unsigned long selected[10];
 
 void set_selected(unsigned long e_idx, unsigned long n_idx)
@@ -672,3 +680,23 @@ void toggle_selected(unsigned long e_idx, unsigned long n_idx)
         selected[avail] = slctd;
     }
 }
+#else
+unsigned long Slctd;
+
+void toggle_selected(unsigned long e_idx, unsigned long n_idx)
+{
+    unsigned long slctd = (e_idx << 32) | (n_idx);
+
+    if (Slctd == slctd) {
+        Slctd = 0;
+    } else {
+        Slctd = slctd;
+    }
+}
+
+bool is_selected(unsigned long e_idx, unsigned long n_idx)
+{
+    unsigned long slctd = (e_idx << 32) | (n_idx);
+    return slctd == Slctd;
+}
+#endif
