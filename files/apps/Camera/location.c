@@ -1,4 +1,3 @@
-// xxx the < > arrows go through all photos not just those selected
 // xxx dont cary motion over from photos to map, or vice versa
 
 // yyy work on zoom,  maybe don't pingh,  use +,-
@@ -34,17 +33,17 @@
 
 #define MAX_HEAD  48
 
-// xxx define for 69.17
+#define LAT2MILES 69.17
 
 //
 // typedefs
 //
 
 typedef struct {
-    node_t node;
-    int    num_entries;
-    int    n_idx; //xxx make unsigned
-    int    e_idx;
+    node_t       node;
+    int          num_entries;
+    unsigned int n_idx;
+    unsigned int e_idx;
 } head_t;
 
 //
@@ -76,8 +75,8 @@ void display_map(void);
 void lat_long_to_map_xy(double latitude, double longitude, int *x, int *y);
 double cosd(double degrees);
 
-void toggle_selected(unsigned long e_idx, unsigned long n_idx);
-bool is_selected(unsigned long e_idx, unsigned long n_idx);
+void set_selected(unsigned int e_idx, unsigned int n_idx);
+bool is_selected(unsigned int e_idx, unsigned int n_idx);
 void clear_selected(void);
 
 // ------------------ LOCATION VIEW --------------
@@ -142,8 +141,7 @@ void location(void)
         // process events
         if (event.event_id >= EVID_MAP && event.event_id < EVID_MAP+MAX_HEAD) {
             int i = event.event_id - EVID_MAP;
-            head_t *hd = &head[i];
-            toggle_selected(hd->e_idx, hd->n_idx);
+            set_selected(head[i].e_idx, head[i].n_idx);
         } else if (event.event_id >= EVID_SHOW_PHOTO && event.event_id < EVID_SHOW_PHOTO+max_photos) {
             int idx = event.event_id - EVID_SHOW_PHOTO; 
             show_photo(idx);
@@ -170,9 +168,9 @@ void location(void)
                 } else {
                     double map_h_miles = map_w_miles * ((double)MAP_H / MAP_W);
                     map_latitude_ctr  += event.u.motion.yrel * (map_h_miles / MAP_H) / 
-                                         69.17;
+                                         LAT2MILES;
                     map_longitude_ctr -= event.u.motion.xrel * (map_w_miles / MAP_W) / 
-                                         (69.17 * cosd(map_latitude_ctr));
+                                         (LAT2MILES * cosd(map_latitude_ctr));
                     // yyy limit lat long,  is long 0 to 360 or -180 to 180
                 }
                 break;
@@ -211,15 +209,16 @@ void location(void)
 
 // -----------------  DISPLAY ROTUINES  --------------------------
 
-// xxx which need to be global
-// xxx names
+// yyy names
 double map_n, map_e, map_h, map_w;
 double head_w, head_h;
 
 void display_init(void)
 {
+    int           i, j; 
+    unsigned int  head_n_idx, head_e_idx, head_e_first_idx;
+
     static double cos_map_lat;
-    int    i, j, head_n_idx, head_e_idx, head_e_first_idx;
 
     if (cos_map_lat == 0) cos_map_lat = cosd(map_latitude_ctr);  // yyy get again
 
@@ -229,8 +228,8 @@ void display_init(void)
     head_w = map_w / 7;
     head_h = map_h / 5;
 
-    map_n = (map_latitude_ctr + 90) * 69 + map_h/2;
-    map_e = (map_longitude_ctr + 180) * (69 * cos_map_lat) - map_w/2;
+    map_n = (map_latitude_ctr + 90) * LAT2MILES + map_h/2;
+    map_e = (map_longitude_ctr + 180) * (LAT2MILES * cos_map_lat) - map_w/2;
 
     map_n -= head_h;
     map_e += head_w;
@@ -257,10 +256,10 @@ void display_init(void)
     for (i = 0; i < max_photos; i++) {
         metadata_t *md = photos[i].md;
         double photo_n, photo_e;
-        int photo_n_idx, photo_e_idx;
+        unsigned int photo_n_idx, photo_e_idx;
         
-        photo_e = (md->longitude + 180) * 69 * cos_map_lat;
-        photo_n = (md->latitude + 90) * 69;
+        photo_e = (md->longitude + 180) * LAT2MILES * cos_map_lat;
+        photo_n = (md->latitude + 90) * LAT2MILES;
 
         photo_e_idx = photo_e / head_w;
         photo_n_idx = photo_n / head_h;
@@ -332,10 +331,14 @@ void display_photos(void)
     node_t *node;
     int cnt = -1;
     sdlx_texture_t *t;
-
     bool slctd[MAX_HEAD];
 
+    for (i = 0; i < max_photos; i++) {
+        photos[i].show = false;
+    }
+
     // determine number of selected photos
+    // yyy simplify because just one is ever selected
     num_selected_photos = 0;
     for (i = 0; i < MAX_HEAD; i++) {
         head_t *hd = &head[i];
@@ -354,6 +357,7 @@ void display_photos(void)
     t = sdlx_create_texture(THUMB, THUMB);
 
     // loop over map list heads
+    // yyy dont need to loop
     for (i = 0; i < MAX_HEAD; i++) {
         head_t *hd = &head[i];
 
@@ -367,20 +371,23 @@ void display_photos(void)
             photo_t *photo = (photo_t*)node;
             metadata_t *md = photo->md;
             sdlx_loc_t dest;
-            int y, idx;
+            int x, y, idx;
 
             cnt++;
+            photo->show = true;
 
+            x = (cnt % 2) * SPACING;
             y = (cnt / 2) * SPACING;
+
             if (y < y_top - SPACING) {
                 continue;
             }
             if (y > y_top + PHOTOS_H) {
-                break;
+                continue;
             }
 
             sdlx_set_texture_pixels(t, md->pixels);
-            dest.x = (cnt % 2) * SPACING;
+            dest.x = x;
             dest.y = y - y_top + PHOTOS_Y;
             dest.w = THUMB;
             dest.h = THUMB;
@@ -412,9 +419,9 @@ double cosd(double degrees)
 
 unsigned long Slctd;
 
-void toggle_selected(unsigned long e_idx, unsigned long n_idx)
+void set_selected(unsigned int e_idx, unsigned int n_idx)
 {
-    unsigned long slctd = (e_idx << 32) | (n_idx);
+    unsigned long slctd = ((unsigned long)e_idx << 32) | (n_idx);
 
     if (Slctd == slctd) {
         Slctd = 0;
@@ -423,9 +430,9 @@ void toggle_selected(unsigned long e_idx, unsigned long n_idx)
     }
 }
 
-bool is_selected(unsigned long e_idx, unsigned long n_idx)
+bool is_selected(unsigned int e_idx, unsigned int n_idx)
 {
-    unsigned long slctd = (e_idx << 32) | (n_idx);
+    unsigned long slctd = ((unsigned long)e_idx << 32) | (n_idx);
     return slctd == Slctd;
 }
 

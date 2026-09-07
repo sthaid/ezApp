@@ -91,6 +91,9 @@ void gallery(void)
             delete_photo(idx);
         } else if (event.event_id >= EVID_SHOW_PHOTO && event.event_id < EVID_SHOW_PHOTO+max_photos) {
             int idx = event.event_id - EVID_SHOW_PHOTO;
+            for (int i = 0; i < max_photos; i++) {
+                photos[i].show = true;
+            }
             show_photo(idx);
         } else {
             switch (event.event_id) {

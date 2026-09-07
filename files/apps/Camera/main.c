@@ -219,7 +219,7 @@ double xc, yc, scale;
 
 void show_photo(int idx)
 {
-    int             num, rc, texture_w=0, texture_h=0, y;
+    int             num, rc, texture_w=0, texture_h=0, y, i;
     char            file[50];
     metadata_t     *md;
     sdlx_texture_t *t = NULL;
@@ -236,6 +236,12 @@ void show_photo(int idx)
     // check idx arg
     if (idx < 0 || idx >= max_photos) {
         printf("E %s: idx %d out of range 0..%d\n", progname, idx, max_photos);
+        return;
+    }
+
+    // yyy comment
+    if (photos[idx].show == false) {
+        printf("E %s: photos[%d].show is false\n", progname, idx);
         return;
     }
 
@@ -381,12 +387,22 @@ void show_photo(int idx)
                 idx = max_photos-1;
                 break; }
             case EVID_NEXT:
-                idx = (idx < max_photos-1 ? idx+1 : 0);
+                for (i = 0; i < max_photos; i++) {
+                    idx = (idx < max_photos-1 ? idx+1 : 0);
+                    if (photos[idx].show) {
+                        break;
+                    }
+                }
                 restart = true;
                 last_next_prev_time = util_microsec_timer();
                 break;
             case EVID_PREV:
-                idx = (idx > 0 ? idx-1 : max_photos-1);
+                for (i = 0; i < max_photos; i++) {
+                    idx = (idx > 0 ? idx-1 : max_photos-1);
+                    if (photos[idx].show) {
+                        break;
+                    }
+                }
                 restart = true;
                 last_next_prev_time = util_microsec_timer();
                 break;

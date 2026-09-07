@@ -84,6 +84,7 @@ typedef struct {
     node_t node;
     int num;
     metadata_t *md;
+    bool show;
 } photo_t;
 
 //
