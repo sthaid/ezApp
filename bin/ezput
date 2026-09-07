@@ -101,17 +101,21 @@ if [ "$dev" = "" -o "$password" = "" ]; then
     exit 1
 fi
 
-# determine the top of the files directory tree,
 # this works if CWD is one of the following directories, for example:
 # - /path_to_files/files
 # - /path_to_files/files/apps
-# - /path_to_files/files/apps/Template
+# - /path_to_files/files/apps/Camera
+# - /path_to_files/files/apps/Camera/photos
 if [ $(basename "$PWD") = files ]; then
     files_dir=$PWD
 elif [ $(basename "$(dirname "$PWD")") = files ]; then
     files_dir=$(dirname $PWD)
 elif [ $(basename "$(dirname "$(dirname "$PWD")")") = files ]; then
     files_dir=$(dirname $PWD)
+    files_dir=$(dirname $files_dir)
+elif [ $(basename "$(dirname "$(dirname "$(dirname "$PWD")")")") = files ]; then
+    files_dir=$(dirname $PWD)
+    files_dir=$(dirname $files_dir)
     files_dir=$(dirname $files_dir)
 else
     echo "ERROR: $PWD must be in files directory tree"
@@ -122,9 +126,6 @@ fi
 if [ $# -eq 0 ]; then
     set -- "."
 fi
-
-# print message
-echo "INFO: transferring files from devel PC to Android device"
 
 # find candidtate files to xfer
 find_output=$(find $* ! -type d 2>/dev/null)
@@ -169,6 +170,16 @@ if [ -z "$files" ]; then
     exit 1
 fi
 
+# print list of files to be transferred, and prompt to continue
+echo "INFO: will transfer these files from devel PC to Android device:"
+printf "%s\n" $files
+read -p "Continue (y/n? " yn
+if [ "$yn" != y ]; then
+    echo "ABORT"
+    exit 1
+fi
+echo
+
 # create tar file, containing the files to transfer to Android device
 cd $files_dir
 tar -cf /tmp/ezput.tar  $files
@@ -187,6 +198,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # extract ezput.tar on the Android device
+echo "INFO: extracting ezput.tar file on the Android device"
 ezsh -d $dev -p $password -q "tar -xvf ezput.tar"
 if [ $? -ne 0 ]; then 
     echo "ERROR: failed to extract ezput.tar on Android device"

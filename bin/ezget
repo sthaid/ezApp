@@ -73,13 +73,18 @@ fi
 # this works if CWD is one of the following directories, for example:
 # - /path_to_files/files
 # - /path_to_files/files/apps
-# - /path_to_files/files/apps/Template
+# - /path_to_files/files/apps/Camera
+# - /path_to_files/files/apps/Camera/photos
 if [ $(basename "$PWD") = files ]; then
     files_dir=$PWD
 elif [ $(basename "$(dirname "$PWD")") = files ]; then
     files_dir=$(dirname $PWD)
 elif [ $(basename "$(dirname "$(dirname "$PWD")")") = files ]; then
     files_dir=$(dirname $PWD)
+    files_dir=$(dirname $files_dir)
+elif [ $(basename "$(dirname "$(dirname "$(dirname "$PWD")")")") = files ]; then
+    files_dir=$(dirname $PWD)
+    files_dir=$(dirname $files_dir)
     files_dir=$(dirname $files_dir)
 else
     echo "ERROR: $PWD must be in files directory tree"
@@ -93,9 +98,14 @@ if [ "$android_dir" = "" ]; then
     exit 1
 fi
 
-# print message
-# xxx print the from and to dirs
-echo "INFO: transferring files from Android device to devel PC"
+# print message, and prompt to continue
+echo "INFO: transferring files from Android device $android_dir to devel PC $PWD"
+read -p "Continue (y/n? " yn
+if [ "$yn" != y ]; then
+    echo "ABORT"
+    exit 1
+fi
+echo
 
 # create ezget.tar on Android device
 if [ "$android_dir" = "." ]; then
@@ -117,6 +127,7 @@ fi
 
 # extract ezget.tar on devel PC
 cd $files_dir
+echo "INFO: extracting ezget.tar file on devel PC $files_dir"
 tar -xvf /tmp/ezget.tar
 if [ $? -ne 0 ]; then 
     echo "ERROR: failed to extract ezget.tar on devel PC"
