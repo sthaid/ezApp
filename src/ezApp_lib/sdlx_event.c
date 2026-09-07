@@ -286,12 +286,41 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
     int i;
     static double total_motion;
     static bool pinching;
+    static bool motioning;
+    static int pending_event_id = -1;
+    bool flag = false; // xxx rename and comments
+
+    if (pending_event_id != -1) {
+        event->event_id = pending_event_id;
+        pending_event_id = -1;
+        return;
+    }
+
 
     switch (ev->type) {
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP: {
         if (pinching) {
             break;
+        }
+
+        if (motioning && ev->type == SDL_EVENT_MOUSE_BUTTON_UP) {
+            event->event_id = EVID_MOTION;
+            event->u.motion.xrel = 0;
+            event->u.motion.yrel = 0;
+            event->u.motion.end = true;  
+            if (orientation == PORTRAIT) {
+                event->u.motion.x = ev->button.x / scale_events_x;
+                event->u.motion.y = ev->button.y / scale_events_y;
+            } else {
+                event->u.motion.y = logical_win_height - ev->button.x / scale_events_x;
+                event->u.motion.x = ev->button.y / scale_events_y;
+            }
+
+            flag = true;
+    
+            motioning = false;
+            INFO("MOTIONING is now false\n");
         }
 
         //INFO("MOUSE_BUTTON button=%s state=%s x=%d y=%d\n",
@@ -321,7 +350,11 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
             }
 
             if (i >= 0) {
-                event->event_id = event_tbl[i].event_id;
+                if (!flag) {
+                    event->event_id = event_tbl[i].event_id;
+                } else {
+                    pending_event_id = event_tbl[i].event_id;
+                }
             }
         }
         break; }
@@ -354,6 +387,12 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
             //    ev->motion.y,
             //    ev->motion.xrel,
             //    ev->motion.yrel);
+
+            if (!motioning) {
+                event->u.motion.start = true;
+                motioning = true;
+                INFO("MOTIONING is now true\n");
+            }
 
             event->event_id = EVID_MOTION;
             if (orientation == PORTRAIT) {

@@ -87,16 +87,18 @@ void location(void)
     int          y;
     bool         switch_view = false;
 
+    static bool motioning_in_map;
+
     // init 
     // yyy start where left off on prior run
-    map_w_miles = 64;
+    map_w_miles = 50;
 
     util_get_location(&map_latitude_ctr, &map_longitude_ctr, NULL, NULL); //yyy dont let these be invalid
     if (map_latitude_ctr == INVALID_NUMBER || map_longitude_ctr == INVALID_NUMBER) {
         map_latitude_ctr = HOME_LATITUDE;     // yyy rename to DEFAULT
         map_longitude_ctr = HOME_LONGITUDE;
     }
-    printf("LOCATION STARTING %0.4f %0.4f n", map_latitude_ctr, map_longitude_ctr);
+    printf("LOCATION STARTING %0.4f %0.4f\n", map_latitude_ctr, map_longitude_ctr);
 
     // yyy comment
     while (!switch_view && !end_program) {
@@ -162,18 +164,21 @@ void location(void)
             case EVID_DEL:
                 del_mode = !del_mode;
                 break;
-            case EVID_MOTION:
-                if (event.u.motion.y >= PHOTOS_Y) {
-                    y_top -= event.u.motion.yrel;
-                } else {
+            case EVID_MOTION: {
+                if (event.u.motion.start) {
+                    motioning_in_map = (event.u.motion.y < MAP_Y+MAP_H);
+                    printf("MOTION START IN MAP %d\n", motioning_in_map);
+                }
+                if (motioning_in_map) {
                     double map_h_miles = map_w_miles * ((double)MAP_H / MAP_W);
                     map_latitude_ctr  += event.u.motion.yrel * (map_h_miles / MAP_H) / 
                                          LAT2MILES;
                     map_longitude_ctr -= event.u.motion.xrel * (map_w_miles / MAP_W) / 
                                          (LAT2MILES * cosd(map_latitude_ctr));
-                    // yyy limit lat long,  is long 0 to 360 or -180 to 180
+                } else {
+                    y_top -= event.u.motion.yrel;
                 }
-                break;
+                break; }
             case EVID_PINCH:
                 clear_selected();
                 map_w_miles /= event.u.pinch.scale;

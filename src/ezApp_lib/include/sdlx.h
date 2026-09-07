@@ -558,6 +558,7 @@ typedef struct {
     union {
         struct {
             double x, y, xrel, yrel;
+            bool   start, end;
         } motion;
         struct {
             double scale, span_x, span_y, focus_x, focus_y;

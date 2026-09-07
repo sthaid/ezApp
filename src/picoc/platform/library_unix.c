@@ -915,6 +915,8 @@ typedef struct { \n\
             double y; \n\
             double xrel; \n\
             double yrel; \n\
+            bool start; \n\
+            bool end; \n\
         } motion; \n\
         struct { \n\
             double scale; \n\
