@@ -1747,17 +1747,24 @@ static void page_14_process_event(sdlx_event_t *ev)
 
 #define RADIUS 500
 
-double pg15_scale, pg15_focus_x, pg15_focus_y, pg15_span_x, pg15_span_y;
 int pg15_orientation_save;
+double pg15_scale, pg15_focus_x, pg15_focus_y, pg15_span_x, pg15_span_y;
+bool pg15_motioning;
+int pg15_motion_begin_x, pg15_motion_begin_y;
 
 static void page_15_init(void)
 {
+    pg15_orientation_save = orientation;
+
     pg15_scale = 1;
     pg15_focus_x = sdlx_win_width/2;
     pg15_focus_y = sdlx_win_height/2;
     pg15_span_x = 0;
     pg15_span_y = 0;
-    pg15_orientation_save = orientation;
+
+    pg15_motioning = false;
+    pg15_motion_begin_x = -1;
+    pg15_motion_begin_y = -1;
 }
 
 static void page_15_exit(void)
@@ -1778,6 +1785,10 @@ static void page_15_draw(void)
     sdlx_render_printf_ex2(sdlx_win_width/2, sdlx_win_height-sdlx_char_height(FONT_NORMAL)/2, 
                            FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, "Scale = %0.3f", pg15_scale);
 
+    if (pg15_motioning) {
+        sdlx_render_point(pg15_motion_begin_x, pg15_motion_begin_y, COLOR_RED, MAX_POINT_SIZE);
+    }
+
     sdlx_register_event(NULL, EVID_PINCH);
     sdlx_register_event(NULL, EVID_MOTION);
 }
@@ -1785,6 +1796,14 @@ static void page_15_draw(void)
 static void page_15_process_event(sdlx_event_t *ev)
 {
     switch(ev->event_id) {
+    case EVID_PINCH_BEGIN:
+        //sdlx_show_toast("PINCH_BEGIN");
+        break;
+    case EVID_PINCH_END:
+        //sdlx_show_toast("PINCH_END");
+        pg15_span_x = 0;
+        pg15_span_y = 0;
+        break;
     case EVID_PINCH:
         printf("I %s: PINCH scale=%0.3f  focus=%0.0f %0.0f  span=%0.0f %0.0f\n",
                progname,
@@ -1798,11 +1817,25 @@ static void page_15_process_event(sdlx_event_t *ev)
         pg15_span_x  = ev->u.pinch.span_x;
         pg15_span_y  = ev->u.pinch.span_y;
         break;
+
+    case EVID_MOTION_BEGIN:
+        //sdlx_show_toast("MOTION_BEGIN");
+        pg15_motioning = true;
+        pg15_motion_begin_x = ev->u.motion_begin.x;
+        pg15_motion_begin_y = ev->u.motion_begin.y;
+        break;
+    case EVID_MOTION_END:
+        //sdlx_show_toast("MOTION_END");
+        pg15_motioning = false;
+        pg15_motion_begin_x = 0;
+        pg15_motion_begin_y = 0;
+        break;
     case EVID_MOTION:
-        printf("I %s: MOTION xy=%0.0f %0.0f  xyrel=%0.0f %0.0f\n", 
-               progname, 
-               ev->u.motion.x, ev->u.motion.y,
-               ev->u.motion.xrel, ev->u.motion.yrel);
+        //printf("I %s: MOTION xy=%0.0f %0.0f  xyrel=%0.0f %0.0f\n", 
+        //       progname, 
+        //       ev->u.motion.x, ev->u.motion.y,
+        //       ev->u.motion.xrel, ev->u.motion.yrel);
+
         pg15_focus_x += ev->u.motion.xrel;
         pg15_focus_y += ev->u.motion.yrel;
         break;

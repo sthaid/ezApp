@@ -288,7 +288,6 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
     static bool pinching;
     static bool motioning;
     static int pending_event_id = -1;
-    bool flag = false; // xxx rename and comments
 
     if (pending_event_id != -1) {
         event->event_id = pending_event_id;
@@ -296,31 +295,19 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         return;
     }
 
-
     switch (ev->type) {
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP: {
-        if (pinching) {
-            break;
-        }
+        bool set_pending_event = false;
 
         if (motioning && ev->type == SDL_EVENT_MOUSE_BUTTON_UP) {
-            event->event_id = EVID_MOTION;
-            event->u.motion.xrel = 0;
-            event->u.motion.yrel = 0;
-            event->u.motion.end = true;  
-            if (orientation == PORTRAIT) {
-                event->u.motion.x = ev->button.x / scale_events_x;
-                event->u.motion.y = ev->button.y / scale_events_y;
-            } else {
-                event->u.motion.y = logical_win_height - ev->button.x / scale_events_x;
-                event->u.motion.x = ev->button.y / scale_events_y;
-            }
-
-            flag = true;
-    
+            event->event_id = EVID_MOTION_END;
+            set_pending_event = true;
             motioning = false;
-            INFO("MOTIONING is now false\n");
+        }
+
+        if (pinching) {
+            break;
         }
 
         //INFO("MOUSE_BUTTON button=%s state=%s x=%d y=%d\n",
@@ -350,7 +337,7 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
             }
 
             if (i >= 0) {
-                if (!flag) {
+                if (!set_pending_event) {
                     event->event_id = event_tbl[i].event_id;
                 } else {
                     pending_event_id = event_tbl[i].event_id;
@@ -389,9 +376,16 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
             //    ev->motion.yrel);
 
             if (!motioning) {
-                event->u.motion.start = true;
                 motioning = true;
-                INFO("MOTIONING is now true\n");
+                event->event_id = EVID_MOTION_BEGIN;
+                if (orientation == PORTRAIT) {
+                    event->u.motion_begin.x = ev->motion.x / scale_events_x;
+                    event->u.motion_begin.y = ev->motion.y / scale_events_y;
+                } else {
+                    event->u.motion_begin.y = logical_win_height - ev->motion.x / scale_events_x;
+                    event->u.motion_begin.x = ev->motion.y / scale_events_y;
+                }
+                break;
             }
 
             event->event_id = EVID_MOTION;
@@ -424,11 +418,30 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         break; }
 
 #ifdef ANDROID
-    case SDL_EVENT_PINCH_BEGIN:
+    case SDL_EVENT_PINCH_BEGIN: {
+        SDL_PinchFingerEvent *x = &ev->pinch;
+
         pinching = true;
-        break;
+        if (evid_pinch_registered) {
+            event->event_id = EVID_PINCH_BEGIN;
+            if (orientation == PORTRAIT) {
+                event->u.pinch_begin.span_x = x->span_x / scale_events_x;
+                event->u.pinch_begin.span_y = x->span_y / scale_events_y;
+                event->u.pinch_begin.focus_x = x->focus_x / scale_events_x;
+                event->u.pinch_begin.focus_y = x->focus_y / scale_events_y;
+            } else {
+                event->u.pinch_begin.span_x = x->span_y / scale_events_y;
+                event->u.pinch_begin.span_y = x->span_x / scale_events_x;
+                event->u.pinch_begin.focus_x = x->focus_y / scale_events_y;
+                event->u.pinch_begin.focus_y = logical_win_height - x->focus_x / scale_events_x;
+            }
+        }
+        break; }
     case SDL_EVENT_PINCH_END:
         pinching = false;
+        if (evid_pinch_registered) {
+            event->event_id = EVID_PINCH_END;
+        }
         break;
     case SDL_EVENT_PINCH_UPDATE: {
         SDL_PinchFingerEvent *x = &ev->pinch;

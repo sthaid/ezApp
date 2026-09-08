@@ -164,11 +164,10 @@ void location(void)
             case EVID_DEL:
                 del_mode = !del_mode;
                 break;
-            case EVID_MOTION: {
-                if (event.u.motion.start) {
-                    motioning_in_map = (event.u.motion.y < MAP_Y+MAP_H);
-                    printf("MOTION START IN MAP %d\n", motioning_in_map);
-                }
+            case EVID_MOTION_BEGIN:
+                motioning_in_map = (event.u.motion_begin.y < MAP_Y+MAP_H);
+                break;
+            case EVID_MOTION:
                 if (motioning_in_map) {
                     double map_h_miles = map_w_miles * ((double)MAP_H / MAP_W);
                     map_latitude_ctr  += event.u.motion.yrel * (map_h_miles / MAP_H) / 
@@ -178,7 +177,7 @@ void location(void)
                 } else {
                     y_top -= event.u.motion.yrel;
                 }
-                break; }
+                break;
             case EVID_PINCH:
                 clear_selected();
                 map_w_miles /= event.u.pinch.scale;
@@ -292,6 +291,10 @@ void display_map(void)
     sdlx_loc_t loc;
     char name[9];
     bool slctd;
+    sdlx_texture_t *t;
+
+    t = sdlx_create_texture(MAP_W, MAP_H); //xxx do just once
+    sdlx_set_render_target(t);
 
     sdlx_render_fill_rect(0, MAP_Y, MAP_W, MAP_H, COLOR_DARK_GRAY);
 
@@ -328,6 +331,14 @@ void display_map(void)
     sprintf(w_str, "w=%0.1f", map_w_miles);
     sdlx_render_printf_ex2(WIN_W-strlen(w_str)*sdlx_char_width(FONT_SMALL), MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
                            FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%s", w_str);
+
+    sdlx_set_render_target(NULL);
+    loc.x = 0;
+    loc.y = MAP_Y;
+    loc.w = MAP_W;
+    loc.h = MAP_H;
+    sdlx_render_texture(t, NULL, &loc);
+    sdlx_destroy_texture(t);
 }
 
 void display_photos(void)

@@ -904,26 +904,38 @@ typedef struct { \n\
 } sdlx_sensor_info_t; \n\
 \n\
 /* events */ \n\
-#define EVID_MOTION  1000000 \n\
-#define EVID_PINCH   1000001 \n\
-#define EVID_QUIT    1000009 \n\
+#define EVID_MOTION_BEGIN  1000000000 \n\
+#define EVID_MOTION        1000000001 \n\
+#define EVID_MOTION_END    1000000002 \n\
+#define EVID_PINCH_BEGIN   1000000003 \n\
+#define EVID_PINCH         1000000004 \n\
+#define EVID_PINCH_END     1000000005 \n\
+#define EVID_QUIT          1000000006 \n\
 typedef struct { \n\
     int event_id; \n\
     union { \n\
         struct { \n\
             double x; \n\
             double y; \n\
+        } motion_begin; \n\
+        struct { \n\
+            double x; \n\
+            double y; \n\
             double xrel; \n\
             double yrel; \n\
-            bool start; \n\
-            bool end; \n\
         } motion; \n\
         struct { \n\
-            double scale; \n\
             double span_x; \n\
             double span_y; \n\
             double focus_x; \n\
             double focus_y; \n\
+        } pinc_begin; \n\
+        struct { \n\
+            double span_x; \n\
+            double span_y; \n\
+            double focus_x; \n\
+            double focus_y; \n\
+            double scale; \n\
         } pinch; \n\
     } u; \n\
 } sdlx_event_t; \n\

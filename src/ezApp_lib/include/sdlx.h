@@ -535,6 +535,7 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 // --------------------
 
 // Define common events:
+// xxx update comments
 // - EVID_MOTION: This event occurs when the display is tapped and dragged.
 //                The current x,y coordinates; and the relative motion in the x,y
 //                directions are returned by the call to sdlx_get_event.
@@ -543,9 +544,13 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 // - EVID_QUIT:   This event is usually registered by calling 
 //                  sdlx_register_control_events(..., EVID_QUIT, "X");
 //                When the "X" is tapped, the EVID_QUIT event occurs.
-#define EVID_MOTION  1000000  // xxx increase these
-#define EVID_PINCH   1000001
-#define EVID_QUIT    1000009
+#define EVID_MOTION_BEGIN  1000000000
+#define EVID_MOTION        1000000001
+#define EVID_MOTION_END    1000000002
+#define EVID_PINCH_BEGIN   1000000003
+#define EVID_PINCH         1000000004
+#define EVID_PINCH_END     1000000005
+#define EVID_QUIT          1000000006
 
 // This structure returns the event that occurred, by call to sdlx_get_event.
 // When the display is tapped at a location associated with a registered
@@ -553,15 +558,21 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 // If the EVID_MOTION event is registered, and the display is dragged, then 
 // the EVID_MOTION event is returned, along with the values contained in 
 // the embedded motion struct.
+// xxx what if no event
 typedef struct {
     int event_id;
     union {
         struct {
+            double x, y;
+        } motion_begin;
+        struct {
             double x, y, xrel, yrel;
-            bool   start, end;
         } motion;
         struct {
-            double scale, span_x, span_y, focus_x, focus_y;
+            double span_x, span_y, focus_x, focus_y;
+        } pinch_begin;
+        struct {
+            double span_x, span_y, focus_x, focus_y, scale;
         } pinch;
         struct {  // the u.private_keybd struct is not available in picoc
             unsigned int keycode;
