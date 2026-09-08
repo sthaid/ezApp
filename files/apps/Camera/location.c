@@ -1,16 +1,21 @@
-// xxx dont cary motion over from photos to map, or vice versa
+// xxx printf FLAG_RIGHT, FLAG_NONE
+// xxx simplify ex print routines
 
-// yyy work on zoom,  maybe don't pingh,  use +,-
+// xxx settings,  display usage and memory remaining
+
+// xxx work on zoom,  maybe don't pingh,  use +,-
+// xxx when taking test photos, assign city name to Bolton  ? Maybe not needed
+// xxx MAX_PHOTOS, try 10000,  and test this   10000 * 4MB =  40 GB
+
+// yyy option to delete all photos
+
+// yyy how to backup files
+
 // yyy consider a way to also support multiple selections
-// yyy when taking test photos, assign city name to Bolton  ? Maybe not needed
 // yyy all apps need a sdlevent timeout, or an event trigger when coming out of doze
-// yyy pan and pinch map
-// yyy MAX_PHOTOS
-// yyy printf FLAG_RIGHT
 
 // yyy comments
 // yyy make ctrls same in gallery
-// yyy draw line to separate map from photos
 
 #include "apps/Camera/common.h"
 
@@ -18,7 +23,7 @@
 // defines
 //
 
-#define FLAG_NONE 0  // yyy move to API
+#define FLAG_NONE 0  // xxx move to API
 
 #define MAP_Y     0
 #define PHOTOS_Y  700
@@ -63,6 +68,9 @@ double  y_top;
 
 // enable photo delete
 bool    del_mode;
+
+// yyy comment
+sdlx_texture_t *display_map_texture;
 
 //
 // prototypes
@@ -209,11 +217,16 @@ void location(void)
             }
         }
     }
+
+    if (display_map_texture) {
+        sdlx_destroy_texture(display_map_texture);
+        display_map_texture = NULL;
+    }
 }
 
 // -----------------  DISPLAY ROTUINES  --------------------------
 
-// yyy names
+// yyy names, or just comment them
 double map_n, map_e, map_h, map_w;
 double head_w, head_h;
 
@@ -291,10 +304,12 @@ void display_map(void)
     sdlx_loc_t loc;
     char name[9];
     bool slctd;
-    sdlx_texture_t *t;
 
-    t = sdlx_create_texture(MAP_W, MAP_H); //xxx do just once
-    sdlx_set_render_target(t);
+    if (display_map_texture == NULL) {
+        display_map_texture = sdlx_create_texture(MAP_W, MAP_H);
+    }
+
+    sdlx_set_render_target(display_map_texture);
 
     sdlx_render_fill_rect(0, MAP_Y, MAP_W, MAP_H, COLOR_DARK_GRAY);
 
@@ -337,8 +352,7 @@ void display_map(void)
     loc.y = MAP_Y;
     loc.w = MAP_W;
     loc.h = MAP_H;
-    sdlx_render_texture(t, NULL, &loc);
-    sdlx_destroy_texture(t);
+    sdlx_render_texture(display_map_texture, NULL, &loc);
 }
 
 void display_photos(void)
