@@ -1,11 +1,10 @@
-// xxx printf FLAG_RIGHT
-// xxx simplify ex print routines
-
+// xxx MAX_PHOTOS, try 10000,  and test this   10000 * 4MB =  40 GB
 // xxx settings,  display usage and memory remaining
 
-// xxx work on zoom,  maybe don't pingh,  use +,-
 // xxx when taking test photos, assign city name to Bolton  ? Maybe not needed
-// xxx MAX_PHOTOS, try 10000,  and test this   10000 * 4MB =  40 GB
+// xxx work on zoom,  maybe don't pinch,  use +,-
+
+// xxx display state or city name on map, when motion ends
 
 // yyy option to delete all photos
 
@@ -14,6 +13,7 @@
 // yyy consider a way to also support multiple selections
 // yyy all apps need a sdlevent timeout, or an event trigger when coming out of doze
 
+// yyy printf FLAG_RIGHT (maybe not)
 // yyy comments
 // yyy make ctrls same in gallery
 
