@@ -108,9 +108,9 @@ int main(int argc, char **argv)
         if (state.state == AUDIO_STATE_IDLE) {
             sdlx_loc_t *loc;
 
-            loc = sdlx_render_printf_ex1(8*sdlx_char_width_dflt, ROW2Y(5), FONT_NORMAL, COLOR_LIGHT_BLUE, "DEC");
+            loc = sdlx_render_printf_ex(8*sdlx_char_width_dflt, ROW2Y(5), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "DEC");
             sdlx_register_event(loc, EVID_WPM_DEC);
-            loc = sdlx_render_printf_ex1(14*sdlx_char_width_dflt, ROW2Y(5), FONT_NORMAL, COLOR_LIGHT_BLUE, "INC");
+            loc = sdlx_render_printf_ex(14*sdlx_char_width_dflt, ROW2Y(5), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "INC");
             sdlx_register_event(loc, EVID_WPM_INC);
         }
 

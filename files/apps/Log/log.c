@@ -106,7 +106,7 @@ int main(int argc, char **argv)
         //   display log
         // endif
         if (state == LOG_NOT_LOADED || state == LOG_LOAD_FAILED) {
-            sdlx_render_printf_ex2(sdlx_win_width/2, sdlx_win_height/2, 
+            sdlx_render_printf_ex(sdlx_win_width/2, sdlx_win_height/2, 
                                    FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                                    "%s",
                                    state == LOG_NOT_LOADED ?  "Loading" : "Load Failed");

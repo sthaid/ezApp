@@ -186,12 +186,12 @@ void display_state(sdlx_audio_state_t *as)
     }
 
     if (orientation == PORTRAIT) {
-        sdlx_render_printf_ex2(sdlx_win_width/2, COH_P,
+        sdlx_render_printf_ex(sdlx_win_width/2, COH_P,
                                FONT_NORMAL, color, FLAG_X_CTR, 
                                "%s %s %s", 
                                get_state_str(), dur_str1, dur_str2);
     } else {
-        sdlx_render_printf_ex2(sdlx_win_width/2, 0,
+        sdlx_render_printf_ex(sdlx_win_width/2, 0,
                                FONT_NORMAL, color, FLAG_X_CTR, 
                                "%s %s %s %s", 
                                get_state_str(), remove_ext(playing_file), dur_str1, dur_str2);

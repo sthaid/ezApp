@@ -165,15 +165,15 @@ void draw_display(void)
     get_current_ymd(&curr_y, &curr_m, &curr_d);
     if (view == VIEW_DAY) {
         color = (year == curr_y && month == curr_m && day == curr_d) ? COLOR_GREEN : COLOR_WHITE;
-        sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(1), FONT_NORMAL, color, FLAG_X_CTR, 
+        sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1), FONT_NORMAL, color, FLAG_X_CTR, 
                                "%s", ymd_to_str(year, month, day));
     } else if (view == VIEW_MONTH) {
         color = (year == curr_y && month == curr_m) ? COLOR_GREEN : COLOR_WHITE;
-        sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(1), FONT_NORMAL, color, FLAG_X_CTR, 
+        sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1), FONT_NORMAL, color, FLAG_X_CTR, 
                                "%s %d", get_month_str(month), year);
     } else { // year
         color = (year == curr_y) ? COLOR_GREEN : COLOR_WHITE;
-        sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(1), FONT_NORMAL, color, FLAG_X_CTR, 
+        sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1), FONT_NORMAL, color, FLAG_X_CTR, 
                                "%d", year);
     }
 
@@ -183,10 +183,10 @@ void draw_display(void)
                                   steps_file->year[year-YEAR0]));
     miles = steps * params.step_len / INCHES_PER_MILE;
 
-    sdlx_render_printf_ex2(COL2X(5), ROW2Y(3), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%d", steps);
-    sdlx_render_printf_ex2(COL2X(5), ROW2Y(4), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "Steps");
-    sdlx_render_printf_ex2(COL2X(14), ROW2Y(3), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%0.2f", miles);
-    sdlx_render_printf_ex2(COL2X(14), ROW2Y(4), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "Miles");
+    sdlx_render_printf_ex(COL2X(5), ROW2Y(3), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%d", steps);
+    sdlx_render_printf_ex(COL2X(5), ROW2Y(4), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "Steps");
+    sdlx_render_printf_ex(COL2X(14), ROW2Y(3), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%0.2f", miles);
+    sdlx_render_printf_ex(COL2X(14), ROW2Y(4), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "Miles");
 
     // display graph
     double       values[32];
@@ -229,16 +229,16 @@ void draw_display(void)
     // - EVID_VIEW_SELECT: used to choose DAY, MONTH, or YEAR view
     // - EVID_TODAY:       set year, month, day to today
     // - EVID_SETTINGS:    bring up settings display
-    loc = sdlx_render_printf_ex1(0, sdlx_win_height-2*sdlx_char_height_dflt, 
-                                 FONT_NORMAL, COLOR_LIGHT_BLUE, "%s", VIEW_STR);
+    loc = sdlx_render_printf_ex(0, sdlx_win_height-2*sdlx_char_height_dflt, 
+                                 FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "%s", VIEW_STR);
     sdlx_register_event(loc, EVID_VIEW_SELECT);
 
-    loc = sdlx_render_printf_ex1(COL2X(8), sdlx_win_height-2*sdlx_char_height_dflt, 
-                                 FONT_NORMAL, COLOR_LIGHT_BLUE, "TODAY");
+    loc = sdlx_render_printf_ex(COL2X(8), sdlx_win_height-2*sdlx_char_height_dflt, 
+                                 FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "TODAY");
     sdlx_register_event(loc, EVID_TODAY);
 
-    loc = sdlx_render_printf_ex1(COL2X(17), sdlx_win_height-2*sdlx_char_height_dflt, 
-                                 FONT_NORMAL, COLOR_LIGHT_BLUE, "STG");
+    loc = sdlx_render_printf_ex(COL2X(17), sdlx_win_height-2*sdlx_char_height_dflt, 
+                                 FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "STG");
     sdlx_register_event(loc, EVID_SETTINGS);
 
     // register EVID_SHOW_README_FILE event
@@ -341,13 +341,13 @@ void settings(void)
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
         // display title line
-        sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(1), 
+        sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1), 
                                FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                                "SETTINGS");
 
         // register event to change params.step_len
         y = 3*sdlx_char_height_dflt;
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "step_len = %g", params.step_len);
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "step_len = %g", params.step_len);
         sdlx_register_event(loc, EVID_STEP_LEN);
         y += 2*sdlx_char_height_dflt;
 
@@ -357,25 +357,25 @@ void settings(void)
 
         // - params.max_miles_per_hour
         sdlx_render_printf(0, y, "hour  = %d", params.max_miles_per_hour);
-        loc = sdlx_render_printf_ex1(COL2X(13), y, FONT_NORMAL, COLOR_LIGHT_BLUE, "-");
+        loc = sdlx_render_printf_ex(COL2X(13), y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "-");
         sdlx_register_event(loc, EVID_MAX_MPH_DECR);
-        loc = sdlx_render_printf_ex1(COL2X(17), y, FONT_NORMAL, COLOR_LIGHT_BLUE, "+");
+        loc = sdlx_render_printf_ex(COL2X(17), y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "+");
         sdlx_register_event(loc, EVID_MAX_MPH_INCR);
         y += 2*sdlx_char_height_dflt;
 
         // - params.max_miles_per_day
         sdlx_render_printf(0, y, "day   = %d", params.max_miles_per_day);
-        loc = sdlx_render_printf_ex1(COL2X(13), y, FONT_NORMAL, COLOR_LIGHT_BLUE, "-");
+        loc = sdlx_render_printf_ex(COL2X(13), y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "-");
         sdlx_register_event(loc, EVID_MAX_MPD_DECR);
-        loc = sdlx_render_printf_ex1(COL2X(17), y, FONT_NORMAL, COLOR_LIGHT_BLUE, "+");
+        loc = sdlx_render_printf_ex(COL2X(17), y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "+");
         sdlx_register_event(loc, EVID_MAX_MPD_INCR);
         y += 2*sdlx_char_height_dflt;
 
         // - params.max_miles_per_month
         sdlx_render_printf(0, y, "month = %d", params.max_miles_per_month);
-        loc = sdlx_render_printf_ex1(COL2X(13), y, FONT_NORMAL, COLOR_LIGHT_BLUE, "-");
+        loc = sdlx_render_printf_ex(COL2X(13), y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "-");
         sdlx_register_event(loc, EVID_MAX_MPM_DECR);
-        loc = sdlx_render_printf_ex1(COL2X(17), y, FONT_NORMAL, COLOR_LIGHT_BLUE, "+");
+        loc = sdlx_render_printf_ex(COL2X(17), y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "+");
         sdlx_register_event(loc, EVID_MAX_MPM_INCR);
         y += 2*sdlx_char_height_dflt;
 

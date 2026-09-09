@@ -169,13 +169,10 @@ extern int sdlx_char_height_dflt;
 //   instead of using default fontid and color.
 // - The flags arg to sdlx_render_printf_ex2 provides additional capabilities, see below.
 // - the returned sdlx_loc_t contains the location of the printed text
-// xxx just one of these
-sdlx_loc_t *sdlx_render_printf_ex1(int x, int y, int fontid, sdlx_color_t color, 
-                                   char * fmt, ...)
-                                   __attribute__ ((format (printf, 5, 6)));
-sdlx_loc_t *sdlx_render_printf_ex2(int x, int y, int fontid, sdlx_color_t color, unsigned int flags,
-                                   char *fmt, ...) 
-                                   __attribute__ ((format (printf, 6, 7)));
+// xxx comment
+sdlx_loc_t *sdlx_render_printf_ex(int x, int y, int fontid, sdlx_color_t color, unsigned int flags,
+                                  char *fmt, ...) 
+                                  __attribute__ ((format (printf, 6, 7)));
 
 // The sdlx_render_multiline_text routine displays text that spans multiple lines.
 // - The x,y args specify the location of the top left corner of the text.
@@ -197,7 +194,7 @@ int sdlx_char_width(int fontid);
 int sdlx_char_height(int fontid);
 
 // Values for the flags arg to sdlx_render_printf_ex2 ...
-// xxx add FLAG_NONE
+#define FLAG_NONE          0x00000000   // xxx comment
 #define FLAG_WRAP_MASK     0x00000fff   // wrap text at this number of pixels; 
                                         // use zero for wrapping text only on newline char
 #define FLAG_X_CTR         0x00001000   // x arg is text center instead of left

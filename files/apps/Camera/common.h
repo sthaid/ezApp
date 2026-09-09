@@ -24,7 +24,7 @@
 #define WIN_W 1000  // xxx use these in main.c and gallery.c
 #define WIN_H 2000
 
-#define MAX_PHOTOS 1000
+#define MAX_PHOTOS 1000  // xxx make bigge
 
 #define GALLERY_VIEW  0
 #define LOCATION_VIEW 1

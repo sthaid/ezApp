@@ -177,7 +177,7 @@ void svcs_display(int bg_color)
 
         // init display and display title line
         sdlx_display_init(bg_color, PORTRAIT);
-        sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(1), 
+        sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1), 
                                FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                                "Services");
 
@@ -202,18 +202,19 @@ void svcs_display(int bg_color)
             if (y2 > y_bottom) break;
 
             // display svc name
-            sdlx_render_printf_ex1(0, y2, FONT_NORMAL, SERVICE_STATE_TO_COLOR(x->svc_state), "%-s", x->name);
+            sdlx_render_printf_ex(0, y2, FONT_NORMAL, SERVICE_STATE_TO_COLOR(x->svc_state), FLAG_NONE,
+                                  "%-s", x->name);
 
             // display state info, or control for this svc
             if (x->svc_state == SERVICE_STATE_DELETING) {
-                sdlx_render_printf_ex1(COL2X(10), y2, FONT_NORMAL, COLOR_WHITE, "deleting");
+                sdlx_render_printf_ex(COL2X(10), y2, FONT_NORMAL, COLOR_WHITE, FLAG_NONE, "deleting");
             } else if (x->svc_state == SERVICE_STATE_STOPPING) {
-                sdlx_render_printf_ex1(COL2X(10), y2, FONT_NORMAL, COLOR_WHITE, "stopping");
+                sdlx_render_printf_ex(COL2X(10), y2, FONT_NORMAL, COLOR_WHITE, FLAG_NONE, "stopping");
             } else if (SERVICE_IS_STOPPED(x->svc_state)) {
-                loc = sdlx_render_printf_ex1(COL2X(10), y2, FONT_NORMAL, COLOR_LIGHT_BLUE, "start");
+                loc = sdlx_render_printf_ex(COL2X(10), y2, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "start");
                 sdlx_register_event(loc, EVID_SVC_START+id);
             } else if (x->svc_state == SERVICE_STATE_RUNNING) {
-                loc = sdlx_render_printf_ex1(COL2X(10), y2, FONT_NORMAL, COLOR_LIGHT_BLUE, "stop");
+                loc = sdlx_render_printf_ex(COL2X(10), y2, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "stop");
                 sdlx_register_event(loc, EVID_SVC_STOP+id);
             }
         }

@@ -125,31 +125,31 @@ int main(int argc, char **argv)
             // print the heading and the heading abbreviation below 
             // the area where the compass is displayed
             y = 1100 + 1.0 * sdlx_char_height(FONT_LARGE);
-            sdlx_render_printf_ex2(sdlx_win_width / 2, y,
+            sdlx_render_printf_ex(sdlx_win_width / 2, y,
                                    FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, 
                                    "%s", view == MAGNETIC_COMPASS ? "MAG" : "TRUE");
             y += 1.5 * sdlx_char_height(FONT_LARGE);
-            sdlx_render_printf_ex2(sdlx_win_width / 2, y,
+            sdlx_render_printf_ex(sdlx_win_width / 2, y,
                                    FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, 
                                    "%.0f", compass_heading);
             y += 1.5 * sdlx_char_height(FONT_LARGE);
-            sdlx_render_printf_ex2(sdlx_win_width / 2, y,
+            sdlx_render_printf_ex(sdlx_win_width / 2, y,
                                    FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, 
                                    "%s", abbreviation(compass_heading));
             y += 1.0 * sdlx_char_height(FONT_LARGE);
 
             // if show is enabled and mag_decl_degrees is available then print the mag_decl_degrees
             if (show && mag_decl_degrees != INVALID_NUMBER) {
-                sdlx_render_printf_ex2(sdlx_win_width / 2, y,
+                sdlx_render_printf_ex(sdlx_win_width / 2, y,
                                        FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                                        "decl = %0.1f", mag_decl_degrees);
                 y += 1.0 * sdlx_char_height(FONT_NORMAL);
-                sdlx_render_printf_ex2(sdlx_win_width / 2, y,
+                sdlx_render_printf_ex(sdlx_win_width / 2, y,
                                        FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                                        "%s", mag_decl_locname);
             }
         } else {
-            sdlx_render_printf_ex2(
+            sdlx_render_printf_ex(
                 sdlx_win_width / 2, 500, 
                 FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, 
                 "%s", "NO DATA");

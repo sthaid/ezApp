@@ -775,19 +775,7 @@ sdlx_loc_t *sdlx_render_printf(int x, int y, char * fmt, ...)
     return render_text(x, y, print_dflt.fontid, print_dflt.color, 0, str);
 }
 
-sdlx_loc_t *sdlx_render_printf_ex1(int x, int y, int fontid, sdlx_color_t color, char * fmt, ...)
-{
-    char str[1000];
-    va_list ap;
-
-    va_start(ap, fmt);
-    vsnprintf(str, sizeof(str), fmt, ap);
-    va_end(ap);
-
-    return render_text(x, y, fontid, color, 0, str);
-}
-
-sdlx_loc_t *sdlx_render_printf_ex2(int x, int y, int fontid, sdlx_color_t color, unsigned int flags, char *fmt, ...)
+sdlx_loc_t *sdlx_render_printf_ex(int x, int y, int fontid, sdlx_color_t color, unsigned int flags, char *fmt, ...)
 {
     char str[1000];
     va_list ap;

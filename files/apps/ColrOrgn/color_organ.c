@@ -243,7 +243,7 @@ void color_organ_display_bars(float *fft)
 
         // display scale factor
         if (disp_scale_factor) {
-            sdlx_render_printf_ex2(x+w/2, coh/2,
+            sdlx_render_printf_ex(x+w/2, coh/2,
                                    FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                                    "%d", band_scale[band]);
         }
@@ -322,7 +322,7 @@ void color_organ_display_circles(float *fft)
 
         // display scale factor
         if (disp_scale_factor) {
-            sdlx_render_printf_ex2(x_ctr, y_ctr,
+            sdlx_render_printf_ex(x_ctr, y_ctr,
                                    FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                                    "%d", band_scale[band]);
         }
@@ -378,7 +378,7 @@ void color_organ_display_fft(float *fft)
 
     // display scale factor
     if (disp_scale_factor) {
-        sdlx_render_printf_ex2(x+cow/2, coh/2,
+        sdlx_render_printf_ex(x+cow/2, coh/2,
                                FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                                "%d", fft_scale);
     }
@@ -562,23 +562,23 @@ void color_organ_settings(void)
         y += 2*sdlx_char_height_dflt;
 
         // register events
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "RESET");
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "RESET");
         sdlx_register_event(loc, EVID_SETTINGS_RESET);
         y += 2*sdlx_char_height_dflt;
 
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "CREATE_TEST_FILES");
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "CREATE_TEST_FILES");
         sdlx_register_event(loc, EVID_SETTINGS_CREATE_TEST_FILES);
         y += 2*sdlx_char_height_dflt;
 
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "EXP_FLTR_K");
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "EXP_FLTR_K");
         sdlx_register_event(loc, EVID_SETTINGS_EXP_FLTR_K);
         y += 2*sdlx_char_height_dflt;
 
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "SNAP_FLTR_DECAY");
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "SNAP_FLTR_DECAY");
         sdlx_register_event(loc, EVID_SETTINGS_SNAP_FLTR_DECAY);
         y += 2*sdlx_char_height_dflt;
 
-        loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "DEBUG_FLAGS");
+        loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "DEBUG_FLAGS");
         sdlx_register_event(loc, EVID_SETTINGS_DEBUG_FLAGS);
         y += 2*sdlx_char_height_dflt;
 

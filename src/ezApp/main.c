@@ -348,9 +348,9 @@ static void processing(void)
 
         // display message when devel mode is enabled
         if (params.devel_mode) {
-            sdlx_render_printf_ex2(sdlx_win_width/2, sdlx_win_height-1.5*sdlx_char_height_dflt,
-                                   FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, 
-                                   "developer mode");
+            sdlx_render_printf_ex(sdlx_win_width/2, sdlx_win_height-1.5*sdlx_char_height_dflt,
+                                  FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, 
+                                  "developer mode");
         }
 
         // update the display
@@ -480,16 +480,16 @@ static void display_menu(void)
         sdlx_loc_t dest = {x-RADIUS, y-RADIUS, 2*RADIUS, 2*RADIUS};
         sdlx_render_texture(circle, NULL, &dest);
         if (s2[0] == '\0') {
-            sdlx_render_printf_ex2(x, y, 
-                                   fontid, COLOR_WHITE, FLAG_XY_CTR, 
-                                   "%s", s1);
+            sdlx_render_printf_ex(x, y, 
+                                  fontid, COLOR_WHITE, FLAG_XY_CTR, 
+                                  "%s", s1);
         } else {
-            sdlx_render_printf_ex2(x, nearbyint(y-0.5*chh), 
-                                   fontid, COLOR_WHITE, FLAG_XY_CTR, 
-                                   "%s", s1);
-            sdlx_render_printf_ex2(x, nearbyint(y+0.5*chh), 
-                                   fontid, COLOR_WHITE, FLAG_XY_CTR, 
-                                   "%s", s2);
+            sdlx_render_printf_ex(x, nearbyint(y-0.5*chh), 
+                                 fontid, COLOR_WHITE, FLAG_XY_CTR, 
+                                  "%s", s1);
+            sdlx_render_printf_ex(x, nearbyint(y+0.5*chh), 
+                                 fontid, COLOR_WHITE, FLAG_XY_CTR, 
+                                  "%s", s2);
         }
 
         // register event
@@ -865,9 +865,9 @@ static void settings(void)
 
         // display title line, version, and ipaddr
         sdlx_render_fill_rect(0, 0, sdlx_win_width, 4*sdlx_char_height_dflt, BG_COLOR);
-        sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(0),
-                               FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
-                               "%s", "Settings");
+        sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(0),
+                              FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
+                              "%s", "Settings");
         sdlx_render_printf(0, ROW2Y(1), "Version = %s", VERSION);
         sdlx_render_printf(0, ROW2Y(2), "%s", BUILD_DATE);
         sdlx_render_printf(0, ROW2Y(3), "%s:%d", ipaddr_str, params.devel_port);

@@ -113,7 +113,8 @@ void display_bar_graph(
 
     // display graph x-axis labels
     int len = strlen(x_axis_str);
-    sdlx_render_printf_ex1(graph_x, graph_y_bottom+5, len, COLOR_WHITE, "%s", x_axis_str);
+    sdlx_render_printf_ex(graph_x, graph_y_bottom+5, len, COLOR_WHITE, FLAG_NONE, 
+                          "%s", x_axis_str);
 
     // display graph y-axis labels
     int *y_axis = NULL;
@@ -139,7 +140,7 @@ void display_bar_graph(
             int y = graph_y_bottom - 
                     ((double)y_axis[i] / max_y) * graph_h -
                     sdlx_char_height(FONT_SMALL) / 2;
-            sdlx_render_printf_ex2(graph_x-10, y, 
+            sdlx_render_printf_ex(graph_x-10, y, 
                                    FONT_SMALL, COLOR_WHITE, FLAG_BG_BLACK,
                                    "%d", y_axis[i]);
         }
@@ -472,7 +473,7 @@ void reg_event_str(int x, int y, sdlx_color_t color, char *event_name, int event
 {
     sdlx_loc_t *loc;
 
-    loc = sdlx_render_printf_ex1(x, y, FONT_NORMAL, color, "%s", event_name);
+    loc = sdlx_render_printf_ex(x, y, FONT_NORMAL, color, FLAG_NONE, "%s", event_name);
     sdlx_register_event(loc, event_id);
 }
 

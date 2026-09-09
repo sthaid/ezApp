@@ -287,18 +287,18 @@ void update_number_display(unsigned long value, bool error)
     // write to number display: either 'error', or hex value, or decimal value
     if (error) {
         sprintf(fmt, "%%%ds", font_max_chars);
-        sdlx_render_printf_ex1(0, DISPLAY_Y_TOP, 
-                               font_max_chars, DISPLAY_NUMBER_ERROR_COLOR,
+        sdlx_render_printf_ex(0, DISPLAY_Y_TOP, 
+                               font_max_chars, DISPLAY_NUMBER_ERROR_COLOR, FLAG_NONE,
                                fmt, "error");
     } else if (display_fmt == EVID_DSP_HEX) {
         sprintf(fmt, "%%%dlX", font_max_chars);
-        sdlx_render_printf_ex1(0, DISPLAY_Y_TOP, 
-                               font_max_chars, DISPLAY_NUMBER_COLOR,
+        sdlx_render_printf_ex(0, DISPLAY_Y_TOP, 
+                               font_max_chars, DISPLAY_NUMBER_COLOR, FLAG_NONE,
                                fmt, value);
     } else {
         sprintf(fmt, "%%%dlu", font_max_chars);
-        sdlx_render_printf_ex1(0, DISPLAY_Y_TOP, 
-                               font_max_chars, DISPLAY_NUMBER_COLOR,
+        sdlx_render_printf_ex(0, DISPLAY_Y_TOP, 
+                               font_max_chars, DISPLAY_NUMBER_COLOR, FLAG_NONE,
                                fmt, value);
     }
 }
@@ -346,9 +346,7 @@ void draw_button(int row, int col, int button, bool highlight)
         highlight ? highlighted_button_texture : (is_number ? number_button_texture : button_texture),
         NULL, &dest);
 
-    sdlx_render_printf_ex2(x, y, 
-                           FONT_NORMAL, BUTTON_COLOR_TEXT, FLAG_XY_CTR, 
-                           "%s", str);
+    sdlx_render_printf_ex(x, y, FONT_NORMAL, BUTTON_COLOR_TEXT, FLAG_XY_CTR, "%s", str);
 
     loc.x = x - texture_w/2;
     loc.y = y - texture_h/2;

@@ -1,4 +1,4 @@
-// xxx printf FLAG_RIGHT, FLAG_NONE
+// xxx printf FLAG_RIGHT
 // xxx simplify ex print routines
 
 // xxx settings,  display usage and memory remaining
@@ -22,8 +22,6 @@
 //
 // defines
 //
-
-#define FLAG_NONE 0  // xxx move to API
 
 #define MAP_Y     0
 #define PHOTOS_Y  700
@@ -334,17 +332,17 @@ void display_map(void)
         loc.y = (map_n - (hd->n_idx * head_h)) * (700 / map_h);
         sdlx_render_fill_rect(loc.x+10, loc.y+10, loc.w-20, loc.h-20, color);
 
-        sdlx_render_printf_ex2(loc.x+15, loc.y+15, 35, COLOR_BLACK, loc.w-30, "%s", name);
+        sdlx_render_printf_ex(loc.x+15, loc.y+15, 35, COLOR_BLACK, loc.w-30, "%s", name);
 
         sdlx_register_event(&loc, EVID_MAP + i);
     }
 
-    sdlx_render_printf_ex2(0, MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
+    sdlx_render_printf_ex(0, MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
                            FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%0.4f %0.4f", 
                            map_latitude_ctr, map_longitude_ctr);
     char w_str[20]; // yyy use FLAG_RIGHT
     sprintf(w_str, "w=%0.1f", map_w_miles);
-    sdlx_render_printf_ex2(WIN_W-strlen(w_str)*sdlx_char_width(FONT_SMALL), MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
+    sdlx_render_printf_ex(WIN_W-strlen(w_str)*sdlx_char_width(FONT_SMALL), MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
                            FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%s", w_str);
 
     sdlx_set_render_target(NULL);
@@ -431,8 +429,8 @@ void display_photos(void)
                               COLOR_RED, "X", EVID_DELETE_PHOTO+idx);
             }
 
-            sdlx_render_printf_ex2(dest.x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
-            sdlx_render_printf_ex2(dest.x+THUMB/2, dest.y+THUMB-sdlx_char_height(FONT_SMALL), 
+            sdlx_render_printf_ex(dest.x, dest.y, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%d", md->num);
+            sdlx_render_printf_ex(dest.x+THUMB/2, dest.y+THUMB-sdlx_char_height(FONT_SMALL), 
                                    FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%s", md->date);
         }
     }

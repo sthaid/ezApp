@@ -43,8 +43,8 @@ void gallery(void)
             sdlx_register_event(&dest, EVID_SHOW_PHOTO+i);
 
             int tmp_x = ((dest.x == 0 && dest.y == 0) ? 40 : dest.x);
-            sdlx_render_printf_ex2(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
-            sdlx_render_printf_ex2(dest.x+THUMB/2, dest.y+THUMB-sdlx_char_height(FONT_SMALL), 
+            sdlx_render_printf_ex(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%d", md->num);
+            sdlx_render_printf_ex(dest.x+THUMB/2, dest.y+THUMB-sdlx_char_height(FONT_SMALL), 
                                    FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%s", md->date);
 
             if (del_mode) {

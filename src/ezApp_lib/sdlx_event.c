@@ -188,7 +188,7 @@ void sdlx_register_control_events(int evid1, char *evstr1,
                 x = logical_win_width - (strlen(evstr[2]) * chw / 2);
             }
             y = logical_win_height - (CONTROL_AREA_SIZE / 2);
-            loc = sdlx_render_printf_ex2(x, y, FONT_NORMAL, FG_COLOR, FLAG_XY_CTR, "%s", evstr[i]);
+            loc = sdlx_render_printf_ex(x, y, FONT_NORMAL, FG_COLOR, FLAG_XY_CTR, "%s", evstr[i]);
         } else {
             y = (logical_win_height/3/2) + i * (logical_win_height/3);
             if (i == 0 && y < strlen(evstr[0]) * chw / 2) {
@@ -198,7 +198,7 @@ void sdlx_register_control_events(int evid1, char *evstr1,
                 y = logical_win_height - (strlen(evstr[2]) * chw / 2);
             }
             x = logical_win_width - (CONTROL_AREA_SIZE / 2);
-            loc = sdlx_render_printf_ex2(
+            loc = sdlx_render_printf_ex(
                         x, logical_win_height - y,
                         FONT_NORMAL, FG_COLOR, FLAG_XY_CTR|FLAG_ROT_CTR_270, "%s", evstr[i]);
         }

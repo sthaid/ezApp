@@ -170,7 +170,7 @@ void no_accelerometer(void)
     sdlx_register_control_events(0, NULL,
                                  0, NULL,
                                  EVID_QUIT, "X");
-    sdlx_render_printf_ex2(sdlx_win_width/2, sdlx_win_height/2, 
+    sdlx_render_printf_ex(sdlx_win_width/2, sdlx_win_height/2, 
                            FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, 
                            "%s", "No Accelerometer");
     sdlx_display_present();
@@ -209,11 +209,11 @@ int cal_query(void)
 
     sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-    loc = sdlx_render_printf_ex1(0, ROW2Y(3), FONT_NORMAL, COLOR_LIGHT_BLUE, "%s", "Save");
+    loc = sdlx_render_printf_ex(0, ROW2Y(3), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "%s", "Save");
     sdlx_register_event(loc, EVID_CAL_SAVE);
-    loc = sdlx_render_printf_ex1(0, ROW2Y(6), FONT_NORMAL, COLOR_LIGHT_BLUE, "%s", "Uncalibrate");
+    loc = sdlx_render_printf_ex(0, ROW2Y(6), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "%s", "Uncalibrate");
     sdlx_register_event(loc, EVID_CAL_UNCALIBRATE);
-    loc = sdlx_render_printf_ex1(0, ROW2Y(9), FONT_NORMAL, COLOR_LIGHT_BLUE, "%s", "Cancel");
+    loc = sdlx_render_printf_ex(0, ROW2Y(9), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "%s", "Cancel");
     sdlx_register_event(loc, EVID_CAL_CANCEL);
 
     sdlx_display_present();
@@ -291,25 +291,25 @@ void display_tilt_horizontal(double ax, double ay, double az, double roll_raw, d
 
     // display max_bulls_eye radius, in degrees
     y = yctr + sdlx_win_width / 2 + 0.5 * sdlx_char_height_dflt;
-    sdlx_render_printf_ex2(sdlx_win_width/2, y,
+    sdlx_render_printf_ex(sdlx_win_width/2, y,
                            FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                            "max %d deg", max_bulls_eye);
 
     // display tilt_amount
     y = yctr + sdlx_win_width / 2 + 3 * sdlx_char_height_dflt;
-    sdlx_render_printf_ex2(xctr, y,
+    sdlx_render_printf_ex(xctr, y,
                            FONT_LARGE, COLOR_WHITE, FLAG_X_CTR, 
                            "%0.1f", tilt_amount);
 
     // if not calibrated then display 'uncalibrated' in RED
     if (cal_horiz_roll == INVALID_NUMBER || cal_horiz_pitch == INVALID_NUMBER) {
-        sdlx_render_printf_ex2(sdlx_win_width / 2, y + 2.0 * sdlx_char_height(FONT_LARGE),
+        sdlx_render_printf_ex(sdlx_win_width / 2, y + 2.0 * sdlx_char_height(FONT_LARGE),
                                FONT_NORMAL, COLOR_RED,
                                FLAG_XY_CTR, "uncalibrated");
     }
 
     // register EVID_CALIBRATE
-    loc = sdlx_render_printf_ex2(
+    loc = sdlx_render_printf_ex(
                 sdlx_win_width/2, y + 3.0 * sdlx_char_height(FONT_LARGE),
                 FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_X_CTR, 
                 "%s", "CALIBRATE");
@@ -504,15 +504,15 @@ void display_tilt_vertical(double ax, double ay, double az, double roll, double 
     // print tilt angle at both ends of the arc, and at arc center
     x = arc_radius * sin(-arc_span_rad/2) + CHORD_LEN / 2 + x_offset;
     y = arc_radius - arc_radius * cos(-arc_span_rad/2) + sdlx_char_height(FONT_SMALL);
-    sdlx_render_printf_ex2(x, y, FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%g", -arc_span_deg/2);
+    sdlx_render_printf_ex(x, y, FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%g", -arc_span_deg/2);
 
     x = arc_radius * sin(arc_span_rad/2) + CHORD_LEN / 2 + x_offset;
     y = arc_radius - arc_radius * cos(arc_span_rad/2) + sdlx_char_height(FONT_SMALL);
-    sdlx_render_printf_ex2(x, y, FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%g", arc_span_deg/2);
+    sdlx_render_printf_ex(x, y, FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%g", arc_span_deg/2);
 
     x = arc_radius * sin(0) + CHORD_LEN / 2 + x_offset;
     y = arc_radius - arc_radius * cos(0) + sdlx_char_height(FONT_SMALL);
-    sdlx_render_printf_ex2(x, y, FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "0");
+    sdlx_render_printf_ex(x, y, FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "0");
 
     // add interval marks on the arc
     tick_delta_deg = (arc_span_deg <= 5  ? 1 :
@@ -532,14 +532,14 @@ void display_tilt_vertical(double ax, double ay, double az, double roll, double 
 
     // print the tilt angle at the center of the rendering texture
     y = VERT_TEXTURE_WH/4;
-    sdlx_render_printf_ex2(VERT_TEXTURE_WH/2, y,
+    sdlx_render_printf_ex(VERT_TEXTURE_WH/2, y,
                            FONT_LARGE, COLOR_WHITE,
                            FLAG_X_CTR, "%0.1f", angle_deg);
 
     // if not calibrated then display 'uncalibrated' in RED
     y += 2 * sdlx_char_height(FONT_LARGE);
     if (cal[rotate_deg/90] == INVALID_NUMBER) {
-        sdlx_render_printf_ex2(VERT_TEXTURE_WH/2, y,
+        sdlx_render_printf_ex(VERT_TEXTURE_WH/2, y,
                                FONT_NORMAL, COLOR_RED,
                                FLAG_XY_CTR, "uncalibrated");
     }
@@ -547,7 +547,7 @@ void display_tilt_vertical(double ax, double ay, double az, double roll, double 
     // print the CALIBRATE event; 
     // this event will be registered below, after the render target is set to the display
     y += 2 * sdlx_char_height(FONT_LARGE);
-    loc = sdlx_render_printf_ex2(
+    loc = sdlx_render_printf_ex(
                 VERT_TEXTURE_WH/2, VERT_TEXTURE_WH/2+1.5*sdlx_char_height(FONT_LARGE),
                 FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_X_CTR, 
                 "%s", "CALIBRATE");

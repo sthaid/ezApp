@@ -207,7 +207,7 @@ static void page_hndlr()
         sdlx_print_set_default(FONT_NORMAL, COLOR_WHITE);
 
         // draw title line
-        sdlx_render_printf_ex2(sdlx_win_width/2, 50, FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%s", page_title[pagenum]);
+        sdlx_render_printf_ex(sdlx_win_width/2, 50, FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%s", page_title[pagenum]);
 
         // draw display
         switch (pagenum) {
@@ -367,12 +367,12 @@ static void page_0_draw(void)
     time(&t);
     tm = localtime(&t);
     sprintf(str, "%02d:%02d:%02d", tm->tm_hour, tm->tm_min, tm->tm_sec);
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(5), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%s", str);
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(5), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%s", str);
 
     // print the time in microsecs
     usecs = util_get_real_time_microsec();
     util_time2str(str, usecs, false, true, false);
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(7), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%s", str);
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(7), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%s", str);
 
     // print microsecs since this page is first viewed, and
     // print the delta time since last display update
@@ -382,29 +382,28 @@ static void page_0_draw(void)
     }
     delta_ms = (usecs - usecs_last) / 1000;
     usecs_last = usecs;
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(9), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%0.3f delta=%ld ms", 
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(9), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%0.3f delta=%ld ms", 
         (usecs-usecs_first)/1000000., delta_ms);
 
     // print ipaddr
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(11), 
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(11), 
                            FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                            "%s", util_get_ipaddr(ipaddr_str));
 
     // test mouse motion
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(13),
-                           FONT_NORMAL, COLOR_WHITE,
-                           FLAG_X_CTR, 
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(13),
+                           FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                            "WxH = %d %d", sdlx_win_width, sdlx_win_height);
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(14), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(14), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
            "xrel = %0.3f", page_0_xrel);
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(15), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(15), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
            "yrel = %0.3f", page_0_yrel);
     sdlx_render_point(page_0_x, page_0_y, COLOR_WHITE, 9);
     sdlx_register_event(NULL, EVID_MOTION);
 
     // register event to crash this app
-    sdlx_loc_t *loc = sdlx_render_printf_ex1(0, sdlx_win_height-2*sdlx_char_height_dflt, 
-                                             FONT_NORMAL, COLOR_LIGHT_BLUE, "CRASHME");
+    sdlx_loc_t *loc = sdlx_render_printf_ex(0, sdlx_win_height-2*sdlx_char_height_dflt, 
+                                             FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "CRASHME");
     sdlx_register_event(loc, EVID_CRASH);
 }
 
@@ -493,7 +492,7 @@ static void page_1_draw(void)
         p += sprintf(p, "%s", code_point_to_utf8(cp));
 
         if ((i % 16) == 15) {
-            sdlx_render_printf_ex2(0, ROW2Y(i/16+2), 22, COLOR_WHITE, 0, "%s", str);
+            sdlx_render_printf_ex(0, ROW2Y(i/16+2), 22, COLOR_WHITE, FLAG_NONE, "%s", str);
         }
     }
 
@@ -735,7 +734,7 @@ static void page_5_draw(void)
     // - draw to texture1
     sdlx_render_rect(0, 0, w, h, 5, COLOR_WHITE);
     sdlx_render_fill_circle(w/2, h/2, w/2, COLOR_YELLOW);
-    sdlx_render_printf_ex2(w/2, h/2, FONT_NORMAL, COLOR_RED, FLAG_XY_CTR, "%s", "Hello");
+    sdlx_render_printf_ex(w/2, h/2, FONT_NORMAL, COLOR_RED, FLAG_XY_CTR, "%s", "Hello");
     // - set render target back to the display
     sdlx_set_render_target(NULL);
 
@@ -927,66 +926,66 @@ static void page_7_draw(void)
     if (!is_recording) {
         sdlx_render_printf(0, ROW2Y(row), "%s", state_str);
     } else {
-        sdlx_render_printf_ex1(0, ROW2Y(row), FONT_NORMAL, COLOR_RED, "%s", state_str);
+        sdlx_render_printf_ex(0, ROW2Y(row), FONT_NORMAL, COLOR_RED, FLAG_NONE, "%s", state_str);
     }
     row += 2;
 
     // controls: stop, pause, resume
-    loc = sdlx_render_printf_ex1(0, ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "STOP");
+    loc = sdlx_render_printf_ex(0, ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "STOP");
     sdlx_register_event(loc, EVID_AUDIO_STOP);
-    loc = sdlx_render_printf_ex1(COL2X(6), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "PAUSE");
+    loc = sdlx_render_printf_ex(COL2X(6), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "PAUSE");
     sdlx_register_event(loc, EVID_AUDIO_PAUSE);
-    loc = sdlx_render_printf_ex1(COL2X(13), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "RESUME");
+    loc = sdlx_render_printf_ex(COL2X(13), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "RESUME");
     sdlx_register_event(loc, EVID_AUDIO_RESUME);
     row += 2.5;
 
     // controls: play tone at specific frequency
     sdlx_render_printf(0, ROW2Y(row), "TONE");
 
-    loc = sdlx_render_printf_ex1(COL2X(5), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "G");
+    loc = sdlx_render_printf_ex(COL2X(5), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "G");
     sdlx_register_event(loc, EVID_AUDIO_PLAY_TONE_GO);
 
-    loc = sdlx_render_printf_ex1(COL2X(7), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "%d", tone_freq);
+    loc = sdlx_render_printf_ex(COL2X(7), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "%d", tone_freq);
     sdlx_register_event(loc, EVID_AUDIO_PLAY_TONE_GET_FREQ);
 
-    loc = sdlx_render_printf_ex1(COL2X(12), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "-");
+    loc = sdlx_render_printf_ex(COL2X(12), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "-");
     sdlx_register_event(loc, EVID_AUDIO_PLAY_TONE_FREQ_DOWN);
 
-    loc = sdlx_render_printf_ex1(COL2X(15), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "+");
+    loc = sdlx_render_printf_ex(COL2X(15), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "+");
     sdlx_register_event(loc, EVID_AUDIO_PLAY_TONE_FREQ_UP);
 
-    loc = sdlx_render_printf_ex1(
-                COL2X(18), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "%s",
+    loc = sdlx_render_printf_ex(
+                COL2X(18), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "%s",
                 tone_lrb == TONE_LEFT_CHANNEL ? "L" : (tone_lrb == TONE_RIGHT_CHANNEL ? "R" : "B"));
     sdlx_register_event(loc, EVID_AUDIO_PLAY_TONE_CHAN_LRB);
     row += 2.5;
 
     // controls: record from mic and device
     sdlx_render_printf(0, ROW2Y(row), "REC");
-    loc = sdlx_render_printf_ex1(COL2X(5), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "MIC");
+    loc = sdlx_render_printf_ex(COL2X(5), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "MIC");
     sdlx_register_event(loc, EVID_AUDIO_RECORD_FROM_MIC);
-    loc = sdlx_render_printf_ex1(COL2X(10), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "DEV");
+    loc = sdlx_render_printf_ex(COL2X(10), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "DEV");
     sdlx_register_event(loc, EVID_AUDIO_RECORD_FROM_DEV);
-    loc = sdlx_render_printf_ex1(COL2X(15), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "MICAP");
+    loc = sdlx_render_printf_ex(COL2X(15), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "MICAP");
     sdlx_register_event(loc, EVID_AUDIO_RECORD_FROM_MIC_APPEND);
     row += 2.5;
 
     // controls: play from buff and play tones
     sdlx_render_printf(0, ROW2Y(row), "PLAY");
-    loc = sdlx_render_printf_ex1(COL2X(5), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "MON");
+    loc = sdlx_render_printf_ex(COL2X(5), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "MON");
     sdlx_register_event(loc, EVID_AUDIO_PLAY_MONO_BUFF);
-    loc = sdlx_render_printf_ex1(COL2X(9), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "STR");
+    loc = sdlx_render_printf_ex(COL2X(9), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "STR");
     sdlx_register_event(loc, EVID_AUDIO_PLAY_STEREO_BUFF);
-    loc = sdlx_render_printf_ex1(COL2X(13), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "SEQ");
+    loc = sdlx_render_printf_ex(COL2X(13), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "SEQ");
     sdlx_register_event(loc, EVID_AUDIO_PLAY_TONES_SEQUENCE);
-    loc = sdlx_render_printf_ex1(COL2X(17), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "WN");
+    loc = sdlx_render_printf_ex(COL2X(17), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "WN");
     sdlx_register_event(loc, EVID_AUDIO_PLAY_WHITE_NOISE);
     row += 2.5;      
 
     // controls: play recorded mic or device files 
-    loc = sdlx_render_printf_ex1(0, ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "mic.mp3");
+    loc = sdlx_render_printf_ex(0, ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "mic.mp3");
     sdlx_register_event(loc, EVID_AUDIO_PLAY_MIC_MP3);
-    loc = sdlx_render_printf_ex1(COL2X(10), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, "dev.mp3");
+    loc = sdlx_render_printf_ex(COL2X(10), ROW2Y(row), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "dev.mp3");
     sdlx_register_event(loc, EVID_AUDIO_PLAY_DEV_MP3);
     row += 2;
 
@@ -1027,12 +1026,12 @@ static void page_7_draw(void)
     long duration_usec;
     rc = util_fft_test(&duration_usec);
     if (rc == 0) {
-        sdlx_render_printf_ex1(0, sdlx_win_height - 4 * sdlx_char_height_dflt,
-                               FONT_NORMAL, COLOR_GREEN, 
+        sdlx_render_printf_ex(0, sdlx_win_height - 4 * sdlx_char_height_dflt,
+                               FONT_NORMAL, COLOR_GREEN, FLAG_NONE,
                                "FftTest OK %ld usec", duration_usec);
     } else {
-        sdlx_render_printf_ex1(0, sdlx_win_height - 4 * sdlx_char_height_dflt,
-                               FONT_NORMAL, COLOR_RED, 
+        sdlx_render_printf_ex(0, sdlx_win_height - 4 * sdlx_char_height_dflt,
+                               FONT_NORMAL, COLOR_RED, FLAG_NONE,
                                "FftTest FAILED");
     }
 }
@@ -1361,15 +1360,15 @@ static void page_9_draw(void)
 
         sdlx_sensor_read_raw(x->id, data, 3);
         if (strcmp(x->short_name, "stepc") != 0) {
-            sdlx_render_printf_ex1(0, ROW2Y(row++), 
-                                   FONT_SMALL, COLOR_WHITE,
+            sdlx_render_printf_ex(0, ROW2Y(row++), 
+                                   FONT_SMALL, COLOR_WHITE, FLAG_NONE,
                                    "%s %7.2f %7.2f %7.2f", 
                                    x->short_name, data[0], data[1], data[2]);
         } else {
             unsigned long stepc;
             memcpy(&stepc, data, 8);
-            sdlx_render_printf_ex1(0, ROW2Y(row++), 
-                                   FONT_SMALL, COLOR_WHITE,
+            sdlx_render_printf_ex(0, ROW2Y(row++), 
+                                   FONT_SMALL, COLOR_WHITE, FLAG_NONE,
                                    "%s %7ld", 
                                    x->short_name, step_count);
         }
@@ -1422,7 +1421,7 @@ static void page_11_draw(void)
     sdlx_loc_t *loc;
     int y;
 
-    loc = sdlx_render_printf_ex2(500, 500,     
+    loc = sdlx_render_printf_ex(500, 500,     
                                  FONT_NORMAL, COLOR_WHITE,
                                  rot_flags | FLAG_XY_CTR, 
                                  "%s", wrap_text);
@@ -1430,19 +1429,19 @@ static void page_11_draw(void)
 
     y = sdlx_win_height - 8 * (1.5 * sdlx_char_height_dflt);
 
-    loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "ROT_NONE");
+    loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "ROT_NONE");
     sdlx_register_event(loc, EVID_ROT_NONE);
     y += 1.5 * sdlx_char_height_dflt;
 
-    loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "ROT_CTR_90");
+    loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "ROT_CTR_90");
     sdlx_register_event(loc, EVID_ROT_CTR_90);
     y += 1.5 * sdlx_char_height_dflt;
 
-    loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "ROT_CTR_180");
+    loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "ROT_CTR_180");
     sdlx_register_event(loc, EVID_ROT_CTR_180);
     y += 1.5 * sdlx_char_height_dflt;
 
-    loc = sdlx_render_printf_ex1(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, "ROT_CTR_270");
+    loc = sdlx_render_printf_ex(0, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "ROT_CTR_270");
     sdlx_register_event(loc, EVID_ROT_CTR_270);
     y += 1.5 * sdlx_char_height_dflt;
 }
@@ -1486,7 +1485,7 @@ static void page_12_draw(void)
     sdlx_set_render_target(texture1);
     sdlx_render_rect(0, 0, w, h, 5, COLOR_WHITE);
     sdlx_render_fill_circle(w/2, h/2, h/2, COLOR_YELLOW);
-    sdlx_render_printf_ex2(w/2, h/2, FONT_NORMAL, COLOR_RED, FLAG_XY_CTR, "%s", "Hello");
+    sdlx_render_printf_ex(w/2, h/2, FONT_NORMAL, COLOR_RED, FLAG_XY_CTR, "%s", "Hello");
     sdlx_set_render_target(NULL);
 
     // render texture1 to the display
@@ -1498,15 +1497,14 @@ static void page_12_draw(void)
     render_texture_rotated(texture1, -125, sdlx_win_height-h-125, w, h, 90);
 
     // print the display area dimensions
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(3),
-                           FONT_NORMAL, COLOR_WHITE,
-                           FLAG_X_CTR, 
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(3),
+                           FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                            "WxH = %d %d", sdlx_win_width, sdlx_win_height);
 
     // display the motion location
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(4), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(4), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
            "xrel = %0.3f", page_12_xrel);
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(5), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(5), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
            "yrel = %0.3f", page_12_yrel);
     sdlx_render_point(page_12_x, page_12_y, COLOR_WHITE, 9);
     sdlx_register_event(NULL, EVID_MOTION);
@@ -1551,7 +1549,7 @@ static void page_13_draw(void)
 
     rc = svc_make_req("Template", req, 5);
     if (rc != 0) {
-        sdlx_render_printf_ex2(
+        sdlx_render_printf_ex(
             sdlx_win_width/2, sdlx_win_height/2, 
             FONT_NORMAL, COLOR_RED, FLAG_XY_CTR,
             "svc_make_req failed\nrc = %s", svc_make_req_status_to_str(rc));
@@ -1561,7 +1559,7 @@ static void page_13_draw(void)
     result = *(int*)&req->data[0];
 
     color = (result == test + 1 ? COLOR_GREEN : COLOR_RED);
-    sdlx_render_printf_ex2(sdlx_win_width/2, sdlx_win_height/2, FONT_NORMAL, color, FLAG_XY_CTR,
+    sdlx_render_printf_ex(sdlx_win_width/2, sdlx_win_height/2, FONT_NORMAL, color, FLAG_XY_CTR,
                            "ADD1 %d -> %d", test, result);
 }
 
@@ -1644,12 +1642,12 @@ static void page_14_draw(void)
     }
 
     // register events to TAKE_PHOTO, and RESET_PHOTO pan/zoom
-    loc = sdlx_render_printf_ex1(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-2*sdlx_char_height_dflt, 
-                                 FONT_NORMAL, COLOR_LIGHT_BLUE, "TAKE");
+    loc = sdlx_render_printf_ex(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-2*sdlx_char_height_dflt, 
+                                 FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "TAKE");
     sdlx_register_event(loc, EVID_TAKE_PHOTO);
 
-    loc = sdlx_render_printf_ex1(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-4*sdlx_char_height_dflt, 
-                                 FONT_NORMAL, COLOR_LIGHT_BLUE, "RESET");
+    loc = sdlx_render_printf_ex(sdlx_win_width-5*sdlx_char_width_dflt, sdlx_win_height-4*sdlx_char_height_dflt, 
+                                 FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "RESET");
     sdlx_register_event(loc, EVID_RESET_PHOTO);
 
     // register for MOTION and PINCH events
@@ -1782,7 +1780,7 @@ static void page_15_draw(void)
     sdlx_render_fill_rect(pg15_focus_x-pg15_span_x/2, pg15_focus_y-25, pg15_span_x, 50, COLOR_BLUE);
     sdlx_render_fill_rect(pg15_focus_x-25, pg15_focus_y-pg15_span_y/2, 50, pg15_span_y, COLOR_BLUE);
 
-    sdlx_render_printf_ex2(sdlx_win_width/2, sdlx_win_height-sdlx_char_height(FONT_NORMAL)/2, 
+    sdlx_render_printf_ex(sdlx_win_width/2, sdlx_win_height-sdlx_char_height(FONT_NORMAL)/2, 
                            FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, "Scale = %0.3f", pg15_scale);
 
     if (pg15_motioning) {

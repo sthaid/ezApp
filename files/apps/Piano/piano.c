@@ -189,7 +189,7 @@ void display_update(void)
             playing_tone_seq_title = NULL;
         }
         if (playing_tone_seq_title != NULL) {
-            sdlx_render_printf_ex2(
+            sdlx_render_printf_ex(
                 sdlx_win_width/2, 0,
                 FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, 
                 "Playing %s", playing_tone_seq_title);
@@ -227,7 +227,7 @@ void display_update(void)
                 sdlx_register_event(&loc2, EVID_PIANO_KEY+keynum);
 
                 // display white key basic tone, A-G
-                sdlx_render_printf_ex2(
+                sdlx_render_printf_ex(
                     X+x+w/2, sdlx_win_height-sdlx_char_height_dflt,
                     FONT_NORMAL, COLOR_BLACK, FLAG_XY_CTR, 
                     "%c", piano_white_key_to_basic_tone[keynum]);
@@ -279,7 +279,7 @@ void display_update(void)
     for (int octave = 1; octave <= 7; octave++) {
         y = y_octave;
         x = (white_key_w * (7 * (octave-1) + 2)) + (white_key_w * 3.5);
-        sdlx_render_printf_ex2(X+x, y, FONT_NORMAL, COLOR_WHITE,
+        sdlx_render_printf_ex(X+x, y, FONT_NORMAL, COLOR_WHITE,
                                FLAG_XY_CTR | FLAG_BG_BLACK, 
                                " %d ", octave);
     }
@@ -288,8 +288,8 @@ void display_update(void)
     y = 0;
     for (int i = 0; i < max_tone_seq; i++) {
         if (Y+y > -sdlx_char_height_dflt && Y+y < y_octave-sdlx_char_height_dflt) {
-            loc = sdlx_render_printf_ex1(COL2X(1), Y+y, FONT_NORMAL, COLOR_LIGHT_BLUE, 
-                                         "%s", tone_seq_tbl[i].title);
+            loc = sdlx_render_printf_ex(COL2X(1), Y+y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
+                                        "%s", tone_seq_tbl[i].title);
             sdlx_register_event(loc, EVID_PLAY_TONE_SEQ+i);
         }
         y += 1.5 * sdlx_char_height(FONT_NORMAL);

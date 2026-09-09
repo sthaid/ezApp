@@ -107,17 +107,17 @@ int main(int argc, char **argv)
         // display current location
         // - display "Current"
         y = Y_TOP_OF_DISPLAY;
-        sdlx_render_printf_ex2(sdlx_win_width/2, y, FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%s", "Current");
+        sdlx_render_printf_ex(sdlx_win_width/2, y, FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "%s", "Current");
         y += sdlx_char_height_dflt;
         // - display the current location
         if (strncmp(loc_curr, "ERROR", 5) != 0) {
-            sdlx_render_printf_ex1(0, y,
-                                   FONT_NORMAL, COLOR_WHITE, 
-                                   "%s", loc_curr);
+            sdlx_render_printf_ex(0, y,
+                                  FONT_NORMAL, COLOR_WHITE, FLAG_NONE, 
+                                  "%s", loc_curr);
         } else {
-            sdlx_render_printf_ex1(0, y+sdlx_char_height_dflt, 
-                                   FONT_NORMAL, COLOR_RED, 
-                                   "%s", "Location miniSvc\nNot Responding");
+            sdlx_render_printf_ex(0, y+sdlx_char_height_dflt, 
+                                  FONT_NORMAL, COLOR_RED, FLAG_NONE, 
+                                  "%s", "Location miniSvc\nNot Responding");
         }
         y += 5.5 * sdlx_char_height_dflt;
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 
         // display the location history
         // - display "History"
-        sdlx_render_printf_ex2(sdlx_win_width/2, y, FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "History");
+        sdlx_render_printf_ex(sdlx_win_width/2, y, FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR, "History");
         y += sdlx_char_height_dflt;
         // - init variables used to display and scroll the history display
         if (y_history_top_reset == 0) {
@@ -227,7 +227,7 @@ void settings(void)
     rc = svc_make_req("Location", req, 5);
     if (rc != 0) {
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
-        sdlx_render_printf_ex2(
+        sdlx_render_printf_ex(
             sdlx_win_width/2, sdlx_win_height/2, 
             FONT_NORMAL, COLOR_RED, FLAG_XY_CTR,
             "%s", "Location miniSvc\nNot Responding");
@@ -292,7 +292,7 @@ void settings(void)
         // display message for 3 seconds
         if (util_microsec_timer() < msg_time+3000000) {
             sdlx_color_t color = (strcmp(msg, "okay") == 0 ? COLOR_GREEN : COLOR_RED);
-            sdlx_render_printf_ex1(0, sdlx_win_height-sdlx_char_height_dflt, FONT_NORMAL, color, "%s", msg);
+            sdlx_render_printf_ex(0, sdlx_win_height-sdlx_char_height_dflt, FONT_NORMAL, color, FLAG_NONE, "%s", msg);
         }
 
         // register for quit event

@@ -145,13 +145,13 @@ void draw_display(void)
 
     // display current altitude
     util_get_location(NULL, NULL, &altitude_ft, &alt_is_wgs84);
-    sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(1), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR,
+    sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR,
                            "Current");
     if (altitude_ft == INVALID_NUMBER) {
-        sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(2), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR,
+        sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(2), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR,
                                "Alt = Unavailable");
     } else {
-        sdlx_render_printf_ex2(sdlx_win_width/2, ROW2Y(2), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR,
+        sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(2), FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR,
                                "Alt = %0.0f ft %s",
                                altitude_ft,
                                alt_is_wgs84 ? "WGS84" : "MSL");
@@ -162,7 +162,7 @@ void draw_display(void)
 
     // display graph title line (the graph date)
     color = (is_today(year, month, day) ? COLOR_GREEN : COLOR_WHITE);
-    sdlx_render_printf_ex2(sdlx_win_width/2, GRAPH_Y-ROW2Y(1.5), 
+    sdlx_render_printf_ex(sdlx_win_width/2, GRAPH_Y-ROW2Y(1.5), 
                            FONT_NORMAL, color, FLAG_X_CTR,
                            "%s", ymd_to_str(year, month, day));
 
@@ -178,7 +178,7 @@ void draw_display(void)
 
     // register events to increase or decrease y axis
     int y = GRAPH_Y+GRAPH_H+ROW2Y(2);
-    sdlx_render_printf_ex2(sdlx_win_width/2, y,
+    sdlx_render_printf_ex(sdlx_win_width/2, y,
                            FONT_NORMAL, COLOR_WHITE, FLAG_X_CTR,
                            "%d", param_max_y);
     reg_event_str(sdlx_win_width/2-COL2X(4.5), y, COLOR_LIGHT_BLUE, "-", EVID_DECR_MAX_Y);

@@ -312,7 +312,7 @@ void show_photo(int idx)
             // the x coord is adjusted when at the top left of the photo because
             //  that is mostly obscured by the bezel
             int tmp_x = ((dest.x == 0 && dest.y == 0) ? 40 : dest.x);
-            sdlx_render_printf_ex2(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, 0, "%d", md->num);
+            sdlx_render_printf_ex(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%d", md->num);
 
             // display metadata below photo
             y = 1400;
@@ -334,12 +334,12 @@ void show_photo(int idx)
             // register events
             show = (util_microsec_timer() - last_next_prev_time) < 3000000;
             s = (show ? "<" : " ");
-            loc = sdlx_render_printf_ex2(0.5*sdlx_char_width(FONT_LARGE), 1333/2, 
+            loc = sdlx_render_printf_ex(0.5*sdlx_char_width(FONT_LARGE), 1333/2, 
                                          FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, "%s", s);
             sdlx_register_event(loc, EVID_PREV);
 
             s = (show ? ">" : " ");
-            loc = sdlx_render_printf_ex2(sdlx_win_width-0.5*sdlx_char_width(FONT_LARGE), 1333/2, 
+            loc = sdlx_render_printf_ex(sdlx_win_width-0.5*sdlx_char_width(FONT_LARGE), 1333/2, 
                                          FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, "%s", s);
             sdlx_register_event(loc, EVID_NEXT);
 

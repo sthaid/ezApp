@@ -157,27 +157,7 @@ void Sdlx_char_height(struct ParseState *Parser, struct Value *ReturnValue,
     ReturnValue->Val->Integer = retval;
 }
 
-void Sdlx_render_printf_ex1(struct ParseState *Parser, struct Value *ReturnValue,
-        struct Value **Param, int NumArgs)
-{
-    int          x      = (int)Param[0]->Val->Integer;
-    int          y      = (int)Param[1]->Val->Integer;
-    int          fontid = (int)Param[2]->Val->Integer;
-    sdlx_color_t color  = (sdlx_color_t)Param[3]->Val->UnsignedInteger;
-    char *       fmt    = (char *)Param[4]->Val->Pointer;
-
-    struct StdVararg PrintfArgs;
-    char             str[500] = "";
-    PrintfArgs.Param = Param + 4;
-    PrintfArgs.NumArgs = NumArgs - 5;
-    StdioBasePrintf(Parser, NULL, str, sizeof(str), fmt, &PrintfArgs);
-
-    sdlx_loc_t *loc;
-    loc = sdlx_render_printf_ex1(x, y, fontid, color, "%s", str);
-    ReturnValue->Val->Pointer = loc;
-}
-
-void Sdlx_render_printf_ex2(struct ParseState *Parser, struct Value *ReturnValue,
+void Sdlx_render_printf_ex(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
     int          x      = (int)Param[0]->Val->Integer;
@@ -194,7 +174,7 @@ void Sdlx_render_printf_ex2(struct ParseState *Parser, struct Value *ReturnValue
     StdioBasePrintf(Parser, NULL, str, sizeof(str), fmt, &PrintfArgs);
 
     sdlx_loc_t *loc;
-    loc = sdlx_render_printf_ex2(x, y, fontid, color, flags, "%s", str);
+    loc = sdlx_render_printf_ex(x, y, fontid, color, flags, "%s", str);
     ReturnValue->Val->Pointer = loc;
 }
 
@@ -736,8 +716,7 @@ struct LibraryFunction SdlFunctions[] = {
     { Sdlx_render_printf,            "sdlx_loc_t *sdlx_render_printf(int x, int y, char *fmt, ...) ;" },
     { Sdlx_char_width,               "int sdlx_char_width(int fontid);" },
     { Sdlx_char_height,              "int sdlx_char_height(int fontid);" },
-    { Sdlx_render_printf_ex1,        "sdlx_loc_t *sdlx_render_printf_ex1(int x, int y, int fontid, sdlx_color_t color, char * fmt, ...);" },
-    { Sdlx_render_printf_ex2,        "sdlx_loc_t *sdlx_render_printf_ex2(int x, int y, int fontid, sdlx_color_t color, unsigned int flags, char *fmt, ...);" },
+    { Sdlx_render_printf_ex,         "sdlx_loc_t *sdlx_render_printf_ex(int x, int y, int fontid, sdlx_color_t color, unsigned int flags, char *fmt, ...);" },
     { Sdlx_render_multiline_text,    "void sdlx_render_multiline_text(int x, int y, int y_top, int y_bottom, int fontid, char **lines, sdlx_color_t *colors, int num_lines);" },
 
     // video - render rectangle, lines, circles, points
@@ -853,6 +832,7 @@ typedef struct { \n\
 #define FONT_LARGE    10 \n\
 #define ROW2Y(r)      ((r) * sdlx_char_height_dflt) \n\
 #define COL2X(c)      ((c) * sdlx_char_width_dflt) \n\
+#define FLAG_NONE          0x00000000 \n\
 #define FLAG_WRAP_MASK     0x00000fff \n\
 #define FLAG_X_CTR         0x00001000 \n\
 #define FLAG_Y_CTR         0x00002000 \n\
