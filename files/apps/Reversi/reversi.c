@@ -317,7 +317,7 @@ static void update_display_and_register_events(board_t *b, int game_state, char 
 
     // display the position evaluation
     if (game_state == GAME_STATE_ACTIVE || game_state == GAME_STATE_OVER) {
-        sdlx_render_printf_ex(0, Y_TOP + sdlx_win_height - 3 * sdlx_char_height_dflt, 
+        sdlx_render_printf_ex(0, Y_TOP + 1700, 
                                FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, 
                               "%s", eval_str);
     }
@@ -377,7 +377,9 @@ static void update_display_and_register_events(board_t *b, int game_state, char 
     if (game_state == GAME_STATE_ACTIVE && humans_turn(b)) {
         get_possible_moves(b, &pm);
         if (pm.max == 0) {
-            ploc = sdlx_render_printf_ex(0, Y_TOP+1750, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "%s", "PASS");
+            ploc = sdlx_render_printf_ex(sdlx_win_width-COL2X(4), Y_TOP+1550, 
+                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, 
+                                         "%s", "PASS");
             sdlx_register_event(ploc, EVID_MOVE_PASS);
         } else {
             for (int i = 0; i < pm.max; i++) {
