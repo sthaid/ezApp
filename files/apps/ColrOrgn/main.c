@@ -425,7 +425,7 @@ void register_events(void)
         }
 
         // disable file list scrolling if too few files
-        if ((orientation == PORTRAIT && max_files <= 6) ||
+        if ((orientation == PORTRAIT && max_files <= 5) ||
             (orientation == LANDSCAPE && max_files <= 5))
         {
             y_files_list = y_files_list_top;

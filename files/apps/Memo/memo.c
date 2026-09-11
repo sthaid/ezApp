@@ -104,7 +104,7 @@ int main(int argc, char **argv)
             sdlx_color_t color;
 
             // if all filenames will fit on the display then disable scrolling
-            if (max_filename <= 14) {
+            if (max_filename <= 12) {
                 y = y_top;
             }
 
