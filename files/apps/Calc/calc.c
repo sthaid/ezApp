@@ -312,7 +312,7 @@ void draw_button(int row, int col, int button, bool highlight)
     sdlx_loc_t loc;
     int x, y, radius;
     char str[8];
-    bool is_number;
+    bool is_number, is_equals, is_clr;
     sdlx_loc_t dest;
 
     static int texture_w, texture_h;
@@ -334,6 +334,8 @@ void draw_button(int row, int col, int button, bool highlight)
 
     is_number = (str[1] == '\0') &&
                 ((str[0] >= '0' && str[0] <= '9') || (str[0] >= 'A' && str[0] <= 'F'));
+    is_equals = (str[0] == '=');
+    is_clr    = (str[0] == 'C' && str[1] == 'L' && str[2] == 'R');
 
     x = BUTTONS_X_LEFT + col * BUTTONS_SPACING;
     y = BUTTONS_Y_TOP + row * BUTTONS_SPACING;
@@ -343,8 +345,16 @@ void draw_button(int row, int col, int button, bool highlight)
     dest.w = texture_w;
     dest.h = texture_h;
     sdlx_render_texture(
-        highlight ? highlighted_button_texture : (is_number ? number_button_texture : button_texture),
+        highlight ? highlighted_button_texture 
+                  : ((is_number || is_equals || is_clr) ? number_button_texture : button_texture),
         NULL, &dest);
+
+    // adjust multiply and divide chars to use unicode codepoints
+    if (str[0] == '*') {
+        strcpy(str, "\u00d7");
+    } else if (str[0] == '/') {
+        strcpy(str, "\u00f7");
+    }
 
     sdlx_render_printf_ex(x, y, FONT_NORMAL, BUTTON_COLOR_TEXT, FLAG_XY_CTR, "%s", str);
 
