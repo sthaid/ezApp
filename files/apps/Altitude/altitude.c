@@ -20,7 +20,7 @@
 #define EVID_DECR_MAX_Y 4
 
 #define GRAPH_Y 600
-#define GRAPH_H 1200
+#define GRAPH_H 1000
 
 #define DEFAULT_MAX_Y  1000
 
