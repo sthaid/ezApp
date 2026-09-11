@@ -123,7 +123,7 @@ int main(int argc, char **argv)
     // - y range of display for the full court,
     //   includes court area above and below the paddles
     y_top             = 0;
-    y_bottom          = sdlx_win_height - 200;
+    y_bottom          = sdlx_win_height;
     // - location of the centers of the paddles
     human_paddle_x    = sdlx_win_width/2;
     human_paddle_y    = y_bottom - 200;
