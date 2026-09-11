@@ -58,6 +58,10 @@ int run(char *name, bool is_svc)
     // app or svc which will be run by picoc
     p += sprintf(p, " - %s %s", name, dir_path);
 
+    // invalidate cached params, this may be needed if a params 
+    // file is changed as part of a miniApp update
+    util_invalidate_cached_params();
+
     // run the app using the picoc c language interpreter
     INFO("%s: starting, args = %s\n", name, picoc_args);
     if (!is_svc) app_running = true;

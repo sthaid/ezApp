@@ -114,7 +114,7 @@ int util_stop_foreground(void);
 bool util_is_foreground_enabled(void);
 
 // ----------------------
-// utils.c  openssl support
+// utils.c openssl
 // ----------------------
 
 #define SSL_TEXTLEN 128
@@ -128,6 +128,12 @@ typedef struct {
 unsigned char *ssl_keygen(char *password);
 int ssl_encrypt(unsigned char *key, char *plaintext, ssl_payload_t *payload);
 int ssl_decrypt(unsigned char *key, ssl_payload_t *payload, char **plaintext);
+
+// ----------------------
+// utils.c misc
+// ----------------------
+
+void util_invalidate_cached_params(void);
 
 // --------------------
 // run.c

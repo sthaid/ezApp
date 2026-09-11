@@ -627,6 +627,13 @@ void util_print_params(char *dir)
     PARAMS_UNLOCK;
 }
 
+void util_invalidate_cached_params(void)
+{
+    PARAMS_LOCK;
+    params_dir[0] = '\0';
+    PARAMS_UNLOCK;
+}
+
 // -----------------  NETWORK  -------------------------------
 
 char *util_get_ipaddr(char *ipaddr_str)
