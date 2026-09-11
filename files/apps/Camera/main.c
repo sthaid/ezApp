@@ -595,6 +595,7 @@ metadata_t *create_and_map_metadata_file(int num)
     return md;
 }
 
+//xxx actual not used
 void find_nearest_city(double req_latitude, double req_longitude, 
                        char *city, int sizeof_city, char *state, int sizeof_state,
                        double *actual_latitude, double *actual_longitude)

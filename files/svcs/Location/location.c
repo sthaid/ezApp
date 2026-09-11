@@ -28,10 +28,8 @@ void periodic_processing(void);
 
 void process_req(svc_req_t *req);
 
-void add_entry_to_loc_hist(time_t t, double latitude, double longitude, char *name, char *state);
-char *most_recent_loc_hist_name(void);
-void create_loc_data_str(time_t t, double latitude, double longitude, double altitude, bool alt_is_wgs84,
-                         char *name, char *state, char *data_str);
+void add_entry_to_loc_hist(time_t t, char *city, char *state);
+char *most_recent_loc_hist_city(void);
 void clear_loc_history(void);
 
 void add_simulated_entries_to_loc_hist(void);
@@ -112,7 +110,7 @@ int main(int argc, char **argv)
 
 void periodic_processing(void)
 {
-    char   name[MAX_NAME];
+    char   city[MAX_NAME];
     char   state[MAX_NAME];
     double latitude, longitude;
 
@@ -133,13 +131,12 @@ void periodic_processing(void)
 
     // find location in database that is closest to current lat/long;
     util_get_location(&latitude, &longitude, NULL, NULL);
-    find_closest_loc_data(latitude, longitude, name, state, NULL, NULL);
+    find_closest_loc_data(latitude, longitude, city, state, NULL, NULL);
 
-    // if name is different than most recent entry in loc_file
+    // if city is different than most recent entry in loc_file
     // then add new entry to loc file, 
-    if (name[0] != '\0' && strcmp(most_recent_loc_hist_name(), name) != 0) {
-        // xxx this is the lat and long where entered, maybe don't display that
-        add_entry_to_loc_hist(time(NULL), latitude, longitude, name, state);
+    if (city[0] != '\0' && strcmp(most_recent_loc_hist_city(), city) != 0) {
+        add_entry_to_loc_hist(time(NULL), city, state);
     }
 }
 
@@ -152,28 +149,25 @@ void process_req(svc_req_t *req)
         svc_req_completed(progname, req, 0);
         end_program = true;
         break;
-    case SVC_LOCATION_REQ_GET_LOC_DATA_STR: {
-        double latitude, longitude, altitude;
-        char name[MAX_NAME];
-        char state[MAX_NAME];
-        bool alt_is_wgs84;
-
-        util_get_location(&latitude, &longitude, &altitude, &alt_is_wgs84);
-        find_closest_loc_data(latitude, longitude, name, state, NULL, NULL);
-        create_loc_data_str(time(NULL), latitude, longitude, altitude, alt_is_wgs84, name, state, req->data);
-        svc_req_completed(progname, req, 0);
-        break; }
-    case SVC_LOCATION_REQ_GET_LOC_INFO: { // xxx used by Compass and Camera
+    case SVC_LOCATION_REQ_GET_LOC_INFO: {
+        // Returns location info for the nearest location to the requested 
+        // latitude and longitude.
+        // The following strings for the nearest location are returned,
+        // separated by newline char
+        // - city            name of nearest city
+        // - state           name of nearest state
+        // - latitude        of the nearest city
+        // - longitude       of the nearest city
         double req_latitude, req_longitude;
         double actual_latitude, actual_longitude;
-        char name[MAX_NAME];
+        char city[MAX_NAME];
         char state[MAX_NAME];
 
         req_latitude = *(double*)(&req->data[0]);
         req_longitude = *(double*)(&req->data[8]);
-        find_closest_loc_data(req_latitude, req_longitude, name, state, &actual_latitude, &actual_longitude);
+        find_closest_loc_data(req_latitude, req_longitude, city, state, &actual_latitude, &actual_longitude);
 
-        sprintf(req->data, "%s\n%s\n%0.4f\n%0.4f\n", name, state, actual_latitude, actual_longitude);
+        sprintf(req->data, "%s\n%s\n%0.4f\n%0.4f\n", city, state, actual_latitude, actual_longitude);
         svc_req_completed(progname, req, 0);
         break; }
     case SVC_LOCATION_REQ_ADD_COUNTRY_INFO: {
@@ -248,8 +242,14 @@ void process_req(svc_req_t *req)
 
 // -----------------  LOC_HIST SUPPORT  -----------------------------
 
-void add_entry_to_loc_hist(time_t t, double latitude, double longitude, char *name, char *state)
+void add_entry_to_loc_hist(time_t t, char *city, char *state)
 {
+    // if city is empty string then return
+    if (city[0] == '\0') {
+        printf("E %s: add_entry_to_loc_hist called with empty city str\n", progname);
+        return;
+    }
+
     // if buffer is full then discard the first half (oldest data)
     if (loc_hist->count == MAX_LOC_HIST) {
         memmove(&loc_hist->loc[0], 
@@ -263,19 +263,32 @@ void add_entry_to_loc_hist(time_t t, double latitude, double longitude, char *na
         loc_hist->count = MAX_LOC_HIST/2;
     }
 
+    // get time_str
+    struct tm *tm;
+    char time_str[50];
+    tm = localtime(&t);
+    strftime(time_str, sizeof(time_str), "%b %d %H:%M %Z", tm);
+
+    // combine city and state to single string
+    char city_and_state_str[200];
+    if (state[0] != '\0') {
+        sprintf(city_and_state_str, "%s\n%s", city, state);
+    } else {
+        sprintf(city_and_state_str, "%s", city);
+    }
+
     // add entry
-    create_loc_data_str(t, latitude, longitude, 
-                        INVALID_NUMBER, false,    // altitude/alt_is_wgs84 not included in loc_hist
-                        name, state, loc_hist->loc[loc_hist->count].data_str);
+    snprintf(loc_hist->loc[loc_hist->count].data_str, sizeof(loc_hist->loc[0].data_str),
+             "%s\n%s\n\n", city_and_state_str, time_str);
     loc_hist->count++;
 
     // sync memory mapped buffer to storage
     util_sync_file(loc_hist, sizeof(loc_hist_t));
 }
 
-char *most_recent_loc_hist_name(void)
+char *most_recent_loc_hist_city(void)
 {
-    static char name[MAX_NAME];
+    static char city[MAX_NAME];
     char *ptr, *data_str;
 
     if (loc_hist->count == 0) {
@@ -290,50 +303,10 @@ char *most_recent_loc_hist_name(void)
         return "";
     }
 
-    memcpy(name, data_str, ptr-data_str);
-    name[ptr-data_str] = '\0';
+    memcpy(city, data_str, ptr-data_str);
+    city[ptr-data_str] = '\0';
 
-    return name;
-}
-
-void create_loc_data_str(time_t t, double latitude, double longitude, double altitude, bool alt_is_wgs84,
-                         char *name, char *state, char *data_str)
-{
-    struct tm *tm;
-    char time_str[50];
-    char *p;
-
-    // example:
-    //   Bolton
-    //   Massachusetts
-    //   Dec 5 23:00 EST
-    //   -42.1234 -130.1234
-    // optional altitude line
-    //    alt 300 MSL ft
-
-    // create time string
-    tm = localtime(&t);
-    strftime(time_str, sizeof(time_str), "%b %d %H:%M %Z", tm);
-
-    // sprint location info to str
-    p = data_str;
-    if (name[0] != '\0') {
-        p += sprintf(p, "%s\n", name);
-    }
-    if (state[0] != '\0') {
-        p += sprintf(p, "%s\n", state);
-    }
-    p += sprintf(p, "%s\n", time_str);
-    if (latitude != INVALID_NUMBER && longitude != INVALID_NUMBER) {
-        p += sprintf(p, "%0.4f %0.4f\n", latitude, longitude);
-    }
-    if (altitude != INVALID_NUMBER && altitude != 0) {
-        p += sprintf(p, "alt %0.0f ft %s\n", 
-                     altitude, alt_is_wgs84 ? "WGS84" : "");
-    }
-
-    // add extra newline 
-    p += sprintf(p, "\n");
+    return city;
 }
 
 void clear_loc_history(void)
@@ -350,7 +323,7 @@ double rand_double(void);
 void add_simulated_entries_to_loc_hist(void)
 {
     double latitude, longitude;
-    char name[MAX_NAME];
+    char city[MAX_NAME];
     char state[MAX_NAME];
     time_t t;
 
@@ -363,10 +336,12 @@ void add_simulated_entries_to_loc_hist(void)
         longitude = -(69.93 + (73.50 - 69.93) * rand_double());
 
         // find closest location from loc_data
-        find_closest_loc_data(latitude, longitude, name, state, NULL, NULL);
+        find_closest_loc_data(latitude, longitude, city, state, NULL, NULL);
 
         // add to loc_hist file
-        add_entry_to_loc_hist(t, latitude, longitude, name, state);
+        if (city[0] != '\0') {
+            add_entry_to_loc_hist(t, city, state);
+        }
 
         // advance time one hour
         t += 3600;

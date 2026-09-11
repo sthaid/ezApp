@@ -90,19 +90,72 @@ int main(int argc, char **argv)
         if (time_now - time_last_get_loc_info > 10 || 
             settings_changed ||
             loc_hist->count != last_loc_hist_count)
-        {
-            svc_req_t *req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_DATA_STR, NULL, 0);
-            rc = svc_make_req("Location", req, 5);
-            if (rc != 0) {
-                strcpy(loc_curr, "ERROR");
-            } else {
-                strncpy(loc_curr, req->data, MAX_SVC_REQ_DATA);
-                loc_curr[MAX_SVC_REQ_DATA-1] = '\0';
+        do {
+            double latitude, longitude, altitude;
+            bool alt_is_wgs84;
+            struct tm *tm;
+            char time_str[50];
+            svc_req_t *req;
+            char req_data[MAX_SVC_REQ_DATA];
+            char *city = NULL, *state = NULL;
+
+            // get current time string
+            tm = localtime(&time_now);
+            strftime(time_str, sizeof(time_str), "%b %d %H:%M %Z", tm);
+
+            // get current lat,long,alt
+            util_get_location(&latitude, &longitude, &altitude, &alt_is_wgs84);
+            if (latitude == INVALID_NUMBER || longitude == INVALID_NUMBER) {
+                sprintf(loc_curr, "Loc Unavail\n%s\n", time_str);
+
+                time_last_get_loc_info = time_now;
+                settings_changed = false;
+                last_loc_hist_count = loc_hist->count;
+                break;
             }
+
+            // get nearest city to current lat,long
+            memset(req_data, 0, sizeof(req_data));
+            *(double*)(&req_data[0]) = latitude;
+            *(double*)(&req_data[8]) = longitude;
+            req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_INFO, req_data, sizeof(req_data));
+            rc = svc_make_req("Location", req, 5);
+            if (rc == 0) {
+                // for safety, in case the response from the Location svc is malformed
+                req_data[MAX_SVC_REQ_DATA-5] = '\n';
+                req_data[MAX_SVC_REQ_DATA-4] = '\n';
+                req_data[MAX_SVC_REQ_DATA-3] = '\n';
+                req_data[MAX_SVC_REQ_DATA-2] = '\n';
+                req_data[MAX_SVC_REQ_DATA-1] = '\0';
+
+                // extract city and state from the response, and copy the city & state to mag_decl_locname
+                char *newline;
+                city = req->data;
+                newline = strchr(city, '\n'); *newline = '\0';
+                state = newline + 1;
+                newline = strchr(state, '\n'); *newline = '\0';
+            }
+
+            // create loc_curr string
+            char *p = loc_curr;
+            if (city) {
+                p += snprintf(p, sizeof(loc_curr), "%s\n", city);
+            }
+            if (state) {
+                p += snprintf(p, sizeof(loc_curr), "%s\n", state);
+            }
+            p += sprintf(p, "%s\n", time_str);
+            p += sprintf(p, "%0.4f %0.4f\n", latitude, longitude);
+            if (altitude != INVALID_NUMBER) {
+                p += sprintf(p, "GPS Height %0.0f ft %s\n", 
+                             altitude, alt_is_wgs84 ? "WGS84" : "");
+            }
+
+            // reset vars that triggered this code to run
             time_last_get_loc_info = time_now;
             settings_changed = false;
             last_loc_hist_count = loc_hist->count;
-        }
+        } while (0);
 
         // display current location
         // - display "Current"
