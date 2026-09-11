@@ -23,11 +23,11 @@ int main(int argc, char **argv)
     sdlx_event_t event;
 
     // save args
-    progname = argv[0];
     if (argc != 2) {
-        printf("E %s: data_dir arg expected\n", progname);
+        printf("E %s: argc=%d is not 2\n", "Example2", argc);
         return 1;
     }
+    progname = argv[0];
     data_dir = argv[1];
     printf("I %s: starting, data_dir=%s\n", progname, data_dir);
 

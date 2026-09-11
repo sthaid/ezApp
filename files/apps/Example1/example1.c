@@ -22,13 +22,11 @@ int main(int argc, char **argv)
     int          tapme_count = 0;
     bool         end_program = false;
 
-    // verify arg count
+    // save args
     if (argc != 2) {
-        printf("E %s: argc=%d is not 2\n", "Template", argc);
+        printf("E %s: argc=%d is not 2\n", "Example1", argc);
         return 1;
     }
-
-    // save args
     progname = argv[0];
     data_dir = argv[1];
     printf("I %s: starting, data_dir=%s\n", progname, data_dir);
