@@ -66,11 +66,23 @@ int dec_mode_buttons[MAX_BUTTON_ROW][MAX_BUTTON_COL] = {
 // value for no operation
 #define OP_NONE 0
 
+// misc
+#define ONE_SEC                   1000000  // xxx make uniform solution
+#define EVID_SETTINGS             1
+#define DFLT_VIBRATE_STRENGTH     0.15
+#define DFLT_VIBRATE_DURATION_MS  25
+
 // global variables
 char *progname;
 char *data_dir;
 int   bits          = EVID_32BIT; 
 int   display_fmt   = EVID_DSP_HEX;
+
+struct {
+    bool   enabled;
+    double strength;
+    int    duration_ms;
+} vibrate;
 
 // prototypes
 void update_number_display(unsigned long value, bool error);
@@ -79,6 +91,8 @@ void evid_to_button_row_and_col(int evid, int *button_row, int *button_col);
 unsigned long process_op(int op, unsigned long operand1, unsigned long operand2, bool *error);
 sdlx_texture_t *create_filled_circle_texture(int radius, sdlx_color_t color);
 void cleanup(void);
+void settings(void);
+double clip(double value, double min, double max);
 
 // -----------------  MAIN  ----------------------------------
 
@@ -102,6 +116,11 @@ int main(int argc, char **argv)
     }
     data_dir = argv[1];
     printf("I %s: starting, data_dir=%s\n", progname, data_dir);
+
+    // read vibrate settings 
+    vibrate.enabled = util_get_numeric_param(data_dir, "enabled", false);
+    vibrate.strength = util_get_numeric_param(data_dir, "strength", DFLT_VIBRATE_STRENGTH);
+    vibrate.duration_ms = util_get_numeric_param(data_dir, "duration_ms", DFLT_VIBRATE_DURATION_MS);
 
     // runtime loop
     while (true) {
@@ -132,7 +151,7 @@ int main(int argc, char **argv)
         reg_event_show_readme_file();
 
         // register control event to end program
-        sdlx_register_control_events(0, NULL,
+        sdlx_register_control_events(EVID_SETTINGS, "Stg",
                                      0, NULL,
                                      EVID_QUIT, "X");
 
@@ -146,7 +165,7 @@ int main(int argc, char **argv)
         // wait for event;
         // if a button is highlighted then use a short timeout to clear the button highlight;
         // otherwise use infinite timeout
-        sdlx_get_event(highlight_button_row != -1 ? BUTTON_HIGHLIGHT_DURATION_MS * 1000 : -1, &event);
+        sdlx_get_event(highlight_button_row != -1 ? BUTTON_HIGHLIGHT_DURATION_MS * 1000 : ONE_SEC, &event);
 
         // if sdlx_get_event timed out then clear the button highlight, and continue
         if (event.event_id == -1) {
@@ -163,12 +182,21 @@ int main(int argc, char **argv)
             show_file(data_dir, "README");
             continue;
         }
+        if (event.event_id == EVID_SETTINGS) {
+            settings();
+            continue;
+        }
 
         // calculator button has been pressed ...
 
         // if in error state then ignore all button presses, except CLR
         if (error && event.event_id != EVID_CLR) {
             continue;
+        }
+
+        // if vibrate enabled then call sdlx_vibrate
+        if (vibrate.enabled) {
+            sdlx_vibrate(vibrate.strength, vibrate.duration_ms);
         }
 
         // set highlight_button_row/col so the button will be briefly hightlighted
@@ -446,5 +474,90 @@ void cleanup(void)
     sdlx_destroy_texture(button_texture);
     sdlx_destroy_texture(highlighted_button_texture);
     sdlx_destroy_texture(number_button_texture);
+}
+
+// -----------------  SETTINGS  ------------------------------------
+
+#define EVID_TOGGLE_VIBRATE           1
+#define EVID_SET_VIBRATE_STRENGTH     2
+#define EVID_SET_VIBRATE_DURATION_MS  3
+
+void settings(void)
+{   
+    sdlx_loc_t  *loc;
+    sdlx_event_t event;
+    char         str[50], dflt[50], *s;
+    bool         done = false;
+
+    while (!done) {
+        // init the backbuffer
+        sdlx_display_init(COLOR_BLACK, PORTRAIT);
+
+        // register event to adjust vibrate settings
+        sdlx_render_printf(0, ROW2Y(2), "%s", "Vibrate:");
+
+        loc = sdlx_render_printf_ex(
+                0, ROW2Y(3.5), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
+                "%s", vibrate.enabled ? "Enabled" : "Disabled");
+        sdlx_register_event(loc, EVID_TOGGLE_VIBRATE);
+
+        if (vibrate.enabled) {
+            sprintf(str, "Strength = %0.2f", vibrate.strength);
+            loc = sdlx_render_printf_ex(
+                    0, ROW2Y(5.0), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
+                    "%s", str);
+            sdlx_register_event(loc, EVID_SET_VIBRATE_STRENGTH);
+
+            sprintf(str, "Duration_ms = %d", vibrate.duration_ms);
+            loc = sdlx_render_printf_ex(
+                    0, ROW2Y(6.5), FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
+                    "%s", str);
+            sdlx_register_event(loc, EVID_SET_VIBRATE_DURATION_MS);
+        }
+
+        // register control event to exit settings display
+        sdlx_register_control_events(0, NULL, 0, NULL, EVID_QUIT, "X");
+
+        // present the display
+        sdlx_display_present();
+
+        // wait for event, infinite timeout xxx timeout comment
+        sdlx_get_event(ONE_SEC, &event);
+        if (event.event_id == -1) {
+            continue;
+        }
+
+        // process events
+        switch (event.event_id) {
+        case EVID_TOGGLE_VIBRATE:
+            vibrate.enabled = !vibrate.enabled;
+            util_set_numeric_param(data_dir, "enabled", vibrate.enabled);
+            break;
+        case EVID_SET_VIBRATE_STRENGTH:
+            sprintf(dflt, "%0.2f", vibrate.strength);
+            s = sdlx_get_input_str("Strength", true, dflt);
+            sscanf(s, "%lf", &vibrate.strength);
+            vibrate.strength = clip(vibrate.strength, 0, 1);
+            util_set_numeric_param(data_dir, "strength", vibrate.strength);
+            break;
+        case EVID_SET_VIBRATE_DURATION_MS:
+            sprintf(dflt, "%d", vibrate.duration_ms);
+            s = sdlx_get_input_str("Duration_ms", true, dflt);
+            sscanf(s, "%d", &vibrate.duration_ms);
+            vibrate.duration_ms = clip(vibrate.duration_ms, 10, 500);
+            util_set_numeric_param(data_dir, "duration_ms", vibrate.duration_ms);
+            break;
+        case EVID_QUIT:
+            done = true;
+            break;
+        }
+    }
+}
+
+double clip(double value, double min, double max)
+{
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
 }
 
