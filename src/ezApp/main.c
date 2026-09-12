@@ -188,7 +188,7 @@ static int init(void)
     sdlx_create_detached_thread(devel_mode_server_thread, "devel_server", NULL);
 
     // init sdl
-    rc = sdlx_init(SUBSYS_VIDEO | SUBSYS_AUDIO | SUBSYS_SENSOR);
+    rc = sdlx_init(SUBSYS_VIDEO | SUBSYS_AUDIO | SUBSYS_SENSOR | SUBSYS_HAPTIC);
     if (rc != 0) {
         ERROR("sdlx_init failed\n");
         return -1;
@@ -224,7 +224,7 @@ static void cleanup(void)
     util_android_utils_destroy();
 
     INFO("quitting SDL subsystems\n");
-    sdlx_quit(SUBSYS_VIDEO | SUBSYS_AUDIO | SUBSYS_SENSOR);
+    sdlx_quit(SUBSYS_VIDEO | SUBSYS_AUDIO | SUBSYS_SENSOR | SUBSYS_HAPTIC);
 
     INFO("cleanup completed, program terminating\n");
 }

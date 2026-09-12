@@ -70,6 +70,13 @@ int sdlx_sensor_init(void);
 void sdlx_sensor_quit(void);
 
 // --------------------
+// sdlx_haptic.c
+// --------------------
+
+int sdlx_haptic_init(void);
+void sdlx_haptic_quit(void);
+
+// --------------------
 // sdlx_event.c
 // --------------------
 
@@ -86,6 +93,7 @@ void sdlx_event_box_ctrl(bool event_box_enable);
 #define SUBSYS_VIDEO  1
 #define SUBSYS_AUDIO  2
 #define SUBSYS_SENSOR 4
+#define SUBSYS_HAPTIC 8
 
 int sdlx_init(int subsys);
 void sdlx_quit(int subsys);

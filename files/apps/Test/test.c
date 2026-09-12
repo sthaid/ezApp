@@ -346,7 +346,8 @@ void render_texture_rotated(sdlx_texture_t *t, int x, int y, int w, int h, doubl
 
 // -----------------  PAGE 0: CLOCK  --------------------------
 
-#define EVID_CRASH 10
+#define EVID_CRASH   10
+#define EVID_VIBRATE 11
 
 int page_0_x, page_0_y;
 double page_0_xrel, page_0_yrel;
@@ -358,6 +359,7 @@ static void page_0_draw(void)
     char str[MAX_TIME_STR];
     long usecs, delta_ms;
     char ipaddr_str[30];
+    sdlx_loc_t *loc;
     static long usecs_last, usecs_first;
     
     // draw rect around sdlx_win perimeter
@@ -402,9 +404,14 @@ static void page_0_draw(void)
     sdlx_register_event(NULL, EVID_MOTION);
 
     // register event to crash this app
-    sdlx_loc_t *loc = sdlx_render_printf_ex(0, sdlx_win_height-2*sdlx_char_height_dflt, 
+    loc = sdlx_render_printf_ex(0, sdlx_win_height-2*sdlx_char_height_dflt, 
                                              FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "CRASHME");
     sdlx_register_event(loc, EVID_CRASH);
+
+    // register event to issue vibrate
+    loc = sdlx_render_printf_ex(sdlx_win_width-COL2X(7), sdlx_win_height-ROW2Y(2),
+                                            FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "VIBRATE");
+    sdlx_register_event(loc, EVID_VIBRATE);
 }
 
 static void page_0_process_event(sdlx_event_t *ev)
@@ -426,6 +433,10 @@ static void page_0_process_event(sdlx_event_t *ev)
             printf("I %s: %d\n", progname, *null_ptr);
         }
         break; }
+    case EVID_VIBRATE:
+        printf("I %s: calling sdlx_vibrate\n", progname);
+        sdlx_vibrate(0.5, 100);
+        break;
     }
 }
 

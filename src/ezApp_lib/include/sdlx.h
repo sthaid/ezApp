@@ -623,6 +623,9 @@ void sdlx_show_toast(char *message);
 // The prompt arg can contain newline characters.
 char *sdlx_get_input_str(char *prompt_optional, bool numeric_keybd, char *dflt_input_str_optional);
 
+// Vibrate device. Strength arg range is 0 to 1.
+void sdlx_vibrate(double strength, int duration_ms);
+
 #ifdef __cplusplus
 }
 #endif

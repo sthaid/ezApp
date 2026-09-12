@@ -8,6 +8,7 @@ set(LIB_SRCS
     sdlx_misc.c
     sdlx_sensor.c
     sdlx_video.c
+    sdlx_haptic.c
     svcs.c
     utils.c
     utils_openssl.c

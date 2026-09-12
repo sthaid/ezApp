@@ -21,6 +21,7 @@ extern SDL_Window *window;
 static int video_init_count;
 static int audio_init_count;
 static int sensor_init_count;
+static int haptic_init_count;
 
 // -----------------  SDLX INIT / QUIT  -----------------------
 
@@ -67,6 +68,18 @@ int sdlx_init(int subsys)
         sensor_init_count++;
     }
 
+    if (subsys & SUBSYS_HAPTIC) {
+        if (haptic_init_count == 0) {
+            rc = sdlx_haptic_init();
+            if (rc != 0) {
+                ERROR("failed to init haptic\n");
+                SDL_Quit();
+                return -1;
+            }
+        }
+        haptic_init_count++;
+    }
+
     return 0;
 }
 
@@ -90,9 +103,16 @@ void sdlx_quit(int subsys)
         }
     }
 
+    if (subsys & SUBSYS_HAPTIC) {
+        if (--haptic_init_count == 0) {
+            sdlx_haptic_quit();
+        }
+    }
+
     if (video_init_count <= 0 && 
         audio_init_count <= 0 &&
-        sensor_init_count <= 0)
+        sensor_init_count <= 0 &&
+        haptic_init_count <= 0)
     {
         SDL_Quit();
     }

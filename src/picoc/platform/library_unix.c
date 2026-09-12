@@ -680,6 +680,15 @@ void Sdlx_get_input_str(struct ParseState *Parser, struct Value *ReturnValue,
     ReturnValue->Val->Pointer = retval;
 }
 
+void Sdlx_vibrate(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    double strength    = Param[0]->Val->FP;
+    int    duration_ms = Param[1]->Val->Integer;
+
+    sdlx_vibrate(strength, duration_ms);
+}
+
 // -----------------  SDL REGISTRATION  ---------------------------------
 
 void SdlSetupFunction(Picoc *pc)
@@ -775,6 +784,7 @@ struct LibraryFunction SdlFunctions[] = {
     // misc
     { Sdlx_show_toast,               "void sdlx_show_toast(char *message);" },
     { Sdlx_get_input_str,            "char *sdlx_get_input_str(char *prompt, bool numeric_keybd, char *dflt_input_str);" },
+    { Sdlx_vibrate,                  "void sdlx_vibrate(double strength, int duration_ms);" },
 
     { NULL, NULL } };
 
@@ -786,6 +796,7 @@ const char SdlDefs[] = "\
 #define SUBSYS_VIDEO  1 \n\
 #define SUBSYS_AUDIO  2 \n\
 #define SUBSYS_SENSOR 4 \n\
+#define SUBSYS_HAPTIC 8 \n\
 #define DEFAULT_ASPECT_RATIO 2.167\n\
 \n\
 /* video typedefs  */ \n\
