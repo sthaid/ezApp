@@ -24,6 +24,10 @@
 #define WIN_W 1000
 #define WIN_H 2000
 
+#define CTRLS_Y   1700
+#define CTRLS_W   1000
+#define CTRLS_H   300
+
 // each photo uses about 5M, so total usage for 5000 photos is about 25G
 #define MAX_PHOTOS 5000
 

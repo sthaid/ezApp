@@ -1,10 +1,3 @@
-// xxx now
-// - make ctrls same in gallery
-
-// xxx later
-// - option to delete all photos
-// - how to backup files
-
 #include "apps/Camera/common.h"
 
 //
@@ -13,14 +6,11 @@
 
 #define MAP_Y     0
 #define PHOTOS_Y  700
-#define CTRLS_Y   1700
 
 #define MAP_W     1000
 #define MAP_H     700
 #define PHOTOS_W  1000
 #define PHOTOS_H  1000
-#define CTRLS_W   1000
-#define CTRLS_H   300
 
 #define MAX_HEAD  48
 

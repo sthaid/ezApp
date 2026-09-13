@@ -60,18 +60,17 @@ void gallery(void)
             reg_event_show_readme_file();
         }
 
-        int ctrls_h = 300;
-        reg_event_fill_rect(0, WIN_H-ctrls_h-25, WIN_W, ctrls_h+25, COLOR_BLACK, EVID_NOOP);
+        reg_event_fill_rect(0, CTRLS_Y, CTRLS_W, CTRLS_H, COLOR_BLACK, EVID_NOOP);
 
-        y = WIN_H - ctrls_h + (150 - sdlx_char_height_dflt) / 2;
+        y = CTRLS_Y + 50;
         reg_event_str(COL2X(0), y, COLOR_LIGHT_BLUE, "Home", EVID_HOME);
         reg_event_str(COL2X(7), y, COLOR_LIGHT_BLUE, "Up", EVID_PGUP);
         reg_event_str(COL2X(12), y, COLOR_LIGHT_BLUE, "Dn", EVID_PGDN);
         reg_event_str(COL2X(17), y, COLOR_LIGHT_BLUE, "End", EVID_END);
 
-        y += 150;
+        y += 130;
         reg_event_str(0, y, COLOR_LIGHT_BLUE, "Del", EVID_DEL);
-        reg_event_str(WIN_W-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "View", EVID_VIEW);
+        reg_event_str(CTRLS_W-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "View", EVID_VIEW);
 
         sdlx_register_event(NULL, EVID_MOTION);
 
