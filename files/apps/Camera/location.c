@@ -1,5 +1,4 @@
 // xxx now
-// - display state or city name on map, when motion ends
 // - make ctrls same in gallery
 
 // xxx later
@@ -66,10 +65,12 @@ bool    del_mode;
 // state of motioning, either off, or motioning in map, or motioning in photos
 int motioning_state;
 
-// yyy comment
+// the map is first rendered to this texture, then this texture is rendered 
+// to the display; the purpose is to prevent the 'head' squares from overlaying the
+// photos display
 sdlx_texture_t *display_map_texture;
 
-// xxx comment
+// used to adjust the map width
 #define MAX_MAP_W_MILES_TBL     12
 #define MAP_W_MILES_IDX_DEFAULT 8
 #define MAP_W_MILES             (map_w_miles_tbl[map_w_miles_idx])
@@ -123,12 +124,12 @@ void location(void)
     map_w_miles_idx = MAP_W_MILES_IDX_DEFAULT;
     motioning_state = MOTIONING_OFF;
 
-    // yyy comment
+    // loop until either reqeusted to switch to gallery view, or end program
     while (!switch_view && !end_program) {
         // init the backbuffer to COLOR_BLACK
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-        // yyy  comment
+        // render the map and photos to the display
         display_init();
         display_photos();
         display_map();
@@ -187,7 +188,7 @@ void location(void)
                 show_file(data_dir, "README");
                 break;
             case EVID_TAKE:
-                take_photo(); // yyy maybe adjust y_top
+                take_photo();
                 break;
             case EVID_DEL:
                 del_mode = !del_mode;
@@ -237,13 +238,13 @@ void location(void)
                 y_top = 0;
                 break;
             case EVID_END:
-                y_top = 1e99;  // yyy
+                y_top = 1e99;
                 break;
             case EVID_PGUP:
-                y_top -= (3 * SPACING);
+                y_top -= (2 * SPACING);
                 break;
             case EVID_PGDN:
-                y_top += (3 * SPACING);
+                y_top += (2 * SPACING);
                 break;
             case EVID_VIEW:
                 view = GALLERY_VIEW;  
@@ -264,7 +265,6 @@ void location(void)
 
 // -----------------  DISPLAY ROTUINES  --------------------------
 
-// yyy names, or just comment them
 double map_n, map_e, map_h, map_w;
 double head_w, head_h;
 
@@ -417,7 +417,6 @@ void display_photos(void)
     }
 
     // determine number of selected photos
-    // yyy simplify because just one is ever selected
     num_selected_photos = 0;
     for (i = 0; i < MAX_HEAD; i++) {
         head_t *hd = &head[i];
@@ -436,7 +435,6 @@ void display_photos(void)
     t = sdlx_create_texture(THUMB, THUMB);
 
     // loop over map list heads
-    // yyy dont need to loop
     for (i = 0; i < MAX_HEAD; i++) {
         head_t *hd = &head[i];
 
@@ -472,7 +470,10 @@ void display_photos(void)
             dest.h = THUMB;
             sdlx_render_texture(t, NULL, &dest);
 
-            idx = ((char*)photo - (char*)&photos[0]) / sizeof(photo_t); //yyy comment picoc issue
+            // should be able to use 'idx = photo - photos;' 
+            // however picoc does not handle that correctly, 
+            // instead the following code is used
+            idx = ((char*)photo - (char*)&photos[0]) / sizeof(photo_t);
             sdlx_register_event(&dest, EVID_SHOW_PHOTO+idx);
 
             if (del_mode) {
