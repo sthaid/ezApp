@@ -33,6 +33,11 @@
 #define MOTIONING_IN_MAP    1
 #define MOTIONING_IN_PHOTOS 20
 
+#define MIN_MAP_LATITUDE  -72
+#define MAX_MAP_LATITUDE   72
+#define MIN_MAP_LONGITUDE -180
+#define MAX_MAP_LONGITUDE  180
+
 //
 // typedefs
 //
@@ -48,19 +53,20 @@ typedef struct {
 // variables
 //
 
-// map center and width/height
-double  map_latitude_ctr;
-double  map_longitude_ctr;
-char    map_loc_state[21];
+// map center and width/height and cos of latitude
+double map_latitude;
+double map_longitude;
+char   map_loc_state[21];
+double map_lat_cosine;
 
 // list of photos indexed by location on map
-head_t  head[MAX_HEAD];
+head_t head[MAX_HEAD];
 
 // used for scolling photos
-double  y_top;
+double y_top;
 
 // enable photo delete
-bool    del_mode;
+bool del_mode;
 
 // state of motioning, either off, or motioning in map, or motioning in photos
 int motioning_state;
@@ -85,31 +91,19 @@ double map_w_miles_tbl[MAX_MAP_W_MILES_TBL] = {
 // prototypes
 //
 
+void map_location_init(void);
+void sanitize_map_lat_and_long(void);
+
 void display_init(void);
 void display_photos(void);
 void display_map(void);
 
-void lat_long_to_map_xy(double latitude, double longitude, int *x, int *y);
 double cosd(double degrees);
-
 void set_selected(unsigned int e_idx, unsigned int n_idx);
 bool is_selected(unsigned int e_idx, unsigned int n_idx);
 void clear_selected(void);
 
 // ------------------ LOCATION VIEW --------------
-
-void map_location_init(void)
-{
-    util_get_location(&map_latitude_ctr, &map_longitude_ctr, NULL, NULL);
-    if (map_latitude_ctr == INVALID_NUMBER || map_longitude_ctr == INVALID_NUMBER) {
-        map_latitude_ctr  = BOSTON_LATITUDE;
-        map_longitude_ctr = BOSTON_LONGITUDE;
-    }
-
-    find_nearest_city(map_latitude_ctr, map_longitude_ctr,
-                      NULL, 0, map_loc_state, sizeof(map_loc_state));
-
-}
 
 void location(void)
 {
@@ -204,10 +198,20 @@ void location(void)
             case EVID_MOTION:
                 if (motioning_state == MOTIONING_IN_MAP) {
                     double map_h_miles = MAP_W_MILES * ((double)MAP_H / MAP_W);
-                    map_latitude_ctr  += event.u.motion.yrel * (map_h_miles / MAP_H) / 
+
+                    map_latitude  += event.u.motion.yrel * (map_h_miles / MAP_H) / 
                                          LAT2MILES;
-                    map_longitude_ctr -= event.u.motion.xrel * (MAP_W_MILES / MAP_W) / 
-                                         (LAT2MILES * cosd(map_latitude_ctr));
+                    map_longitude -= event.u.motion.xrel * (MAP_W_MILES / MAP_W) / 
+                                         (LAT2MILES * map_lat_cosine);
+
+                    sanitize_map_lat_and_long();
+
+                    double new_map_lat_cosine = cosd(map_latitude);
+                    if ((fabs(new_map_lat_cosine - map_lat_cosine) / map_lat_cosine) > 0.2) {
+                        printf("I %s: updating map_lat_cosine from %0.3f to %0.3f\n", 
+                               progname, map_lat_cosine, new_map_lat_cosine);
+                        map_lat_cosine = new_map_lat_cosine;
+                    }
                 } else if (motioning_state == MOTIONING_IN_PHOTOS) {
                     y_top -= event.u.motion.yrel;
                 } else {
@@ -216,7 +220,7 @@ void location(void)
                 break;
             case EVID_MOTION_END:
                 if (motioning_state == MOTIONING_IN_MAP) {
-                    find_nearest_city(map_latitude_ctr, map_longitude_ctr,
+                    find_nearest_city(map_latitude, map_longitude,
                                       NULL, 0, map_loc_state, sizeof(map_loc_state));
                 }
                 motioning_state = MOTIONING_OFF;
@@ -263,6 +267,38 @@ void location(void)
     }
 }
 
+void map_location_init(void)
+{
+    util_get_location(&map_latitude, &map_longitude, NULL, NULL);
+    if (map_latitude == INVALID_NUMBER || map_longitude == INVALID_NUMBER) {
+        map_latitude  = BOSTON_LATITUDE;
+        map_longitude = BOSTON_LONGITUDE;
+    }
+
+    sanitize_map_lat_and_long();
+
+    find_nearest_city(map_latitude, map_longitude,
+                      NULL, 0, map_loc_state, sizeof(map_loc_state));
+
+    map_lat_cosine = cosd(map_latitude);
+}
+
+
+void sanitize_map_lat_and_long(void)
+{
+    if (map_latitude < MIN_MAP_LATITUDE) {
+        map_latitude = MIN_MAP_LATITUDE;
+    } else if (map_latitude > MAX_MAP_LATITUDE) {
+        map_latitude = MAX_MAP_LATITUDE;
+    }
+        
+    if (map_longitude < MIN_MAP_LONGITUDE) {
+        map_longitude = MIN_MAP_LONGITUDE;
+    } else if (map_longitude > MAX_MAP_LONGITUDE) {
+        map_longitude = MAX_MAP_LONGITUDE;
+    }
+}
+
 // -----------------  DISPLAY ROTUINES  --------------------------
 
 double map_n, map_e, map_h, map_w;
@@ -273,18 +309,14 @@ void display_init(void)
     int           i, j; 
     unsigned int  head_n_idx, head_e_idx, head_e_first_idx;
 
-    static double cos_map_lat;
-
-    if (cos_map_lat == 0) cos_map_lat = cosd(map_latitude_ctr);  // yyy get again
-
     map_w = MAP_W_MILES;
     map_h = MAP_W_MILES * ((double)MAP_H / MAP_W);
 
     head_w = map_w / 7;
     head_h = map_h / 5;
 
-    map_n = (map_latitude_ctr + 90) * LAT2MILES + map_h/2;
-    map_e = (map_longitude_ctr + 180) * (LAT2MILES * cos_map_lat) - map_w/2;
+    map_n = (map_latitude + 90) * LAT2MILES + map_h/2;
+    map_e = (map_longitude + 180) * (LAT2MILES * map_lat_cosine) - map_w/2;
 
     map_n -= head_h;
     map_e += head_w;
@@ -313,7 +345,7 @@ void display_init(void)
         double photo_n, photo_e;
         unsigned int photo_n_idx, photo_e_idx;
         
-        photo_e = (md->longitude + 180) * LAT2MILES * cos_map_lat;
+        photo_e = (md->longitude + 180) * LAT2MILES * map_lat_cosine;
         photo_n = (md->latitude + 90) * LAT2MILES;
 
         photo_e_idx = photo_e / head_w;
@@ -384,7 +416,7 @@ void display_map(void)
     } else {
         sdlx_render_printf_ex(0, MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
                             FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%0.4f %0.4f", 
-                            map_latitude_ctr, map_longitude_ctr);
+                            map_latitude, map_longitude);
     }
 
     char w_str[20];

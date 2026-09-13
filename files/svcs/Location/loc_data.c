@@ -129,9 +129,9 @@ void find_closest_loc_data(
             strcpy(state, save_actual_state);
             *actual_latitude = save_actual_latitude;
             *actual_longitude = save_actual_longitude;
-            printf("I %s: returning saved location %s %s %0.4f %0.4f\n", 
-                   progname, save_actual_name, save_actual_state, 
-                   save_actual_latitude, save_actual_longitude);
+            //printf("I %s: returning saved location %s %s %0.4f %0.4f\n", 
+            //       progname, save_actual_name, save_actual_state, 
+            //       save_actual_latitude, save_actual_longitude);
             return;
         }
     }
@@ -168,7 +168,7 @@ void find_closest_loc_data(
 
     // if no closest location found then return
     if (min_loc_data == NULL) {
-        printf("I %s: closest not found for %0.4f %0.4f\n", progname, req_latitude, req_longitude);
+        //printf("I %s: closest not found for %0.4f %0.4f\n", progname, req_latitude, req_longitude);
         return;
     }
         
@@ -177,9 +177,9 @@ void find_closest_loc_data(
     strncpy(state, min_loc_data->state, MAX_NAME-1);
     *actual_latitude = min_loc_data->latitude;
     *actual_longitude = min_loc_data->longitude;
-    printf("I %s: found closest to %0.4f %0.4f - name=%s %s %0.4f %0.4f\n",
-           progname, req_latitude, req_longitude, 
-           name, state, *actual_latitude, *actual_longitude);
+    //printf("I %s: found closest to %0.4f %0.4f - name=%s %s %0.4f %0.4f\n",
+    //       progname, req_latitude, req_longitude, 
+    //       name, state, *actual_latitude, *actual_longitude);
 
     // save result, so a subsequent call can use the result if the
     // subsequent call lat/long is close to the saved lat/long

@@ -12,7 +12,7 @@ void gallery(void)
     bool            del_mode = false;
     bool            switch_view = false;
 
-    printf("i %s: gallery starting\n", progname);
+    printf("I %s: gallery starting\n", progname);
 
     // init
     t = sdlx_create_texture(THUMB, THUMB);

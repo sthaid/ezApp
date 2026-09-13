@@ -270,7 +270,7 @@ void show_photo(int idx)
 
         // construct photo filename
         sprintf(file, "%06d.jpg", num);
-        printf("I %s: show photo %s\n", progname, file);
+        //printf("I %s: show photo %s\n", progname, file);
 
         // get jpeg pixels, and jpeg width & height;
         // create texture 't', with the jpeg_w,jpeg_h dimensions
@@ -481,7 +481,7 @@ unsigned int *jpeg_file_to_rgba_pixels(char *dir, char *file, int *w_arg, int *h
                progname, dir, file, rc);
         return NULL;
     }
-    printf("I %s: decode JPEG okay, w/h=%d,%d\n", progname, w, h);
+    //printf("I %s: decode JPEG okay, w/h=%d,%d\n", progname, w, h);
 
     *w_arg = w;
     *h_arg = h;
@@ -649,5 +649,5 @@ void find_nearest_city(double req_latitude, double req_longitude,
     if (state) strncpy(state, state_tmp, sizeof_state-1);
 
     // debug print result
-    printf("I %s: find_neareset_city return: '%s' '%s'\n", progname, city, state);
+    //printf("I %s: find_neareset_city return: '%s' '%s'\n", progname, city, state);
 }
