@@ -1,21 +1,10 @@
-// xxx MAX_PHOTOS, try 10000,  and test this   10000 * 4MB =  40 GB
-// xxx settings,  display usage and memory remaining
+// xxx now
+// - display state or city name on map, when motion ends
+// - make ctrls same in gallery
 
-// xxx when taking test photos, assign city name to Bolton  ? Maybe not needed
-// xxx work on zoom,  maybe don't pinch,  use +,-
-
-// xxx display state or city name on map, when motion ends
-
-// yyy option to delete all photos
-
-// yyy how to backup files
-
-// yyy consider a way to also support multiple selections
-// yyy all apps need a sdlevent timeout, or an event trigger when coming out of doze
-
-// yyy printf FLAG_RIGHT (maybe not)
-// yyy comments
-// yyy make ctrls same in gallery
+// xxx later
+// - option to delete all photos
+// - how to backup files
 
 #include "apps/Camera/common.h"
 
@@ -37,6 +26,11 @@
 #define MAX_HEAD  48
 
 #define LAT2MILES 69.17
+
+#define BOSTON_LATITUDE  42.3611
+#define BOSTON_LONGITUDE -71.0571
+
+#define DEFAULT_MAP_W_MILES  50
 
 //
 // typedefs
@@ -95,16 +89,18 @@ void location(void)
 
     static bool motioning_in_map;
 
-    // init 
-    // yyy start where left off on prior run
-    map_w_miles = 50;
+    printf("I %s: location starting\n", progname);
 
-    util_get_location(&map_latitude_ctr, &map_longitude_ctr, NULL, NULL); //yyy dont let these be invalid
+    // init 
+    map_w_miles = DEFAULT_MAP_W_MILES;
+
+    // get initial latitude/longitude of the map center;
+    // use Boston if lat/long not currently avail
+    util_get_location(&map_latitude_ctr, &map_longitude_ctr, NULL, NULL);
     if (map_latitude_ctr == INVALID_NUMBER || map_longitude_ctr == INVALID_NUMBER) {
-        map_latitude_ctr = HOME_LATITUDE;     // yyy rename to DEFAULT
-        map_longitude_ctr = HOME_LONGITUDE;
+        map_latitude_ctr  = BOSTON_LATITUDE;
+        map_longitude_ctr = BOSTON_LONGITUDE;
     }
-    printf("LOCATION STARTING %0.4f %0.4f\n", map_latitude_ctr, map_longitude_ctr);
 
     // yyy comment
     while (!switch_view && !end_program) {
@@ -197,7 +193,7 @@ void location(void)
                 y_top = 0;
                 break;
             case EVID_END:
-                y_top = 1e99;
+                y_top = 1e99;  // yyy
                 break;
             case EVID_PGUP:
                 y_top -= (3 * SPACING);
@@ -337,6 +333,7 @@ void display_map(void)
         sdlx_register_event(&loc, EVID_MAP + i);
     }
 
+// xxx
     sdlx_render_printf_ex(0, MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
                            FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%0.4f %0.4f", 
                            map_latitude_ctr, map_longitude_ctr);

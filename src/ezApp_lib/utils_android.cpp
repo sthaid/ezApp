@@ -387,33 +387,34 @@ void util_android_utils_destroy(void) { }
 
 void util_get_location(double *latitude, double *longitude, double *altitude, bool *alt_is_wgs84)
 {
-    #define HOME_LATITUDE     42.4222
-    #define HOME_LONGITUDE   -71.6226
-    #define HOME_ALTITUDE_FT  454.0
+    #define TEST_LATITUDE     42.4222
+    #define TEST_LONGITUDE   -71.6226
+    #define TEST_ALTITUDE_FT  454.0
 
     if (latitude) {
-        *latitude = HOME_LATITUDE;
+        *latitude = TEST_LATITUDE;
     }
     if (longitude) {
 #if 1
-        *longitude = HOME_LONGITUDE;
+        *longitude = TEST_LONGITUDE;
 #else
         static time_t tstart;
 
-        // simulate velocity in west direction, for testing
+        // for testing, 
+        // simulate velocity in west direction
         if (tstart == 0) {
             tstart = time(NULL);
         }
 
         #define RATE 600.0  // mph
         #define COS_LAT 0.738
-        *longitude = HOME_LONGITUDE - 
+        *longitude = TEST_LONGITUDE - 
                      (RATE * (time(NULL) - tstart) / 3600.) / 
                      (COS_LAT * 69.) ;
 #endif
     }
     if (altitude) {
-        *altitude = HOME_ALTITUDE_FT;
+        *altitude = TEST_ALTITUDE_FT;
     }
     if (alt_is_wgs84) {
         *alt_is_wgs84 = false;

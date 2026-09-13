@@ -21,10 +21,11 @@
 // defines
 //
 
-#define WIN_W 1000  // xxx use these in main.c and gallery.c
+#define WIN_W 1000
 #define WIN_H 2000
 
-#define MAX_PHOTOS 1000  // xxx make bigge
+// each photo uses about 5M, so total usage for 5000 photos is about 25G
+#define MAX_PHOTOS 5000
 
 #define GALLERY_VIEW  0
 #define LOCATION_VIEW 1
@@ -38,7 +39,6 @@
 
 #define UNICODE_CIRCLE "\u2b24"  // large filled circle
 
-// xxx why isnt EVID_NOOP here
 #define EVID_TAKE           1
 #define EVID_DEL            2
 #define EVID_VIEW           4
@@ -56,18 +56,13 @@
 #define EVID_DELETE_PHOTO   20000
 #define EVID_MAP            30000
 
-// used for testing, xxx del
-#define HOME_LATITUDE     42.4222
-#define HOME_LONGITUDE   -71.6226
-#define HOME_ALTITUDE_FT  454.0
-
 //
 // typedefs
 //
 
 #define METADATA_MAGIC 0x12345678
 typedef struct {
-    int magic;  // xxx validate magic , also add sizeof check
+    int magic;
     int size;
     int num;
     char day[50];
@@ -115,7 +110,6 @@ void show_photo(int idx);
 void settings(void);
 
 void find_nearest_city(double req_latitude, double req_longitude,
-                       char *city, int sizeof_city, char *state, int sizeof_state,
-                       double *actual_latitude, double *actual_longitude);
+                       char *city, int sizeof_city, char *state, int sizeof_state);
 
 #endif

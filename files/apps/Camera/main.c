@@ -1,11 +1,6 @@
 // xxx
-// - recreate metadata, or delete photo if bad metadata, or skip photo if bad metadata
-// - change the large EVID numbers to 1000000000
-// - full review and comments
-
-// xxx maybe later
-// - bring in noto fonts
-// - make script to create the test files
+// - full review and update comments
+// - test the full 5000 photos
 
 // ==================================
 
@@ -66,8 +61,8 @@ void init(void)
     metadata_t *md;
     long        t_start;
 
-    // xxx
-    view = LOCATION_VIEW;
+    // start in gallery view
+    view = GALLERY_VIEW;
 
     // init global variable photos_dir
     sprintf(photos_dir, "%s/photos", data_dir);
@@ -78,6 +73,12 @@ void init(void)
     sprintf(cmd, "find %s -type f -name \"*.jpg\" | sort", photos_dir);
     fp = popen(cmd, "r");
     while (fgets(s, sizeof(s), fp) != NULL) {
+        // if photos array is full then break
+        if (max_photos == MAX_PHOTOS) {
+            printf("E %s: photos array is full\n", progname);
+            break;
+        }
+
         // extract the photo number from the pathname strings provided by the find cmd
         cnt = sscanf(s, "apps/Camera/photos/%d.jpg", &num);
         if (cnt != 1) {
@@ -89,7 +90,14 @@ void init(void)
         sprintf(metadata_filename, "%06d.meta", num);
         md = util_map_file(photos_dir, metadata_filename, sizeof(metadata_t), true, NULL);
         if (md == NULL) {
-            printf("E %s: failed to mmap %s, skipping photo %d\n", progname, metadata_filename, num);
+            printf("E %s: skipping photo %d, failed to mmap %s\n", progname, num, metadata_filename);
+            continue;
+        }
+
+        // validate metadata file magic number
+        if (md->magic != METADATA_MAGIC) {
+            printf("E %s: skipping photo %d, invalid metadata magix 0x%x\n", progname, num, md->magic);
+            util_unmap_file(md, sizeof(metadata_t));
             continue;
         }
 
@@ -97,12 +105,6 @@ void init(void)
         photos[max_photos].num = num;
         photos[max_photos].md = md;
         max_photos++;
-
-        // if photos array is full then break
-        if (max_photos == MAX_PHOTOS) {
-            printf("E %s: photos array is full\n", progname);
-            break;
-        }
     }
     pclose(fp);
 
@@ -130,6 +132,12 @@ int take_photo(void)
     int rc, num;
     char photo_filename[100];
     metadata_t *md;
+
+    // if photos array is full then break
+    if (max_photos == MAX_PHOTOS) {
+        printf("E %s: photos array is full\n", progname);
+        return -1;
+    }
 
     // take photo; this will create file tmp/photo.jpg
     rc = util_take_photo();  
@@ -211,7 +219,6 @@ void delete_photo(int idx)
 
 // ------------------ SHOW PHOTO -----------------------
 
-// xxx move to new file
 void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest);
 
 int jpeg_w, jpeg_h;
@@ -239,7 +246,7 @@ void show_photo(int idx)
         return;
     }
 
-    // yyy comment
+    // if the caller specified photo is not marked to be shown then return error
     if (photos[idx].show == false) {
         printf("E %s: photos[%d].show is false\n", progname, idx);
         return;
@@ -454,12 +461,11 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest)
 
 #if 0
     // debug prints
-    printf("ASPECT = %f\n", aspect);
-    printf("SRC %d %d - %d %d\n", src->x, src->y, src->w, src->h);
-    printf("DST %d %d - %d %d\n", dest->x, dest->y, dest->w, dest->h);
+    printf("I %: ASPECT = %f\n", progname, aspect);
+    printf("I %: SRC %d %d - %d %d\n", progname, src->x, src->y, src->w, src->h);
+    printf("I %: DST %d %d - %d %d\n", progname, dest->x, dest->y, dest->w, dest->h);
 #endif
 }
-
 
 // ------------------ UTILS ----------------------------
 
@@ -558,10 +564,9 @@ metadata_t *create_and_map_metadata_file(int num)
     // - latitude & longitude
     util_get_location(&md->latitude, &md->longitude, NULL, NULL);
 
-    // - city & state xxx does this check for invalid number
+    // - city & state 
     find_nearest_city(md->latitude, md->longitude, 
-                      md->city, sizeof(md->city), md->state, sizeof(md->state),
-                      NULL, NULL);
+                      md->city, sizeof(md->city), md->state, sizeof(md->state));
 
     // - pixels
     sprintf(photo_filename, "%06d.jpg", num);
@@ -595,30 +600,18 @@ metadata_t *create_and_map_metadata_file(int num)
     return md;
 }
 
-//xxx actual not used
 void find_nearest_city(double req_latitude, double req_longitude, 
-                       char *city, int sizeof_city, char *state, int sizeof_state,
-                       double *actual_latitude, double *actual_longitude)
+                       char *city, int sizeof_city, char *state, int sizeof_state)
 {
-#if 0
-    //xxx for testing
-    strncpy(city, "Bolton", sizeof_city-1);
-    strncpy(state, "Massachusetts", sizeof_state-1);
-    xxx
-    return;
-#endif
-    
     svc_req_t *req;
     char       req_data[MAX_SVC_REQ_DATA];
     int        rc;
 
     // preset return values
-    if (city) memset(city, 0, sizeof_city);
-    if (state) memset(state, 0, sizeof_state);
-    if (actual_latitude) *actual_latitude = INVALID_NUMBER;
-    if (actual_longitude) *actual_longitude = INVALID_NUMBER;
+    memset(city, 0, sizeof_city);
+    memset(state, 0, sizeof_state);
 
-    // if no location info then return the preset values
+    // if no location info then return the preset city,state values
     if (req_latitude == INVALID_NUMBER || req_longitude == INVALID_NUMBER) {
         printf("E %s: invalid latitude or longitude\n", progname);
         return;
@@ -635,52 +628,26 @@ void find_nearest_city(double req_latitude, double req_longitude,
         return;
     }
 
-    // extract city, state, actual_latitude/longitude  strings from the response
+    // extract city and state strings from the response
     // - expected response format: <city>\n<state>\n<actual_latitude>\n<actual_longitude>\n\0
     // - either city or state can be empty strings, or can contain space chars
+    char *newline, *city_tmp, *state_tmp;
+
     req_data[MAX_SVC_REQ_DATA-5] = '\n';
     req_data[MAX_SVC_REQ_DATA-4] = '\n';
     req_data[MAX_SVC_REQ_DATA-3] = '\n';
     req_data[MAX_SVC_REQ_DATA-2] = '\n';
     req_data[MAX_SVC_REQ_DATA-1] = '\0';
 
-    char *newline, *city_tmp, *state_tmp, *actual_latitude_str_tmp, *actual_longitude_str_tmp;
-
     city_tmp = req->data;
     newline = strchr(city_tmp, '\n'); *newline = '\0';
-
     state_tmp = newline + 1;
     newline = strchr(state_tmp, '\n'); *newline = '\0';
 
-    actual_latitude_str_tmp = newline + 1;
-    newline = strchr(actual_latitude_str_tmp, '\n'); *newline = '\0';
-
-    actual_longitude_str_tmp = newline + 1;
-    newline = strchr(actual_longitude_str_tmp, '\n'); *newline = '\0';
-
-    // if both city and state strings are empty then return the preset values
-    if (city_tmp[0] == '\0' && state_tmp[0] == '\0') {
-        printf("E %s: city and state are both empty strings\n", progname);
-        return;
-    }
-
-    // decode the actual_latitude_str and actual_longitude_str
-    double lat=INVALID_NUMBER, lng=INVALID_NUMBER;
-    sscanf(actual_latitude_str_tmp, "%lf", &lat);
-    sscanf(actual_longitude_str_tmp, "%lf", &lng);
-    if (lat == INVALID_NUMBER || lng == INVALID_NUMBER) {
-        printf("E %s: failed to decode lat/long strings '%s' '%s'\n",
-               progname, actual_latitude_str_tmp, actual_longitude_str_tmp);
-        return;
-    }
+    // return neareset city/state info to caller
+    strncpy(city, city_tmp, sizeof_city-1);
+    strncpy(state, state_tmp, sizeof_state-1);
 
     // debug print result
-    printf("I %s: find_neareset_city return: '%s' '%s' %0.4f %0.4f\n",
-            progname, city_tmp, state_tmp, lat, lng);
-
-    // return info to caller
-    if (city)             strncpy(city, city_tmp, sizeof_city-1);
-    if (state)            strncpy(state, state_tmp, sizeof_state-1);
-    if (actual_latitude)  *actual_latitude = lat;
-    if (actual_longitude) *actual_longitude = lng;
+    printf("I %s: find_neareset_city return: '%s' '%s'\n", progname, city, state);
 }

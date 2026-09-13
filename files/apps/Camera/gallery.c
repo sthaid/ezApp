@@ -5,12 +5,14 @@
 void gallery(void)
 {
     sdlx_event_t    event;
-    int             x, y, y_last;
+    int             x, y, y_last, i_start;
     sdlx_texture_t *t;
     sdlx_loc_t      dest;
     double          y_top = 0;
     bool            del_mode = false;
     bool            switch_view = false;
+
+    printf("i %s: gallery starting\n", progname);
 
     // init
     t = sdlx_create_texture(THUMB, THUMB);
@@ -19,17 +21,16 @@ void gallery(void)
         // init the backbuffer to COLOR_BLACK
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-        // xxx todo
-        // xxx optimize loop start
-        // xxx comment
-        for (int i = 0; i < max_photos; i++) {
+        // display photos that are within the visible scrolled display region
+        i_start = ((int)y_top / SPACING) * 2;
+        for (int i = i_start; i < max_photos; i++) {
             metadata_t *md = photos[i].md;
 
             y = (i / 2) * SPACING;
             if (y < y_top - SPACING) {
                 continue;
             }
-            if (y > y_top + sdlx_win_height) {
+            if (y > y_top + WIN_H) {
                 break;
             }
 
@@ -60,9 +61,9 @@ void gallery(void)
         }
 
         int ctrls_h = 300;
-        reg_event_fill_rect(0, sdlx_win_height-ctrls_h-25, sdlx_win_width, ctrls_h+25, COLOR_BLACK, EVID_NOOP);
+        reg_event_fill_rect(0, WIN_H-ctrls_h-25, WIN_W, ctrls_h+25, COLOR_BLACK, EVID_NOOP);
 
-        y = sdlx_win_height - ctrls_h + (150 - sdlx_char_height_dflt) / 2;
+        y = WIN_H - ctrls_h + (150 - sdlx_char_height_dflt) / 2;
         reg_event_str(COL2X(0), y, COLOR_LIGHT_BLUE, "Home", EVID_HOME);
         reg_event_str(COL2X(7), y, COLOR_LIGHT_BLUE, "Up", EVID_PGUP);
         reg_event_str(COL2X(12), y, COLOR_LIGHT_BLUE, "Dn", EVID_PGDN);
@@ -70,7 +71,7 @@ void gallery(void)
 
         y += 150;
         reg_event_str(0, y, COLOR_LIGHT_BLUE, "Del", EVID_DEL);
-        reg_event_str(sdlx_win_width-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "View", EVID_VIEW);
+        reg_event_str(WIN_W-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "View", EVID_VIEW);
 
         sdlx_register_event(NULL, EVID_MOTION);
 
