@@ -130,8 +130,8 @@ int main(int argc, char **argv)
             init_xy_to_end_of_log();
         }
 
-        // wait for event, with 50 ms timeout
-        sdlx_get_event(50000, &event);
+        // wait for event, with 100 ms timeout
+        sdlx_get_event(100000, &event);
         if (event.event_id == -1) {
             continue;
         }
