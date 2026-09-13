@@ -51,7 +51,6 @@
 #define EVID_RST               7
 #define EVID_NEXT              8
 #define EVID_PREV              9
-#define EVID_NOOP              10
 #define EVID_HOME              11
 #define EVID_END               12
 #define EVID_PGUP              13

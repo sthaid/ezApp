@@ -427,12 +427,8 @@ void show_file(char *data_dir, char *filename)
         sdlx_register_event(NULL, EVID_MOTION);
         sdlx_display_present();
 
-        // wait for event with 100ms timeout;
-        // if timedout then continue
-        sdlx_get_event(100000, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
+        // wait for event with infinite timeout;
+        sdlx_get_event(-1, &event);
     
         // process the event
         switch (event.event_id) {

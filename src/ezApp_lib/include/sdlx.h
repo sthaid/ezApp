@@ -548,6 +548,7 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 #define EVID_PINCH         1000000004
 #define EVID_PINCH_END     1000000005
 #define EVID_QUIT          1000000006
+#define EVID_NOOP          1000000007
 
 // This structure returns the event that occurred, by call to sdlx_get_event.
 // When the display is tapped at a location associated with a registered

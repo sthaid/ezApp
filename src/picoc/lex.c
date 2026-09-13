@@ -421,8 +421,6 @@ unsigned char LexUnEscapeCharacter(const char **From, const char *End, unsigned 
             char s[5], *end;
             unsigned int cp;
 
-            // xxx add support for backslash U nnnnnnnn
-
             /* if utf8 buffer not provided then error */
             if (!utf8) {
                 ProgramFailNoParser(pc, "utf8 must be in a string");

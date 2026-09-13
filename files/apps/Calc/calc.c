@@ -165,7 +165,10 @@ int main(int argc, char **argv)
         // wait for event;
         // if a button is highlighted then use a short timeout to clear the button highlight;
         // otherwise use infinite timeout
-        sdlx_get_event(highlight_button_row != -1 ? BUTTON_HIGHLIGHT_DURATION_MS * 1000 : ONE_SEC, &event);
+        sdlx_get_event((highlight_button_row != -1 
+                        ? BUTTON_HIGHLIGHT_DURATION_MS * 1000 
+                        : -1), 
+                       &event);
 
         // if sdlx_get_event timed out then clear the button highlight, and continue
         if (event.event_id == -1) {
@@ -521,11 +524,8 @@ void settings(void)
         // present the display
         sdlx_display_present();
 
-        // wait for event, infinite timeout xxx timeout comment
-        sdlx_get_event(ONE_SEC, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
+        // wait for event, infinite timeout
+        sdlx_get_event(-1, &event);
 
         // process events
         switch (event.event_id) {

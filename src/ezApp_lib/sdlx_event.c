@@ -450,8 +450,7 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
             break;
         }
 
-        //INFO("%s: scale=%f span=%f %f focus=%f %f\n",
-        //     event_type_to_str(ev->type),
+        //INFO("SDL_EVENT_PINCH_UPDATE: scale=%f span=%f %f focus=%f %f\n",
         //     x->scale, x->span_x, x->span_y, x->focus_x, x->focus_y);
 
         event->event_id = EVID_PINCH;
@@ -485,6 +484,13 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         event->u.pinch.focus_y = sdlx_win_height/2;
         break; }
 #endif
+
+    case SDL_EVENT_WINDOW_FOCUS_GAINED:
+        // when Android device exits doze mode this event is generated;
+        // returning EVID_NOOP causes the miniApp to redraw
+        INFO("SDL_EVENT_WINDOW_FOCUS_GAINED\n");
+        event->event_id = EVID_NOOP;
+        break;
 
     case SDL_EVENT_SENSOR_UPDATE:
         // SDL_SensorEvent - not used

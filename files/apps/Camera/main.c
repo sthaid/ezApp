@@ -360,12 +360,10 @@ void show_photo(int idx)
             // present the display
             sdlx_display_present();
 
-            // wait for an event, with 1 sec timeout
-            sdlx_get_event(ONE_SEC, &event);
-            if (event.event_id == -1) {
-                continue;
-            }
+            // wait for an event, with infinite timeout
+            sdlx_get_event(-1, &event);
 
+            // process the event
             switch (event.event_id) {
             case EVID_QUIT:
                 done = true;

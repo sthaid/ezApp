@@ -126,11 +126,8 @@ int main(int argc, char **argv)
         // present the display
         sdlx_display_present();
 
-        // wait for event, with 100 ms timeout
-        sdlx_get_event(100000, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
+        // wait for event, with infinite timeout
+        sdlx_get_event(-1, &event);
 
         // process events
         switch (event.event_id) {

@@ -20,7 +20,7 @@
 #define EVID_SETTINGS  10
 #define EVID_GOTO_TOP  11
 
-#define SEC 1000000
+#define ONE_SEC 1000000
 
 #define Y_TOP_OF_DISPLAY 50
 
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
         sdlx_display_present();
 
         // wait for event, with 1 second timeout
-        sdlx_get_event(1*SEC, &event);
+        sdlx_get_event(ONE_SEC, &event);
         if (event.event_id == -1) {
             continue;
         }
@@ -354,11 +354,8 @@ void settings(void)
         // present the display
         sdlx_display_present();
 
-        // wait for event, 100 ms timeout
-        sdlx_get_event(100000, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
+        // wait for event, infinite timeout
+        sdlx_get_event(-1, &event);
 
         // clear completion message
         msg[0] = '\0';

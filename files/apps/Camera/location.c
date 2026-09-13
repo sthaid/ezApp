@@ -147,11 +147,8 @@ void location(void)
         // present the display
         sdlx_display_present();
 
-        // wait for event, with 1 sec timeout
-        sdlx_get_event(ONE_SEC, &event);
-        if (event.event_id == -1) {
-            continue;
-        }
+        // wait for event, with infinite timeout
+        sdlx_get_event(-1, &event);
 
         // process events
         if (event.event_id >= EVID_MAP && event.event_id < EVID_MAP+MAX_HEAD) {
