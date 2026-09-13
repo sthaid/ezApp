@@ -39,22 +39,25 @@
 
 #define UNICODE_CIRCLE "\u2b24"  // large filled circle
 
-#define EVID_TAKE           1
-#define EVID_DEL            2
-#define EVID_VIEW           4
-#define EVID_STG            5
-#define EVID_CTR            6
-#define EVID_RST            7
-#define EVID_NEXT           8
-#define EVID_PREV           9
-#define EVID_NOOP           10
-#define EVID_HOME           11
-#define EVID_END            12
-#define EVID_PGUP           13
-#define EVID_PGDN           14
-#define EVID_SHOW_PHOTO     10000
-#define EVID_DELETE_PHOTO   20000
-#define EVID_MAP            30000
+#define EVID_TAKE              1
+#define EVID_DEL               2
+#define EVID_VIEW              4
+#define EVID_STG               5
+#define EVID_CTR               6
+#define EVID_RST               7
+#define EVID_NEXT              8
+#define EVID_PREV              9
+#define EVID_NOOP              10
+#define EVID_HOME              11
+#define EVID_END               12
+#define EVID_PGUP              13
+#define EVID_PGDN              14
+#define EVID_MAP_SCALE_PLUS    15
+#define EVID_MAP_SCALE_MINUS   16
+#define EVID_MAP_CENTER        17
+#define EVID_SHOW_PHOTO        100000
+#define EVID_DELETE_PHOTO      200000
+#define EVID_MAP               300000
 
 //
 // typedefs

@@ -608,8 +608,8 @@ void find_nearest_city(double req_latitude, double req_longitude,
     int        rc;
 
     // preset return values
-    memset(city, 0, sizeof_city);
-    memset(state, 0, sizeof_state);
+    if (city) memset(city, 0, sizeof_city);
+    if (state) memset(state, 0, sizeof_state);
 
     // if no location info then return the preset city,state values
     if (req_latitude == INVALID_NUMBER || req_longitude == INVALID_NUMBER) {
@@ -645,8 +645,8 @@ void find_nearest_city(double req_latitude, double req_longitude,
     newline = strchr(state_tmp, '\n'); *newline = '\0';
 
     // return neareset city/state info to caller
-    strncpy(city, city_tmp, sizeof_city-1);
-    strncpy(state, state_tmp, sizeof_state-1);
+    if (city) strncpy(city, city_tmp, sizeof_city-1);
+    if (state) strncpy(state, state_tmp, sizeof_state-1);
 
     // debug print result
     printf("I %s: find_neareset_city return: '%s' '%s'\n", progname, city, state);

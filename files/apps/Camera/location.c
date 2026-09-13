@@ -30,7 +30,9 @@
 #define BOSTON_LATITUDE  42.3611
 #define BOSTON_LONGITUDE -71.0571
 
-#define DEFAULT_MAP_W_MILES  50
+#define MOTIONING_OFF       0
+#define MOTIONING_IN_MAP    1
+#define MOTIONING_IN_PHOTOS 20
 
 //
 // typedefs
@@ -50,7 +52,7 @@ typedef struct {
 // map center and width/height
 double  map_latitude_ctr;
 double  map_longitude_ctr;
-double  map_w_miles;
+char    map_loc_state[21];
 
 // list of photos indexed by location on map
 head_t  head[MAX_HEAD];
@@ -61,8 +63,22 @@ double  y_top;
 // enable photo delete
 bool    del_mode;
 
+// state of motioning, either off, or motioning in map, or motioning in photos
+int motioning_state;
+
 // yyy comment
 sdlx_texture_t *display_map_texture;
+
+// xxx comment
+#define MAX_MAP_W_MILES_TBL     12
+#define MAP_W_MILES_IDX_DEFAULT 8
+#define MAP_W_MILES             (map_w_miles_tbl[map_w_miles_idx])
+int map_w_miles_idx;
+double map_w_miles_tbl[MAX_MAP_W_MILES_TBL] = {
+        0.1, 0.2, 0.5,
+        1, 2, 5,
+        10, 20, 50,
+        100, 200, 500 };
 
 //
 // prototypes
@@ -81,26 +97,31 @@ void clear_selected(void);
 
 // ------------------ LOCATION VIEW --------------
 
+void map_location_init(void)
+{
+    util_get_location(&map_latitude_ctr, &map_longitude_ctr, NULL, NULL);
+    if (map_latitude_ctr == INVALID_NUMBER || map_longitude_ctr == INVALID_NUMBER) {
+        map_latitude_ctr  = BOSTON_LATITUDE;
+        map_longitude_ctr = BOSTON_LONGITUDE;
+    }
+
+    find_nearest_city(map_latitude_ctr, map_longitude_ctr,
+                      NULL, 0, map_loc_state, sizeof(map_loc_state));
+
+}
+
 void location(void)
 {
     sdlx_event_t event;
     int          y;
     bool         switch_view = false;
 
-    static bool motioning_in_map;
-
     printf("I %s: location starting\n", progname);
 
     // init 
-    map_w_miles = DEFAULT_MAP_W_MILES;
-
-    // get initial latitude/longitude of the map center;
-    // use Boston if lat/long not currently avail
-    util_get_location(&map_latitude_ctr, &map_longitude_ctr, NULL, NULL);
-    if (map_latitude_ctr == INVALID_NUMBER || map_longitude_ctr == INVALID_NUMBER) {
-        map_latitude_ctr  = BOSTON_LATITUDE;
-        map_longitude_ctr = BOSTON_LONGITUDE;
-    }
+    map_location_init();
+    map_w_miles_idx = MAP_W_MILES_IDX_DEFAULT;
+    motioning_state = MOTIONING_OFF;
 
     // yyy comment
     while (!switch_view && !end_program) {
@@ -126,11 +147,16 @@ void location(void)
         y += 130;
         reg_event_str(0, y, COLOR_LIGHT_BLUE, "Del", EVID_DEL);
         reg_event_str(CTRLS_W-4*sdlx_char_width_dflt, y, COLOR_LIGHT_BLUE, "View", EVID_VIEW);
-        // - MOTION, PINCH
+        // - MOTION
         sdlx_register_event(NULL, EVID_MOTION);
-        sdlx_register_event(NULL, EVID_PINCH);
-        // - show-readme-file, STG, TAKE, QUIT
-        reg_event_show_readme_file();
+        // - MAP_SCALE_PLUS, MAP_SCALE_MINUS, MAP_CENTER
+        reg_event_str(MAP_W-COL2X(1.5), MAP_Y+0.333*MAP_H-ROW2Y(0.5), 
+                      COLOR_LIGHT_BLUE, "+", EVID_MAP_SCALE_PLUS);
+        reg_event_str(MAP_W-COL2X(1.5), MAP_Y+0.666*MAP_H-ROW2Y(0.5), 
+                      COLOR_LIGHT_BLUE, "-", EVID_MAP_SCALE_MINUS);
+        reg_event_str(MAP_W-COL2X(3.5), MAP_Y, 
+                      COLOR_LIGHT_BLUE, "Ctr", EVID_MAP_CENTER);
+        // - STG, TAKE, QUIT
         sdlx_register_control_events(EVID_STG, "Stg", EVID_TAKE, UNICODE_CIRCLE, EVID_QUIT, "X");
 
         // present the display
@@ -167,27 +193,45 @@ void location(void)
                 del_mode = !del_mode;
                 break;
             case EVID_MOTION_BEGIN:
-                motioning_in_map = (event.u.motion_begin.y < MAP_Y+MAP_H);
+                motioning_state = (event.u.motion_begin.y >= PHOTOS_Y 
+                                   ? MOTIONING_IN_PHOTOS
+                                   : MOTIONING_IN_MAP);
+                if (motioning_state == MOTIONING_IN_MAP) {
+                    map_loc_state[0] = '\0';
+                }
                 break;
             case EVID_MOTION:
-                if (motioning_in_map) {
-                    double map_h_miles = map_w_miles * ((double)MAP_H / MAP_W);
+                if (motioning_state == MOTIONING_IN_MAP) {
+                    double map_h_miles = MAP_W_MILES * ((double)MAP_H / MAP_W);
                     map_latitude_ctr  += event.u.motion.yrel * (map_h_miles / MAP_H) / 
                                          LAT2MILES;
-                    map_longitude_ctr -= event.u.motion.xrel * (map_w_miles / MAP_W) / 
+                    map_longitude_ctr -= event.u.motion.xrel * (MAP_W_MILES / MAP_W) / 
                                          (LAT2MILES * cosd(map_latitude_ctr));
-                } else {
+                } else if (motioning_state == MOTIONING_IN_PHOTOS) {
                     y_top -= event.u.motion.yrel;
+                } else {
+                    printf("E %s: EVID_MOTION not expected\n", progname);
                 }
                 break;
-            case EVID_PINCH:
-                clear_selected();
-                map_w_miles /= event.u.pinch.scale;
-                if (map_w_miles < 2) {
-                    map_w_miles = 2;
-                } else if (map_w_miles > 100) {
-                    map_w_miles = 100;
+            case EVID_MOTION_END:
+                if (motioning_state == MOTIONING_IN_MAP) {
+                    find_nearest_city(map_latitude_ctr, map_longitude_ctr,
+                                      NULL, 0, map_loc_state, sizeof(map_loc_state));
                 }
+                motioning_state = MOTIONING_OFF;
+                break;
+            case EVID_MAP_SCALE_PLUS:
+                if (map_w_miles_idx < MAX_MAP_W_MILES_TBL-1) {
+                    map_w_miles_idx++;
+                }
+                break;
+            case EVID_MAP_SCALE_MINUS:
+                if (map_w_miles_idx > 0) {
+                    map_w_miles_idx--;
+                }
+                break;
+            case EVID_MAP_CENTER:
+                map_location_init();
                 break;
             case EVID_HOME:
                 y_top = 0;
@@ -233,8 +277,8 @@ void display_init(void)
 
     if (cos_map_lat == 0) cos_map_lat = cosd(map_latitude_ctr);  // yyy get again
 
-    map_w = map_w_miles;
-    map_h = map_w_miles * ((double)MAP_H / MAP_W);
+    map_w = MAP_W_MILES;
+    map_h = MAP_W_MILES * ((double)MAP_H / MAP_W);
 
     head_w = map_w / 7;
     head_h = map_h / 5;
@@ -333,12 +377,22 @@ void display_map(void)
         sdlx_register_event(&loc, EVID_MAP + i);
     }
 
-// xxx
-    sdlx_render_printf_ex(0, MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
-                           FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%0.4f %0.4f", 
-                           map_latitude_ctr, map_longitude_ctr);
-    char w_str[20]; // yyy use FLAG_RIGHT
-    sprintf(w_str, "w=%0.1f", map_w_miles);
+    if (map_loc_state[0] != '\0') {
+        sdlx_render_printf_ex(0, MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
+                            FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%s", 
+                            map_loc_state);
+    } else {
+        sdlx_render_printf_ex(0, MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
+                            FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%0.4f %0.4f", 
+                            map_latitude_ctr, map_longitude_ctr);
+    }
+
+    char w_str[20];
+    if (MAP_W_MILES < 1) {
+        sprintf(w_str, "%0.1f", MAP_W_MILES);
+    } else {
+        sprintf(w_str, "%0.0f", MAP_W_MILES);
+    }
     sdlx_render_printf_ex(WIN_W-strlen(w_str)*sdlx_char_width(FONT_SMALL), MAP_Y+MAP_H-sdlx_char_height(FONT_SMALL),
                            FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%s", w_str);
 
