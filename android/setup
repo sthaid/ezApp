@@ -101,16 +101,6 @@ ln -s $ANDROID_TOP/setup_files/app_src_main_res app/src/main/res
 cd $ANDROID_TOP
 echo
 
-echo "==== UPDATE SDL CODE USING SED ===="
-cd $BUILD_DIR
-file=app/jni/SDL/src/audio/aaudio/SDL_aaudio.c
-echo "- modifying file with sed: $file"
-sed -i.bak '/AAUDIO_INPUT_PRESET_CAMCORDER/{
-  s=.*=// &=
-  a \        SDL_Log("COMMENTED OUT AAUDIO_INPUT_PRESET_CAMCORDER");
-}' $file
-cd $ANDROID_TOP
-echo
 
 echo "==== CREATE SYMLINK TO ASSETS DIR ===="
 cd $BUILD_DIR/app/src/main
