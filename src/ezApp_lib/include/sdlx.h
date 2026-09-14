@@ -164,12 +164,10 @@ extern int sdlx_char_height_dflt;
 // The Render Text Advanced API does not use the default font and color that are
 // used in the Basic API.
 
-// These printf routines are similar to sdlx_render_printf. 
-// - The main difference is the fontid, and color are provided as args,
-//   instead of using default fontid and color.
-// - The flags arg to sdlx_render_printf_ex2 provides additional capabilities, see below.
-// - the returned sdlx_loc_t contains the location of the printed text
-// xxx comment
+// This printf routine is similar to sdlx_render_printf. The main difference are:
+// - the fontid, and color are provided as args, instead of using default fontid and color.
+// - the flags arg to sdlx_render_printf_ex2 provides additional capabilities, see below.
+// The returned sdlx_loc_t contains the location of the printed text
 sdlx_loc_t *sdlx_render_printf_ex(int x, int y, int fontid, sdlx_color_t color, unsigned int flags,
                                   char *fmt, ...) 
                                   __attribute__ ((format (printf, 6, 7)));
@@ -194,7 +192,7 @@ int sdlx_char_width(int fontid);
 int sdlx_char_height(int fontid);
 
 // Values for the flags arg to sdlx_render_printf_ex2 ...
-#define FLAG_NONE          0x00000000   // xxx comment
+#define FLAG_NONE          0x00000000   // no flag options provided
 #define FLAG_WRAP_MASK     0x00000fff   // wrap text at this number of pixels; 
                                         // use zero for wrapping text only on newline char
 #define FLAG_X_CTR         0x00001000   // x arg is text center instead of left
@@ -532,15 +530,17 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 // --------------------
 
 // Define common events:
-// xxx update comments
-// - EVID_MOTION: This event occurs when the display is tapped and dragged.
-//                The current x,y coordinates; and the relative motion in the x,y
-//                directions are returned by the call to sdlx_get_event.
-// - EVID_PINCH:  This event occurs, on the Android device, when the user
-//                performs a two finger pinch action .
-// - EVID_QUIT:   This event is usually registered by calling 
-//                  sdlx_register_control_events(..., EVID_QUIT, "X");
-//                When the "X" is tapped, the EVID_QUIT event occurs.
+// - EVID_MOTION_BEGIN, EVID_MOTION, EVID_MOTION_END: 
+//      These event occurs when the display is tapped and dragged.
+//      The current x,y coordinates; and the relative motion in the x,y
+//      directions are returned by the call to sdlx_get_event.
+// - EVID_PINCH_BEGIN, EVID_PINCH, EVID_PINCH_END:
+//      These event occurs, on the Android device, when the user
+//      performs a two finger pinch action.
+// - EVID_QUIT:
+//      This event is usually registered by calling 
+//      sdlx_register_control_events(..., EVID_QUIT, "X");
+//      When the "X" is tapped, the EVID_QUIT event occurs.
 #define EVID_MOTION_BEGIN  1000000000
 #define EVID_MOTION        1000000001
 #define EVID_MOTION_END    1000000002
@@ -551,12 +551,13 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 #define EVID_NOOP          1000000007
 
 // This structure returns the event that occurred, by call to sdlx_get_event.
-// When the display is tapped at a location associated with a registered
-// event, the registered event_id is returned.
-// If the EVID_MOTION event is registered, and the display is dragged, then 
-// the EVID_MOTION event is returned, along with the values contained in 
-// the embedded motion struct.
-// xxx what if no event
+// - When the display is tapped at a location associated with a registered
+//   event, the registered event_id is returned.
+// - If the EVID_MOTION event is registered, and the display is dragged, then 
+//   the EVID_MOTION_BEGIN, EVID_MOTION, EVID_MOTION_END events are returned.
+// - If the EVID_PINCH event is registered, and pinch motion is performed, then 
+//   the EVID_PINCH_BEGIN, EVID_PINCH, EVID_PINCH_END evend are returned.
+// If sdlx_get_event timedout, then the returned event_id is -1.
 typedef struct {
     int event_id;
     union {

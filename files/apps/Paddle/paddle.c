@@ -1,3 +1,4 @@
+// xxx adjust lower paddle position
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>

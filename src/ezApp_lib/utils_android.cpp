@@ -445,11 +445,13 @@ static void remove_trailing_newline(char *s)
     }
 }
 
-// xxx comment
+// This rouitne simulates taking a photo by creating a copy of 
+// a test photo that is found in the $HOME/ezApp_test_photos/ directory.
 int util_take_photo(void)
 {
+    #define MAX_JPG_FILES 10
     static bool first_call = true;
-    static char *jpg_files[10]; // xxx define
+    static char *jpg_files[MAX_JPG_FILES];
     static int max_jpg_files;
     static int idx;
 
@@ -468,6 +470,9 @@ int util_take_photo(void)
         while (fgets(s, sizeof(s), fp) != NULL) {
             remove_trailing_newline(s);
             jpg_files[max_jpg_files++] = strdup(s);
+            if (max_jpg_files == MAX_JPG_FILES) {
+                break;
+            }
         }
         pclose(fp);
 

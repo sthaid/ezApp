@@ -275,7 +275,6 @@ try_again:
     return;
 }
 
-// xxx review prints in here
 static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
 {
     #define AT_LOC(X,Y,loc) (((X) >= (loc).x)            && \
@@ -487,8 +486,10 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
 
     case SDL_EVENT_WINDOW_FOCUS_GAINED:
         // when Android device exits doze mode this event is generated;
-        // returning EVID_NOOP causes the miniApp to redraw
-        INFO("SDL_EVENT_WINDOW_FOCUS_GAINED\n");
+        // returning EVID_NOOP should cause the miniApp to redraw
+
+        // INFO("SDL_EVENT_WINDOW_FOCUS_GAINED\n");
+
         event->event_id = EVID_NOOP;
         break;
 
