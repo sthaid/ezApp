@@ -1,3 +1,4 @@
+xx search _ex1 _ex2
 #ifndef __SDLX_H__
 #define __SDLX_H__
 
@@ -7,7 +8,7 @@ extern "C" {
 
 // The sdlx routines are built upon the SDL, SDL_mixer, and SDL_ttf libraries.
 // The purpose of these routines is to provide easy access to the SDL features
-// applicable to miniApps.
+// that are applicable to miniApps.
 // 
 // Sdlx provides routines for:
 // - video:   rendering to the display
@@ -16,7 +17,7 @@ extern "C" {
 // - events:  registration and detection of events
 
 // Refer to the miniApp source code for examples.
-// The files/apps/Template/template.c is a good example of a minimal miniApp.
+// The files/apps/Example1/example1.c is an example of a minimal miniApp.
 
 #define INVALID_NUMBER 999999999
 
@@ -45,8 +46,8 @@ extern "C" {
 //                      is called the rendering_texture is set to the display_texture.
 // 
 // The top left of the display area is (x,y) = (0,0).
-// In Portrait Mode, the bottom right of the display is (x,y) = (999,2199).
-// In Landscape Mode, the bottom right of the display is (x,y) = (2199,999).
+// In Portrait Mode, the bottom right of the display is (x,y) = (999,1999).
+// In Landscape Mode, the bottom right of the display is (x,y) = (1999,999).
 // 
 // Sdlx video example, display a purple circle:
 //    sdlx_display_init(COLOR_BLACK, PORTRAIT);
@@ -119,7 +120,7 @@ void sdlx_display_present(void);
 #define COLOR_DARK_GRAY   ((sdlx_color_t)(  64  |   64<<8 |   64<<16 |  255<<24 ))
 
 // The sdlx_color_t is the 32 bit RGBA value.
-// These routines perform their function and return the 32 bit RGBA value.
+// These routines perform their function and return the 32 bit sdlx_color_t (RGBA) value.
 // Example: sdlx_create_color(255,0,0,255) is equivalent to the above '#define COLOR_RED'.
 sdlx_color_t sdlx_create_color(int r, int g, int b, int a);
 sdlx_color_t sdlx_scale_color(sdlx_color_t color, double intensity);
@@ -149,12 +150,12 @@ void sdlx_print_set_default(int fontid, sdlx_color_t color);
 // - the returned sdlx_loc_t contains the location of the printed text
 sdlx_loc_t *sdlx_render_printf(int x, int y, char *fmt, ...) __attribute__ ((format (printf, 3, 4)));
 
-// External variables providing the size, in pixels, of a font character,
+// External variables providing the size of a font character,
 // for the currently selected default fontid.
 extern int sdlx_char_width_dflt;
 extern int sdlx_char_height_dflt;
 
-// Macros to convert from default font row,column location to x,y.
+// Macros to convert from default font row,column to x,y.
 #define ROW2Y(r) ((r) * sdlx_char_height_dflt)
 #define COL2X(c) ((c) * sdlx_char_width_dflt)
 
@@ -166,7 +167,7 @@ extern int sdlx_char_height_dflt;
 
 // This printf routine is similar to sdlx_render_printf. The main difference are:
 // - the fontid, and color are provided as args, instead of using default fontid and color.
-// - the flags arg to sdlx_render_printf_ex2 provides additional capabilities, see below.
+// - the flags arg to sdlx_render_printf_ex provides additional capabilities, see below.
 // The returned sdlx_loc_t contains the location of the printed text
 sdlx_loc_t *sdlx_render_printf_ex(int x, int y, int fontid, sdlx_color_t color, unsigned int flags,
                                   char *fmt, ...) 
@@ -176,7 +177,7 @@ sdlx_loc_t *sdlx_render_printf_ex(int x, int y, int fontid, sdlx_color_t color, 
 // - The x,y args specify the location of the top left corner of the text.
 //   The x and y values can be negative.
 // - The x and y values are often adjusted on receipt of the EVID_MOTION event,
-//   this scrolls the text horizontally and vertically.
+//   to scroll the text horizontally and vertically.
 // - The y_top and y_bottom args specify range of y locations to which text will be displayed;
 //   text is not displayed above y_top or below y_bottom.
 // - The lines and colors args are parallel arrays. Color[n] specifies the color of line[n].
@@ -191,7 +192,7 @@ void sdlx_render_multiline_text(int x, int y, int y_top, int y_bottom,
 int sdlx_char_width(int fontid);
 int sdlx_char_height(int fontid);
 
-// Values for the flags arg to sdlx_render_printf_ex2 ...
+// Values for the flags arg to sdlx_render_printf_ex ...
 #define FLAG_NONE          0x00000000   // no flag options provided
 #define FLAG_WRAP_MASK     0x00000fff   // wrap text at this number of pixels; 
                                         // use zero for wrapping text only on newline char
@@ -253,13 +254,13 @@ void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int
 //    sdlx_set_render_target(NULL);    // restores rendering_texture to display_texture
 // At runtime, the circle texture can be scaled to fill the entire display, the scaling
 // will result in the circle being stretched to an ellipse:
-//    sdlx_render_texture_ex1(circle, NULL, NULL);
+//    sdlx_render_texture(circle, NULL, NULL);
 //    The first NULL specifies that the entire circle texture is to be copied.
 //    The second NULL specifies that the destination is the entire display area.
 // Destroy the circle texture when the program terminates, freeing GPU memory:
 //    sdlx_destroy_texture(circle);
 
-// Create a texture with width w and height h.
+// Create a texture size width w and height h.
 sdlx_texture_t *sdlx_create_texture(int w, int h);
 // Destroy a texture. Texture arg may be NULL.
 void sdlx_destroy_texture(sdlx_texture_t *t);
@@ -296,7 +297,7 @@ void sdlx_render_texture_rotated(sdlx_texture_t *src_texture, sdlx_loc_t *src_re
                                  double angle, sdlx_point_t *center, int flip);
 
 // Set rendering_texture.
-// It the rendering_texture param is NULL, the rendering_texture 
+// If the rendering_texture param is NULL, the rendering_texture 
 // will be set to the display_texture.
 void sdlx_set_render_target(sdlx_texture_t *rendering_texture);
 
@@ -312,7 +313,7 @@ void sdlx_set_render_target(sdlx_texture_t *rendering_texture);
 // - play mp3 file
 //
 // The audio processing is performed in seperate threads.
-// Thus calls to routines that play or record audio will initiate
+// Calls to routines that play or record audio will initiate
 // the operation, and return immedeately.
 //
 // Control routines are provided to stop, pause, and resume recording or playback.
@@ -487,7 +488,7 @@ int sdlx_sensor_read_device_accel(double *ax, double *ay, double *az);
 // Pitch is positive when the top of the device is raised.
 int sdlx_sensor_read_roll_pitch(double *roll, double *pitch);
 
-// Provides  atmospheric pressure in millibars.
+// Provides atmospheric pressure in millibars.
 // Standard atmospheric pressure at sea level is 1,013.25 millibars.
 int sdlx_sensor_read_pressure(double *millibars);
 
@@ -541,6 +542,8 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 //      This event is usually registered by calling 
 //      sdlx_register_control_events(..., EVID_QUIT, "X");
 //      When the "X" is tapped, the EVID_QUIT event occurs.
+// - EVID_REDRAW:
+//      When this event occurs the miniApp should redraw the display.
 #define EVID_MOTION_BEGIN  1000000000
 #define EVID_MOTION        1000000001
 #define EVID_MOTION_END    1000000002
@@ -548,7 +551,7 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 #define EVID_PINCH         1000000004
 #define EVID_PINCH_END     1000000005
 #define EVID_QUIT          1000000006
-#define EVID_NOOP          1000000007
+#define EVID_REDRAW        1000000007
 
 // This structure returns the event that occurred, by call to sdlx_get_event.
 // - When the display is tapped at a location associated with a registered
@@ -583,10 +586,10 @@ typedef struct {
 // --------------------
 
 // Register an event.
-// If EVID_MOTION is being registered then loc should be NULL.
+// If EVID_MOTIO or EVID_PINCHN is being registered then loc should be NULL.
 // Otherwise, a miniApp defined event is being registered, the display
 // location associated with the event is supplied by the caller in the loc arg.
-// The value of event_id for miniApp defined events should be in range 1 - 9999.
+// The value of event_id for miniApp defined events should be in range 1 - 999999900.
 // Sdlx_register_event must be called for every display update, and called
 // following sdlx_display_init.
 void sdlx_register_event(sdlx_loc_t *loc, int event_id);
@@ -604,7 +607,7 @@ void sdlx_register_control_events(int evid1, char *evstr1,
 // Events: Wait For Event
 // ----------------------
 
-// Wait for an event, if timeout occurs then event->event_id is set to -1.
+// Wait for an event, if timeout occurs then returned event->event_id is set to -1.
 // Timeout_usecs values:
 //  -1:  wait forever
 //   0:  don't wait

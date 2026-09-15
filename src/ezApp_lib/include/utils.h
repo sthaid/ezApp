@@ -11,10 +11,10 @@ extern "C" {
 
 #define MAX_TIME_STR 30
 
-// Returns monotonic time.
+// Returns monotonic time in microseconds.
 long util_microsec_timer(void);
 
-// Returns real time, in microsecs since the Unix Epoch.
+// Returns real time, in microseconds since the Unix Epoch.
 long util_get_real_time_microsec(void);
 
 // Converts real time in microsecs to time str, 
@@ -113,17 +113,17 @@ void util_print_params(char *dir);
 // --------------------
 
 // Util_get_ipaddr returns the device IP address, in the caller supplied str.
-// Recommended sizeof str is >= 30.
+// Recommended sizeof str is 30.
 char *util_get_ipaddr(char *str); 
 
 // --------------------
 // JSON FILE UTILS   
 // --------------------
 
-// The json utils provide a simple API for parsing json, making use 
-// of the https://github.com/DaveGamble/cJSON json parser.
+// The json utils provide a simple API for parsing json, using the
+// https://github.com/DaveGamble/cJSON json parser.
 //
-// First call util_json_parse, passing in the json_text. if the json_text 
+// First call util_json_parse, passing in the json_text. If the json_text 
 // contains multiple blocks of json, the end_ptr will return the location of
 // the next block. Util_json_parse returns opaque json_root.
 //
@@ -162,7 +162,7 @@ void util_json_free(void *json_root);
 // These routines read/write 32-bit RGBA png files.
 // The https://github.com/lvandeve/lodepng PNG encoder/decoder is used.
 //
-// Callers of util_read_png_file must free pixels.
+// Callers of util_read_png_file must free returned pixels.
 
 int util_read_png_file(char *dir, char *filename, unsigned char **pixels, int *w, int *h);
 int util_write_png_file(char *dir, char *filename, unsigned char *pixels, int w, int h);
@@ -194,7 +194,7 @@ double util_rms_float(float *x, int n);
 // CALL ANDROID JAVA CODE
 // ----------------------
 
-// The routines in this section work when run on the Android device.
+// The routines in this section function only when run on the Android device.
 // These routines are stubs when ezApp is being tested on Linux.
 //
 // To perform the functions, code in utils_android.cpp makes calls to NDK routines,
@@ -222,8 +222,8 @@ void util_toggle_flashlight(void);
 // 2) repeatedly call util_get_playbackcapture_audio to obtain raw audio samples.
 // 3) when done collecting audio samples, call util_stop_playbackcapture
 int util_start_playbackcapture(void);
-void util_stop_playbackcapture(void);
 int util_get_playbackcapture_audio(float *array, int num_array_elements);
+void util_stop_playbackcapture(void);
 
 // Take a picture using the Android camera.
 // The file is saved in "tmp/photo.jpg"

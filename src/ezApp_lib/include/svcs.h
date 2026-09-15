@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-// common req id value; the miniSvc must terminate when SVC_REQ_ID_STOP is received
+// the miniSvc must terminate when SVC_REQ_ID_STOP is received
 #define SVC_REQ_ID_STOP 1
 
 // sizeof of req->data

@@ -31,13 +31,13 @@ Run 'which adb' to confirm the adb program is found in PATH
 Step 2: Enable Android Device Developer options
 -----------------------------------------------
 
-Note: the location of the Android settings for 'Build number' and
+Note that the location of the Android settings for 'Build number' and
 'Developer options' is device dependent.
 
 Enable developer mode by tapping "Build number" 8 times.
 - Settings > About Phone > Software Information > Build Number
 
-Tap Settings > Developer options , and enable
+Tap Settings > Developer options, and enable
 - Stay awake
 - USB debugging
 - Wireless debugging

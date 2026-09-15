@@ -902,7 +902,7 @@ typedef struct { \n\
 #define EVID_PINCH         1000000004 \n\
 #define EVID_PINCH_END     1000000005 \n\
 #define EVID_QUIT          1000000006 \n\
-#define EVID_NOOP          1000000007 \n\
+#define EVID_REDRAW        1000000007 \n\
 typedef struct { \n\
     int event_id; \n\
     union { \n\
