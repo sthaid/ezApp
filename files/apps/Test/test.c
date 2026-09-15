@@ -15,7 +15,7 @@
 
 #include "apps/Test/common.h"
 #include "lib/lib.h"
-#include "svcs/Template/template.h"
+#include "svcs/Example/example.h"
 
 //
 // defines
@@ -1552,13 +1552,13 @@ static void page_13_draw(void)
     sdlx_color_t color;
     static int test;
 
-    // This test repeatedly isses the SVC_TEMPLATE_REQ_ADD_ONE request to the Templae service.
+    // This test repeatedly isses the SVC_EXAMPLE_REQ_ADD_ONE request to the Example service.
     // The response is checked, and displayed in GREEN if okay.
     
     test++;
-    svc_req_t *req = svc_req_init(SVC_TEMPLATE_REQ_ADD_ONE, (char*)&test, sizeof(test));
+    svc_req_t *req = svc_req_init(SVC_EXAMPLE_REQ_ADD_ONE, (char*)&test, sizeof(test));
 
-    rc = svc_make_req("Template", req, 5);
+    rc = svc_make_req("Example", req, 5);
     if (rc != 0) {
         sdlx_render_printf_ex(
             sdlx_win_width/2, sdlx_win_height/2, 
