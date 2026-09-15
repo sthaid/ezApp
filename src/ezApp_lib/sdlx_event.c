@@ -481,12 +481,11 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
 #endif
 
     case SDL_EVENT_WINDOW_FOCUS_GAINED:
-        // when Android device exits doze mode this event is generated;
-        // returning EVID_NOOP should cause the miniApp to redraw
+        // when Android device exits doze mode this event is generated
 
         // INFO("SDL_EVENT_WINDOW_FOCUS_GAINED\n");
 
-        event->event_id = EVID_NOOP;
+        event->event_id = EVID_REDRAW;
         break;
 
     case SDL_EVENT_SENSOR_UPDATE:

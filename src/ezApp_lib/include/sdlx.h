@@ -1,4 +1,3 @@
-xx search _ex1 _ex2
 #ifndef __SDLX_H__
 #define __SDLX_H__
 
