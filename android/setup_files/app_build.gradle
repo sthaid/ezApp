@@ -12,7 +12,7 @@ android {
     ndkVersion = "28.2.13676358"
     defaultConfig {
         minSdkVersion 30     // EZAPP - API 29 needed for getifaddrs, and 30 needed for the jpeg decoder
-        targetSdkVersion 36  // EZAOO - the API level tested against
+        targetSdkVersion 36  // EZAPP - the API level tested against
         versionCode 1
         versionName "1.0"
         externalNativeBuild {

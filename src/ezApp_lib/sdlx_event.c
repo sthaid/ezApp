@@ -103,7 +103,6 @@ static void register_event(sdlx_loc_t *loc, int event_id, bool allow_ctrl_event_
                 loc2.h = sdlx_win_height - loc2.y;
             }   
         } else {
-            // xxx test this
             if (loc2.x >= sdlx_win_width) {
                 return;
             }
@@ -320,15 +319,12 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         if (ev->button.down) {
             total_motion = 0;
         } else {
-            int x, y;  //xxx comments
-
-            x = ev->button.x / scale_events_x;
-            y = ev->button.y / scale_events_y;
-
             if (total_motion > 50) {
                 break;
             }
 
+            int x = ev->button.x / scale_events_x;
+            int y = ev->button.y / scale_events_y;
             for (i = max_event-1; i >= 0; i--) {
                 if (AT_LOC(x, y, event_tbl[i].loc)) {
                     break;

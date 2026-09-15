@@ -1,4 +1,3 @@
-// xxx adjust lower paddle position
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -127,7 +126,7 @@ int main(int argc, char **argv)
     y_bottom          = sdlx_win_height;
     // - location of the centers of the paddles
     human_paddle_x    = sdlx_win_width/2;
-    human_paddle_y    = y_bottom - 200;
+    human_paddle_y    = y_bottom - 300;
     computer_paddle_x = sdlx_win_width/2;
     computer_paddle_y = y_top + 200;
     // - size of the court, between the paddles

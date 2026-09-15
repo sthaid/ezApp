@@ -67,7 +67,6 @@ int dec_mode_buttons[MAX_BUTTON_ROW][MAX_BUTTON_COL] = {
 #define OP_NONE 0
 
 // misc
-#define ONE_SEC                   1000000  // xxx make uniform solution
 #define EVID_SETTINGS             1
 #define DFLT_VIBRATE_STRENGTH     0.15
 #define DFLT_VIBRATE_DURATION_MS  25

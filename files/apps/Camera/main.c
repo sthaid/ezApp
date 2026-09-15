@@ -1,11 +1,11 @@
+// future improvements:
+// - backup photos to cloud storage
+
 // xxx todo
 // - full review and update comments
 // - test the full 5000 photos
 // - add num_photos to Stg
-                    
-// xxx todo maybe later
 // - option to delete all photos
-// - backup photos to cloud storage
 
 #include "apps/Camera/common.h"
 
