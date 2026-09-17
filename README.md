@@ -1,5 +1,5 @@
 
-xxx UNDER CONSTRUCTION xxx         
+xxx UNDER CONSTRUCTION xxx           
 ==========================
 
 ezApp for Android Smartphones
