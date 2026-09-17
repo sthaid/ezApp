@@ -1,4 +1,7 @@
 
+xxx UNDER CONSTRUCTION xxx
+==========================
+
 ezApp for Android Smartphones
 =============================
 
