@@ -4,7 +4,7 @@ function usage()
 {
 cat << EOF
 This script copies files from the Android device to the files hierarchy.
-EzApp must be running on the Android device, and have DeveloperMode enabled.
+EzApp must be running on the Android device, and have Devel_Mode enabled.
   
 This script must be run from a directory in the files hierarchy.
 
@@ -100,7 +100,7 @@ fi
 
 # print message, and prompt to continue
 echo "INFO: transferring files from Android device $android_dir to devel PC $PWD"
-read -p "Continue (y/n? " yn
+read -p "Continue (y/n)? " yn
 if [ "$yn" != y ]; then
     echo "ABORT"
     exit 1

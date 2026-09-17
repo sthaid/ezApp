@@ -19,7 +19,7 @@ long util_get_real_time_microsec(void);
 
 // Converts real time in microsecs to time str, 
 // str arg should have size MAX_TIME_STR or larger.
-// For example, when gmt, display_ms, and display_data are all true:
+// For example, when gmt, display_ms, and display_date are all true:
 // "07/24/26 12:15:39.173 GMT"
 char *util_time2str(char *str, long us, int gmt, int display_ms, int display_date);
 
@@ -131,7 +131,7 @@ char *util_get_ipaddr(char *str);
 //
 // When done, call util_json_free(json_root).
 //
-// Refer to examples/json.c
+// Refer to doc/include/examples/json.c
 
 #define JSON_TYPE_UNDEFINED 0
 #define JSON_TYPE_FLAG      1
@@ -187,7 +187,7 @@ void util_fft_inverse_complex_to_real(int n_fft, complex_t *cpx_input, float *ou
 // Returns duration in microsecs of 1000 sample real-to-real fft.
 int util_fft_test(long *duration_usec);
 
-// The util_rms routines computes the RMS magnitude of the supplied data.
+// The util_rms routine computes the RMS magnitude of the supplied data.
 double util_rms_float(float *x, int n);
 
 // ----------------------
@@ -201,8 +201,8 @@ double util_rms_float(float *x, int n);
 // such as GetMethodID and CallDoubleMethod to access the ezApp SDL java code extensions.
 
 // Get location: latitude, longitude, and altitude.
-// Prior to Android 14 (API level34) Android did not support converting GPS altitude from
-// WGS84 to Mean Sea Level (MSL); in this case the less accurate WGS84 altitude is provided..
+// Prior to Android 14 (API level 34) Android did not support converting GPS altitude from
+// WGS84 to Mean Sea Level (MSL); in this case the less accurate WGS84 altitude is provided.
 // The returned alt_is_wgs84 flag indicates whether the altitude is WGS84 or MSL.
 void util_get_location(double *latitude_optional, double *longitude_optional, 
                        double *altitude_ft_optional, bool *alt_is_wgs84_optional);

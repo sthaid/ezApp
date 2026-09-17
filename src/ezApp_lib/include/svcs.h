@@ -5,10 +5,10 @@
 extern "C" {
 #endif
 
-// the miniSvc must terminate when SVC_REQ_ID_STOP is received
+// The miniSvc must terminate when SVC_REQ_ID_STOP is received
 #define SVC_REQ_ID_STOP 1
 
-// sizeof of req->data
+// size of req->data
 #define MAX_SVC_REQ_DATA 1000
 
 // Status values returned by svc_make_req.
@@ -39,7 +39,7 @@ char *svc_make_req_status_to_str(int rc);
 //   timeout. MiniSvcs should make use of the timeout to perform periodic
 //   processing.
 // - svc_req_completed is called by a miniSvc after the miniSvc received
-//   and finished processing a request. The miniApp call to scv_make_req will
+//   and finished processing a request. The miniApp call to svc_make_req will
 //   return after the miniSvc has called svc_req_completed. 
 //   MiniSvc updates made to req data are returned to the miniApp.
 int svc_wait_for_req(char *svc_name, svc_req_t **req, int timeout_secs);

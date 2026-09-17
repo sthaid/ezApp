@@ -1,3 +1,4 @@
+// xxx print when connected,  also try to reestablish connection
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -234,15 +235,16 @@ Commands that require special processing are:\n\
           Example: get apps/Clock/clock.c\n\
 - put   : Copy file to Android.\n\
           Example: put clock.c apps/Clock\n\
-- vi    : Edit a file on Android. The file is fist copied to the host tmp dir,\n\
+- vi    : Edit a file on Android. The file is first copied to the host tmp dir,\n\
           edited there, and finally copied back to the Android.\n\
           Example: vi apps/Clock/clock.c\n\
 - alias : Print the command aliases which are provided in the ezsh.alias file.\n\
 - local : Execute a command on the host.\n\
 - help  : Display help.\n\
+- quiesced : Return success if no miniApp or miniSvc is running; used by ezbackup.\n\
 \n\
 The device and password can be provided using environment variables EZAPP_DEVICE and\n\
-EZAPP_PASSWORD, or via the ezsh -d and -p options.\n\
+EZAPP_PASSWD, or via the ezsh -d and -p options.\n\
 \n\
 Examples:\n\
 - export EZAPP_DEVICE=192.168.1.101\n\

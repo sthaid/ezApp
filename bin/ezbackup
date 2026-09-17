@@ -3,11 +3,11 @@
 function usage()
 {
 cat << EOF
-This script creates a backup tar file of ezApp data files thar are on the
+This script creates a backup tar file of ezApp data files that are on the
 Android device. The backup tar file is copied to ezApp/bin/backups on the 
 Devel PC.
 
-The data files included in the backup are: *.dat, *.mp3 and params.
+The data files included in the backup are: *.dat, *.mp3, *.jpg, *.meta, and params.
 
 This script can be used to save these data files if it becomes necessary
 to uninstall the ezApp from your Android device. After reinstalling ezApp these

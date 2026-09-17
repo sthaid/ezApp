@@ -9,7 +9,7 @@ logclr      logcat -c -b all
 logwatch    logcat -c -b all; logcat -s --format=time,color EZAPP:I SDL:I SDL/APP:I AndroidRuntime:I '*:F'
 logcat      logcat -d -s --format=time,color EZAPP:I SDL:I SDL/APP:I AndroidRuntime:I '*:F'
 
-# query Appliction Binary Interface
+# query Application Binary Interface
 abi         getprop ro.product.cpu.abi; getprop ro.product.cpu.abilist
 
 # misc

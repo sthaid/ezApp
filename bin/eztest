@@ -24,7 +24,7 @@ This script builds and runs the app or svc in the current directory.\n\
 \n\
 Usage: eztest <cmd>\n\
 - run_on_picoc, runp: build on linux, then run using picoc\n\
-- run_on_linux, runl: build and run on linux
+- run_on_linux, runl: build and run on linux\n\
 - build: test build on linux\n\
 \n\
 Default cmd is run_on_picoc.\n\

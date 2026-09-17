@@ -1357,6 +1357,7 @@ static int process_req_thread(void *cx)
             strcpy(src_path, str+4);
 
             // read android file
+            // xxx instead map the file, and test get and put of large files
             data = util_read_file(src_path, NULL, &data_len);
             if (data == NULL) {
                 // failed to read file

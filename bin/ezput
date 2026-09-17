@@ -4,7 +4,7 @@ function usage()
 {
 cat << EOF
 This script copies files to the Android device.
-EzApp must be running on the Android device, and have DeveloperMode enabled.
+EzApp must be running on the Android device, and have Devel_Mode enabled.
 
 This script must be run from a directory in the files hierarchy.
 
@@ -22,7 +22,7 @@ Usage examples:
 # because the '-f' option is not set. Files that are not copied are
 # indicated with 'SKIPPING'.
 
-# copy files in Morse dir to Adnroid
+# copy files in Morse dir to Android
 cd files/apps/Morse
 ezput
 
@@ -173,7 +173,7 @@ fi
 # print list of files to be transferred, and prompt to continue
 echo "INFO: will transfer these files from devel PC to Android device:"
 printf "%s\n" $files
-read -p "Continue (y/n? " yn
+read -p "Continue (y/n)? " yn
 if [ "$yn" != y ]; then
     echo "ABORT"
     exit 1

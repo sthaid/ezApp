@@ -7,8 +7,8 @@
 #   ---------        --------
 #   EZAPP            Info
 #   SDL              Info
-#   SDL/AP           Info
-#   AndroidRungime   Info
+#   SDL/APP          Info
+#   AndroidRuntime   Info
 #   *                Fatal
 #
 # Continue printing as new entries are added to the log.

@@ -25,7 +25,7 @@
 #   - ezapp_passwd: the ezApp Devel_Password, min length 4 chars
 #       ezapp_device and ezapp_passwd are written to ~/.bashrc_ezApp, and
 #       can be changed later
-#   - accept_sdk_license: set true to automatically accept the sdk license;
+#   - accept_sdk_licenses: set true to automatically accept the sdk license;
 #       set this true only if you understand and accept the Android SDK license conditions
 #   - run_build: set true if you want this script to also build ezApp
 
@@ -37,7 +37,7 @@
 # - git clone ezApp
 # - install required linux packages
 # - install android sdk, this creates ~/android/sdk
-# - create ~/.bashrc_ezapp, and adds a call to this from ~/.bashrc
+# - create ~/.bashrc_ezApp, and adds a call to this from ~/.bashrc
 # - if create_vimrc=true then creates ~/.vimrc
 # - if run_build=true then ezApp and ezApp/android are built
 
@@ -223,7 +223,7 @@ set softtabstop=4
 set shiftwidth=4
 " enable copy and paste out of vim
 set mouse=r
-" disable autoinent
+" disable autoindent
 set nocindent
 set nosmartindent
 set noautoindent
@@ -277,7 +277,7 @@ alias ez_svcs='cd ~/ezApp/files/svcs'
 # env vars
 export EDITOR=vim
 export ANDROID_HOME=$HOME/android/sdk
-export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.0.12077973
+export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/28.2.13676358
 export ADB_MDNS=0   # disable MDNS device discovery
 
 # PATH env var
@@ -306,7 +306,7 @@ export MESA_LOADER_DRIVER_OVERRIDE="d3d12"
 EOF
 fi
 
-# additions to ~/.bashrc_ezApp, allowing variable substiturion
+# additions to ~/.bashrc_ezApp, allowing variable substitution
 cat << EOF >> ~/.bashrc_ezApp
 # ezApp Devel_Mode device and password
 export EZAPP_DEVICE=$ezapp_device

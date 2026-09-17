@@ -30,18 +30,18 @@ extern "C" {
 // MiniApps do not use the real pixel dimensions of the physical display.
 // 
 // A texture of either (WxH) 1000x2000 (portrait), or 2000x1000 (landscape) is defined by sdlx
-// Rendering is usually performed to this texture. When preenting the display, this texture
+// Rendering is usually performed to this texture. When presenting the display, this texture
 // is scaled (and rotated when in landscape mode), to fit the physical display.
 //
 // Additional textures can be created. For example, the Compass miniApp creates a texture 
 // that is initialized to the compass image pixels.
 //
 // Terminology:
-// - display_texture:   This is the 1000x2000 (portrait), or 2000x1000 (landscape texture.
+// - display_texture:   This is the 1000x2000 (portrait), or 2000x1000 (landscape) texture.
 //                      This texture is defined when sdlx_display_init is called. 
 //                      And this texture becomes visible on the display when sdlx_display_present
 //                      is called.
-// - rendering_texture: This is texture that is selected for rendering. When sdlx_display_init 
+// - rendering_texture: This is the texture that is selected for rendering. When sdlx_display_init 
 //                      is called the rendering_texture is set to the display_texture.
 // 
 // The top left of the display area is (x,y) = (0,0).
@@ -133,7 +133,7 @@ sdlx_color_t sdlx_wavelength_to_color(int wavelength);
 
 // When a miniApp starts the default fontid & color are preset to FONT_NORMAL, COLOR_WHITE.
 
-// These values use used for the fontid arg, and specify the size of the font.
+// These values are used for the fontid arg, and specify the size of the font.
 // Other values are okay to use, in range 5 (largest font) to 143 (smallest font).
 #define FONT_TINY     40   // 40 chars fit across portrait display
 #define FONT_SMALL    30   // 30 chars fit across portrait display
@@ -164,7 +164,7 @@ extern int sdlx_char_height_dflt;
 // The Render Text Advanced API does not use the default font and color that are
 // used in the Basic API.
 
-// This printf routine is similar to sdlx_render_printf. The main difference are:
+// This printf routine is similar to sdlx_render_printf. The main differences are:
 // - the fontid, and color are provided as args, instead of using default fontid and color.
 // - the flags arg to sdlx_render_printf_ex provides additional capabilities, see below.
 // The returned sdlx_loc_t contains the location of the printed text
@@ -183,11 +183,11 @@ sdlx_loc_t *sdlx_render_printf_ex(int x, int y, int fontid, sdlx_color_t color, 
 // - There are 2 typical use cases:
 //     a) Just one line, with embedded newline chars.
 //     b) multiple lines, without embedded newline chars.
-// - For an example of the one line use case, refer to show_file routine in lib/lib.c.
+// - For an example of the one line use case, refer to show_file in files/lib/lib.c.
 void sdlx_render_multiline_text(int x, int y, int y_top, int y_bottom, 
                                 int fontid, char **lines, sdlx_color_t *colors, int num_lines);
 
-// These routines return the character witdh and height based on fontid.
+// These routines return the character width and height based on fontid.
 int sdlx_char_width(int fontid);
 int sdlx_char_height(int fontid);
 
@@ -311,9 +311,9 @@ void sdlx_set_render_target(sdlx_texture_t *rendering_texture);
 // - play buffer of raw samples
 // - play mp3 file
 //
-// The audio processing is performed in seperate threads.
+// The audio processing is performed in separate threads.
 // Calls to routines that play or record audio will initiate
-// the operation, and return immedeately.
+// the operation, and return immediately.
 //
 // Control routines are provided to stop, pause, and resume recording or playback.
 //
@@ -322,7 +322,7 @@ void sdlx_set_render_target(sdlx_texture_t *rendering_texture);
 
 // The frame rate is fixed at 48000 frames/sec.
 // A frame contains 1 sample for mono; and 2 samples for stereo.
-// A stereo frame caontains the left sample followed by the right sample.
+// A stereo frame contains the left sample followed by the right sample.
 #define FRAMES_PER_SEC 48000
 
 // Values of sdlx_audio_state_t state field.
@@ -385,7 +385,7 @@ void sdlx_get_audio_samples(int num_ret_samples, int num_downsample, int which_c
 // ---------------
 
 // The sdlx_audio_play_file, sdlx_audio_play_buff, and sdlx_audio_play_tones
-// routines return imedeately, the audio play is handled by a thread.
+// routines return immediately, the audio play is handled by a thread.
 
 // Play an audio file.
 // This routine uses SDL_mixer routines to play the file.
@@ -413,8 +413,8 @@ int sdlx_audio_play_tones(sdlx_tone_t *tones);
 // - loops:                  play the buffer 'loops' times
 // - free_samples_when_done: when set, the samples buffer will be freed
 // For example:
-// - 1 second mono:   num_samples=48000, num_channes=1
-// - 1 second stereo: num_samples=96000, num_channes=2
+// - 1 second mono:   num_samples=48000, num_channels=1
+// - 1 second stereo: num_samples=96000, num_channels=2
 int sdlx_audio_play_buff(float *samples, int num_samples, int num_channels,
                          int loops, bool free_samples_when_done);
 
@@ -423,7 +423,7 @@ int sdlx_audio_play_buff(float *samples, int num_samples, int num_channels,
 
 // Record an mp3 file from the Android microphone.
 // - dir/filename:   path of the mp3 file to create
-// - audo_stop_secs: if greater than 0 the recording will automatically stop
+// - auto_stop_secs: if greater than 0 the recording will automatically stop
 //                   following this number of seconds of silence
 // - append:         when set, the recording is appended to the specified dir/filename
 // - start_paused:   if set the recording state is initially paused;
@@ -459,7 +459,7 @@ void sdlx_create_test_file(char *dir, char *filename, int freq1, int freq2, int 
 // Provides number of steps since the Android device was booted.
 int sdlx_sensor_read_step_counter(unsigned long *step_count);
 
-// The magnetic sensor is read, this sensor provide magnetic field stength in the x,y,z directions.
+// The magnetic sensor is read, this sensor provides magnetic field strength in the x,y,z directions.
 // The magnetic heading of the device is then calculated based on these 3 field strength values,
 // adjusting for the device roll & pitch.
 // The device magnetic heading is provided in range 0 to 359.999 degrees,
@@ -509,7 +509,7 @@ typedef struct {
     char *name;
 } sdlx_sensor_info_t;
 
-// Returns table of sdlx_sensor_into_t.
+// Returns table of sdlx_sensor_info_t.
 // For an example see: files/apps/Test/test.c "PAGE 8: SENSOR INFO TBL".
 // Do not free the returned sensor info table.
 sdlx_sensor_info_t *sdlx_sensor_get_info_tbl(int *max);
@@ -531,11 +531,11 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 
 // Define common events:
 // - EVID_MOTION_BEGIN, EVID_MOTION, EVID_MOTION_END: 
-//      These event occurs when the display is tapped and dragged.
+//      These events occur when the display is tapped and dragged.
 //      The current x,y coordinates; and the relative motion in the x,y
 //      directions are returned by the call to sdlx_get_event.
 // - EVID_PINCH_BEGIN, EVID_PINCH, EVID_PINCH_END:
-//      These event occurs, on the Android device, when the user
+//      These events occur, on the Android device, when the user
 //      performs a two finger pinch action.
 // - EVID_QUIT:
 //      This event is usually registered by calling 
@@ -558,8 +558,8 @@ int sdlx_sensor_read_raw(int id, float *data, int num_values);
 // - If the EVID_MOTION event is registered, and the display is dragged, then 
 //   the EVID_MOTION_BEGIN, EVID_MOTION, EVID_MOTION_END events are returned.
 // - If the EVID_PINCH event is registered, and pinch motion is performed, then 
-//   the EVID_PINCH_BEGIN, EVID_PINCH, EVID_PINCH_END evend are returned.
-// If sdlx_get_event timedout, then the returned event_id is -1.
+//   the EVID_PINCH_BEGIN, EVID_PINCH, EVID_PINCH_END events are returned.
+// If sdlx_get_event timed out, then the returned event_id is -1.
 typedef struct {
     int event_id;
     union {
@@ -585,7 +585,7 @@ typedef struct {
 // --------------------
 
 // Register an event.
-// If EVID_MOTIO or EVID_PINCHN is being registered then loc should be NULL.
+// If EVID_MOTION or EVID_PINCH is being registered then loc should be NULL.
 // Otherwise, a miniApp defined event is being registered, the display
 // location associated with the event is supplied by the caller in the loc arg.
 // The value of event_id for miniApp defined events should be in range 1 - 999999900.
