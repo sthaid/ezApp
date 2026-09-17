@@ -63,6 +63,7 @@ can be viewed by tapping the '?'.
 - Piano:    Beginner Piano simulator.
             Includes several melodies.
 - Reversi:  Play Reversi.
+- TicTacToe: Play vs the computer.
 - Steps:    View Steps and Miles for
             specified day, month, or
             year.

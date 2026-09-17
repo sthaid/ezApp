@@ -9,6 +9,7 @@ Camera      FlshLite    -
 -           Log         Settings
 
 # -------- Page 1 --------
-Reversi     Paddle      -
 Test        Example1    Example2
+-           -           -
+Reversi     Paddle      TicTacToe
 

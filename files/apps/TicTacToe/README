@@ -1,0 +1,19 @@
+NAME: TicTacToe
+
+DESCRIPTION:
+
+Play Tic Tac Toe against the
+computer.
+
+You are X, the computer is O.
+Tap an empty square to place
+your mark.
+
+Start a game by tapping:
+  New Game CPU First
+  New Game You First
+
+NOTES:
+
+This miniApp was generated
+by AI.
