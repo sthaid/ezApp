@@ -1,16 +1,30 @@
-// future improvements:
-// - backup photos to cloud storage
-
-// xxx todo
-// - full review and update comments
-// - test the full 5000 photos
-// - add num_photos to Stg
-// - option to delete all photos
-
 #include "apps/Camera/common.h"
 
+// Possible Future Improvements:
+// - backup photos to cloud storage
+
+// TEST mode will create MAX_PHOTOS test photo files; all the same photo.
+//
+// The purpose is to test the worst case, verifying:
+// - the Camera app work properly
+// - ezbackup and ezrestore function correctly
+//
+// To use TEST mode:
+// - #define TEST
+// - mv photos photos_sv
+// - ensure photos_sv has 0000001.jpg and 000001.meta; this is the 
+//    template photo that is replicated to populate the photos dir with
+//    MAX_PHOTOS
+// - mkdir photos
+// - run the Camera app to create the test photos
+// - verify test photos have been created.
+// - comment out #define TEST, and run/test the Camera app
+
+//#define TEST
+
 // prototypes
-void init(void);
+int init(void);
+int create_test_photos(void);
 void cleanup(void);
 
 unsigned int *jpeg_file_to_rgba_pixels(char *dir, char *file, int *w, int *h);
@@ -33,7 +47,11 @@ int main(int argc, char **argv)
     printf("I %s: starting, data_dir=%s\n", progname, data_dir);
 
     // initialize
-    init();
+    int rc = init();
+    if (rc != 0) {
+        printf("E %s: init failed\n", progname);
+        return 1;
+    }
 
     // runtime
     while (!end_program) {
@@ -56,7 +74,8 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void init(void)
+
+int init(void)
 {
     int         num, cnt;
     char        cmd[200], s[100], metadata_filename[100];
@@ -69,6 +88,14 @@ void init(void)
 
     // init global variable photos_dir
     sprintf(photos_dir, "%s/photos", data_dir);
+
+#ifdef TEST
+    // if TEST mode enabled then create MAX_PHOTOS-1 test photos
+    int rc = create_test_photos();
+    if (rc != 0) {
+        return -1;
+    }
+#endif
 
     // initialize the photos array using sorted list of jpg 
     // files that are in the photos dir
@@ -113,7 +140,57 @@ void init(void)
 
     printf("I %s: init complete, max_photos = %d  duration = %ld ms\n", 
           progname, max_photos, (util_microsec_timer() - t_start) / 1000);
+    return 0;
 }
+
+#ifdef TEST
+int create_test_photos(void)
+{
+    void       *jpg;
+    metadata_t *md;
+    int         i, jpg_len, md_len, num_files;
+    char        filename[100];
+    FILE       *fp;
+
+    // read 000001.jpg/000001 from photos_sv dir
+    jpg = util_read_file("apps/Camera/photos_sv", "000001.jpg", &jpg_len);
+    md = util_read_file("apps/Camera/photos_sv", "000001.meta", &md_len);
+    if (jpg == NULL || md == NULL) {
+        printf("E %s: failed to read basis test files\n", progname);
+        free(jpg);
+        free(md);
+        return -1;
+    }
+    printf("I %s: jpg_len = %d md_len = %d\n", progname, jpg_len, md_len);
+
+    // sanity check that there are no files in the photos dir
+    num_files = -1;
+    fp = popen("/bin/ls -1 apps/Camera/photos | wc", "r");
+    fscanf(fp, "%d", &num_files);
+    pclose(fp);
+    if (num_files != 0) {
+        printf("E %s: num_files=%d should be 0, failing\n", progname, num_files);
+        free(jpg);
+        free(md);
+        return -1;
+    }
+
+    // loop over MAX_PHOTOS, creating test photos
+    for (i = 1; i < MAX_PHOTOS; i++) {
+        sprintf(filename, "%06d.jpg", i);
+        util_write_file(photos_dir, filename, jpg, jpg_len);
+
+        md->num = i;
+        sprintf(filename, "%06d.meta", i);
+        util_write_file(photos_dir, filename, md, md_len);
+    }
+
+    // free memory allocated
+    free(jpg);
+    free(md);
+    return 0;
+}
+#endif
 
 void cleanup(void)
 {
@@ -227,10 +304,13 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest);
 int jpeg_w, jpeg_h;
 double xc, yc, scale;
 
+// this value determined empirically
+#define ZOOM_SCALE 0.5625
+
 void show_photo(int idx)
 {
     int             num, rc, texture_w=0, texture_h=0, y, i;
-    char            file[50];
+    char            file[50], str[50];
     metadata_t     *md;
     sdlx_texture_t *t = NULL;
     sdlx_loc_t      src, dest;
@@ -239,7 +319,7 @@ void show_photo(int idx)
     sdlx_loc_t     *loc;
     bool            show;
     char           *s;
-    long            last_next_prev_time = util_microsec_timer();
+    long            last_next_prev_time;
     bool            done = false;
     bool            restart = false;
 
@@ -258,6 +338,7 @@ void show_photo(int idx)
     // this loop supports moving to the next or prev photo
     do {
         restart = false;
+        last_next_prev_time = util_microsec_timer();
 
         // get the photo num and the metadata ptr
         num = photos[idx].num;
@@ -303,10 +384,12 @@ void show_photo(int idx)
         sdlx_set_texture_pixels(t, pixels);
         free(pixels);
 
-        // init scale and center, so that the full photo will be displayed
+        // init scale and center, so that the photo will be displayed
+        // scaled to use the entire dest; this will zoom the photo if
+        // it was taken in landscape
         xc = jpeg_w / 2;
         yc = jpeg_h / 2;
-        scale = 1;
+        scale = (jpeg_w > jpeg_h ? ZOOM_SCALE : 1);
             
         // display the photo and handle events, 
         // until eiter the EVID_QUIT or EVID_NEXT/PREV envents rcvd
@@ -318,14 +401,16 @@ void show_photo(int idx)
             get_src_and_dest(&src, &dest);
             sdlx_render_texture(t, &src, &dest);
 
-            // display photo num at top left of photo;
-            // the x coord is adjusted when at the top left of the photo because
-            //  that is mostly obscured by the bezel
-            int tmp_x = ((dest.x == 0 && dest.y == 0) ? 40 : dest.x);
-            sdlx_render_printf_ex(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%d", md->num);
+            // display photo num, and zoom indicator beneath the photo
+            if (scale == 1) {
+                sprintf(str, "Photo %d", md->num);
+            } else {
+                sprintf(str, "Photo %d Zoom", md->num);
+            }
+            sdlx_render_printf_ex(0, dest.y+dest.h, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%s", str);
 
             // display metadata below photo
-            y = 1400;
+            y = 1450;
             sdlx_render_printf(0, y, "%s %s\n%s", md->day, md->date, md->time);
             y += 2 * sdlx_char_height_dflt;
             if (md->city[0] != '\0') {
@@ -361,7 +446,7 @@ void show_photo(int idx)
             sdlx_display_present();
 
             // wait for an event, with infinite timeout
-            sdlx_get_event(-1, &event);
+            sdlx_get_event(!show ? -1 : 1000000, &event);
 
             // process the event
             switch (event.event_id) {
@@ -380,11 +465,16 @@ void show_photo(int idx)
                 scale /= event.u.pinch.scale;
                 if (scale > 1) scale = 1;
                 if (scale < 0.01) scale = 0.01;
+                last_next_prev_time = util_microsec_timer();
                 break;
             case EVID_RST:
                 xc = jpeg_w / 2;
                 yc = jpeg_h / 2;
-                scale = 1;
+                if (scale == 1 && jpeg_w > jpeg_h) {
+                    scale = ZOOM_SCALE;
+                } else {
+                    scale = 1;
+                }
                 break;
             case EVID_TAKE: {
                 rc = take_photo();

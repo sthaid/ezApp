@@ -1,11 +1,11 @@
 #include <std_hdrs.h>
 
-#include <utils.h>
-#include <private.h>
-
 #include <cJSON.h>
 #include <lodepng.h>
 #include <kiss_fftr.h>
+
+#include <utils.h>
+#include <private.h>
 
 #define PAGE_SIZE2 (getpagesize())
 

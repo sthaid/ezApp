@@ -45,6 +45,9 @@ void settings(void)
             sdlx_render_printf(0, ROW2Y(7), " Avail ?");
         }
 
+        // display number of photos
+        sdlx_render_printf(0, ROW2Y(9), "NumPhotos = %d", max_photos);
+
         // register control event exit settings
         sdlx_register_control_events(0, NULL,
                                      0, NULL,

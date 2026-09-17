@@ -1,12 +1,12 @@
 #include <std_hdrs.h>
 
-#include <sdlx.h>
-#include <utils.h>
-#include <private.h>
-
 #include <SDL3/SDL.h>
 #include <SDL3_mixer/SDL_mixer.h>
 #include <lame.h>
+
+#include <sdlx.h>
+#include <utils.h>
+#include <private.h>
 
 // Capabilities:
 // - record from microphone to mp3 file

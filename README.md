@@ -1,5 +1,5 @@
 
-xxx UNDER CONSTRUCTION xxx
+xxx UNDER CONSTRUCTION xxx           
 ==========================
 
 ezApp for Android Smartphones
@@ -10,7 +10,7 @@ are written in the C Language. These
 miniApps and miniSvcs are executed by
 a C language interpreter.
 
-Users can develop your own miniApps
+Users can develop their own miniApps
 and miniSvcs. To develop miniApps and
 miniSvcs a PC is required.
 
@@ -58,22 +58,27 @@ can be viewed by tapping the '?'.
 - FlshLite: Toggle device flashlight.
 - Location: View current location and
             location history.
-- Log:      View  message from ezApp
+- Log:      View messages from ezApp
             and miniApp printf.
 - Memo:     Record an audio memo.
 - Morse:    Practice morse code.
-- Paddle:   Ball and paddle game.
 - Piano:    Beginner Piano simulator.
             Includes several melodies.
-- Reversi:  Play Reversi.
 - Steps:    View Steps and Miles for
             specified day, month, or
             year.
 - Tilt:     Level, supports horizontal
             and vertical orientations,
             and calibration.
-- Weather   View and speaks the weather
+- Weather:  Views and speaks the weather
             forecast, from weather.gov.
+
+Games:
+- Backgammon: Board game.
+- Blackjack   Card game.
+- Paddle:     Ball and paddle game.
+- Reversi:    Board game.
+- TicTacToe:  X and O Grid game
 
 Test and Examples:
 - Test:     Unit Test.
@@ -83,12 +88,12 @@ Test and Examples:
 miniSvcs
 ========
 
-MiniSvcs run in the background while
-ezApp is active. The MiniSvcs continue
+miniSvcs run in the background while
+ezApp is active. The miniSvcs continue
 to run when ezApp is backgrounded, or
-the Android is in Doze Mode.
+the device is in Doze mode.
 
-The following MiniSvcs are included.
+The following miniSvcs are included.
 These provide support for miniApps
 by saving data in files, or responding
 to requests from miniApps.
@@ -98,6 +103,5 @@ to requests from miniApps.
 - Steps:    Saves step count history.
 - Example:  A miniSvc example.
 
-MiniSvcs can be stopped or started by
+miniSvcs can be stopped or started by
 selecting Settings > Services.
-

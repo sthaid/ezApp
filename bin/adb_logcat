@@ -5,8 +5,8 @@
 #   ---------        --------
 #   EZAPP            Info
 #   SDL              Info
-#   SDL/AP           Info
-#   AndroidRungime   Info
+#   SDL/APP          Info
+#   AndroidRuntime   Info
 #   *                Fatal
 #
 # Exit when done printing.

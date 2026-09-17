@@ -52,6 +52,7 @@ typedef struct {
     double record_gain;
     double record_silence;
     bool   event_box_enable;
+    bool   landscape_flipped;
 } params_t;
 
 typedef struct {
@@ -168,9 +169,11 @@ static int init(void)
     params.record_gain = util_get_numeric_param(".", "record_gain", DEFAULT_RECORD_GAIN);
     params.record_silence = util_get_numeric_param(".", "record_silence", DEFAULT_RECORD_SILENCE);
     params.event_box_enable = util_get_numeric_param(".", "event_box_enable", false);
+    params.landscape_flipped = util_get_numeric_param(".", "landscape_flipped", false);
 
     // provide params to other modules, when needed
     sdlx_event_box_ctrl(params.event_box_enable);
+    sdlx_landscape_ctrl(params.landscape_flipped);
     sdlx_audio_params_t ap = { params.record_gain, params.record_silence };
     sdlx_audio_set_params(&ap);
 
@@ -428,7 +431,7 @@ static void display_menu(void)
 
     for (int i = first; i <= last; i++) {
         char     *name = apps[i];
-        char      s1[10], s2[10];
+        char      s1[15], s2[15];
         int       len, l1, l2, lmax, x, y, fontid;
         double    chw, chh;
         sdlx_loc_t loc;
@@ -440,7 +443,7 @@ static void display_menu(void)
 
         // break app name into one or two strings, depending the name length
         len  = strlen(name);
-        if (len > 8) len = 8;
+        if (len > 10) len = 10;
         if (len <= 4) {
             l1 = len;
             l2 = 0;
@@ -730,6 +733,7 @@ static void settings(void)
     #define EVID_RECORD_TEST          1010
     #define EVID_RESET_APPS_AND_SVCS  1011
     #define EVID_EVENT_BOX_ENABLE     1012
+    #define EVID_LANDSCAPE            1013
 
     #define GET_Y2 ({ y2 += 2*sdlx_char_height_dflt; \
                       y2 >= y_top - 1.5 * sdlx_char_height_dflt && y2 <= y_bottom; })
@@ -818,6 +822,12 @@ static void settings(void)
                 sdlx_render_fill_rect(0, y2, bar_value_w, bar_height, COLOR_GREEN);
                 sdlx_render_rect(0, y2, sdlx_win_width, bar_height, 2, COLOR_WHITE);
             }
+        }
+
+        // display Landscape
+        if (GET_Y2) {
+            loc = sdlx_render_printf(0, y2, "Landscape = %s", params.landscape_flipped ? "FLIPPED" : "NORMAL");
+            sdlx_register_event(loc, EVID_LANDSCAPE);
         }
 
         // display Event_Box
@@ -991,6 +1001,11 @@ static void settings(void)
             params.event_box_enable = (params.event_box_enable ? false : true);
             util_set_numeric_param(".", "event_box_enable", params.event_box_enable);
             sdlx_event_box_ctrl(params.event_box_enable);
+            break; }
+        case EVID_LANDSCAPE: {
+            params.landscape_flipped = !params.landscape_flipped;
+            util_set_numeric_param(".", "landscape_flipped", params.landscape_flipped);
+            sdlx_landscape_ctrl(params.landscape_flipped);
             break; }
         case EVID_MOTION:
             y += event.u.motion.yrel;
@@ -1221,6 +1236,47 @@ char *get_str(FILE *fp, char *s, int s_len)
     return s;
 }
 
+static int copy(FILE *dest_fp, FILE *src_fp, long data_len)
+{
+    char *buff;
+    long xfer_len, rc;
+
+    #define MB 0x100000
+    #define MAX_BUFF (16 * MB)
+
+    buff = malloc(MAX_BUFF);
+    if (buff == NULL) {
+        return -1;
+    }
+
+    while (true) {
+        xfer_len = (data_len > MAX_BUFF ? MAX_BUFF : data_len);
+        INFO("xfer_len %ld\n", xfer_len);
+
+        rc = fread(buff, 1, xfer_len, src_fp);
+        if (rc != xfer_len) {
+            ERROR("fread failed, xfer_len=%ld rc=%ld, %s\n", 
+                  xfer_len, rc, strerror(errno));
+            free(buff);
+            return -1;
+        }
+
+        rc = fwrite(buff, 1, xfer_len, dest_fp);
+        if (rc != xfer_len) {
+            ERROR("write failed, xfer_len=%ld rc=%ld, %s\n", 
+                  xfer_len, rc, strerror(errno));
+            free(buff);
+            return -1;
+        }
+
+        data_len -= xfer_len;
+        if (data_len == 0) {
+            free(buff);
+            return 0;
+        }
+    }
+}
+
 static int process_req_thread(void *cx)
 {
     int           sockfd = (int)(long)cx;
@@ -1303,10 +1359,11 @@ static int process_req_thread(void *cx)
         //
         // status return is either a negative errno, or a positive exit code
         if (strncmp(str, "put ", 4) == 0) {
-            char *data, *p;
-            int   data_len, rc, cnt;
+            int   cnt;
+            long  data_len;
             DIR  *dir;
-            char  dest_path[200], src_filename[200];
+            char  dest_path[200], src_filename[200], *p;
+            FILE *filefp;
 
             // extract dest_path and src_filename from str
             cnt = sscanf(str, "put %s %s", dest_path, src_filename);
@@ -1328,58 +1385,72 @@ static int process_req_thread(void *cx)
 
             // read data_len from sockfp
             p = get_str(sockfp, str, sizeof(str));
-            if (p == NULL || sscanf(str, "data_len %d", &data_len) != 1) {
+            if (p == NULL || sscanf(str, "data_len %ld", &data_len) != 1) {
                 ERROR("failed to get data_len\n");
                 goto disconnect;
             }
 
-            // read data from socket
-            data = calloc(data_len, 1);             // nmemb=data_len, size=1
-            status = fread(data, 1, data_len, sockfp);  // size=1, nmemb=data_len
-            if (status != data_len) {
-                ERROR("failed to read data from socket\n");
-                free(data);
+            // open dest file for writing, if failed 
+            // then complete cmd with error
+            filefp = fopen(dest_path, "w");
+            if (filefp == NULL) {
+                ERROR("failed to open %s for writing, %s\n", dest_path, strerror(errno));
+                status = -EINVAL;
+                goto cmd_complete;
+            }
+
+            // copy from socket to dest file
+            rc = copy(filefp, sockfp, data_len);
+            fclose(filefp);
+            if (rc != 0) {
+                ERROR("copy to %s from socket failed, %s\n", dest_path, strerror(errno));
                 goto disconnect;
             }
 
-            // write data to android file
-            rc = util_write_file(dest_path, NULL, data, data_len);
-            status = (rc == 0 ? 0 : errno != 0 ? -errno : -EINVAL);
-
-            // free allocated data
-            free(data);
+            // set status to success
+            status = 0;
         } else if (strncmp(str, "get ", 4) == 0) {
+            long  data_len;
             char  src_path[200];
-            char *data;
-            int   data_len, rc;
+            FILE *filefp;
 
             // save src_path
             strcpy(src_path, str+4);
 
-            // read android file
-            data = util_read_file(src_path, NULL, &data_len);
-            if (data == NULL) {
-                // failed to read file
-                status = (errno != 0 ? -errno : -EINVAL);
-                rc = put_fmt(sockfp, "data_len %d\n", 0);
-                if (rc != 0) goto disconnect;
-            } else {
-                // write data_len to socket
-                rc = put_fmt(sockfp, "data_len %d\n", data_len);
-                if (rc != 0) goto disconnect;
+            // get file length of src_path 
+            data_len = util_file_size(src_path, NULL);
 
-                // write data to socket
-                rc = fwrite(data, 1, data_len, sockfp);  // size=1, nmemb=data_len
-                if (rc != data_len) {
-                    ERROR("failed to write data to socket\n");
-                    free(data);
-                    goto disconnect;
-                }
+            // write data_len to socket
+            rc = put_fmt(sockfp, "data_len %ld\n", data_len);
+            if (rc != 0) goto disconnect;
 
-                // free data, and set success status
-                free(data);
-                status = 0;
+            // if data_len is zero (probably because file does not exist)
+            // then complete cmd with error
+            if (data_len == 0) {
+                ERROR("failed to get data_len for %s, %s\n", src_path, strerror(errno));
+                status = -EINVAL;
+                goto cmd_complete;
             }
+
+            // open source file for reading, if failed 
+            // then complete cmd with error
+            filefp = fopen(src_path, "r");
+            if (filefp == NULL) {
+                ERROR("failed to open %s for reading, %s\n", src_path, strerror(errno));
+                status = -EINVAL;
+                goto cmd_complete;
+            }
+
+            // copy file data to the socket
+            rc = copy(sockfp, filefp, data_len);
+            fclose(filefp);
+            if (rc != 0) {
+                ERROR("copy to socket from %s failed, %s\n", src_path, strerror(errno));
+                goto disconnect;
+            }
+
+            // set status to success
+            status = 0;
         } else if (strcmp(str, "quiesced") == 0) {
             status = ((!is_app_running() ? 0 : 1) + (num_svcs_running() == 0 ? 0 : 10));
         } else {
@@ -1404,6 +1475,7 @@ static int process_req_thread(void *cx)
         }
 
         // all cmds termintate with CMD_COMPLETE <status>
+cmd_complete:
         rc = put_fmt(sockfp, "CMD_COMPLETE %d\n", status);
         if (rc != 0) goto disconnect;
     }

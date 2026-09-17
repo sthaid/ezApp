@@ -14,6 +14,7 @@ set(LIB_SRCS
     utils_openssl.c
     utils_android.cpp
     utils_jpeg_decode.c
+    profile.c
     logging.c
     run.c
 )
@@ -22,6 +23,7 @@ set(LIB_HEADERS
     include/sdlx.h
     include/svcs.h
     include/utils.h
+    include/profile.h
     include/private.h
 )
 
@@ -35,7 +37,7 @@ add_library(ezApp_lib STATIC ${LIB_SRCS} ${LIB_HEADERS})
 # this applies the core flags to BOTH C and C++ files in this library
 target_compile_options(ezApp_lib PRIVATE -Wall -Werror -Wno-unused-result -g -O2)
 
-install(FILES include/sdlx.h include/svcs.h include/utils.h include/private.h
+install(FILES include/sdlx.h include/svcs.h include/utils.h include/profile.h include/private.h
         DESTINATION include)
 install(TARGETS ezApp_lib ARCHIVE DESTINATION lib)
 

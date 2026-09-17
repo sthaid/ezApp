@@ -1,10 +1,15 @@
+// This file provides access to the Android vibrate feature.
+//
+// Definition: A haptic is a technology or physical signal that recreates
+//             the sense of touch through vibrations, motions, or forces
+
 #include <std_hdrs.h>
+
+#include <SDL3/SDL.h>
 
 #include <sdlx.h>
 #include <utils.h>
 #include <private.h>
-
-#include <SDL3/SDL.h>
 
 static SDL_Haptic *haptic;
 

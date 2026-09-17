@@ -476,6 +476,8 @@ void adjust_scale(int *scale, bool increase)
     if (increase) {
         if (*scale < 5) {
             *scale += 1;
+        } else if (*scale < 15) {
+            *scale += 2;
         } else {
             *scale += 5;
         }
@@ -484,6 +486,8 @@ void adjust_scale(int *scale, bool increase)
             // do nothing
         } else if (*scale <= 5) {
             *scale -= 1;
+        } else if (*scale <= 15) {
+            *scale -= 2;
         } else {
             *scale -= 5;
         }
