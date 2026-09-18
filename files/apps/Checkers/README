@@ -20,3 +20,9 @@ ends the turn.
 CPU uses minimax with
 alpha-beta pruning. Difficulty
 sets search depth (2 / 3 / 4).
+
+NOTES:
+
+This miniApp was generated 
+by AI.
+
