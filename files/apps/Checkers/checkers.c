@@ -7,6 +7,8 @@
 #define Y_TOP           180
 #define BOARD_SIZE      1000
 #define SQ_SIZE         125
+#define RECT_LINE_WIDTH 6
+#define CPU_HIGHLIGHT_US 1000000
 
 #define EVID_NEW_YOU    100
 #define EVID_NEW_CPU    101
@@ -112,6 +114,7 @@ static void maybe_cpu_move(void)
 {
     move_t mv;
     int depth, winner;
+    sdlx_event_t event;
 
     if (!game_started) {
         return;
@@ -128,6 +131,13 @@ static void maybe_cpu_move(void)
     if (cpu_choose_move(&board, depth, &mv) < 0) {
         return;
     }
+
+    // Highlight the piece about to move, pause so the player can see it
+    sel_r = mv.r[0];
+    sel_c = mv.c[0];
+    draw_and_register();
+    sdlx_get_event(CPU_HIGHLIGHT_US, &event);
+
     apply_move(&board, &mv);
     sel_r = SEL_NONE;
     sel_c = SEL_NONE;
@@ -270,9 +280,9 @@ static void draw_and_register(void)
             }
 
             if (sel_r == r && sel_c == c) {
-                sdlx_render_rect(x + 2, y + 2, SQ_SIZE - 4, SQ_SIZE - 4, 4, hi);
+                sdlx_render_rect(x + 2, y + 2, SQ_SIZE - 4, SQ_SIZE - 4, RECT_LINE_WIDTH, hi);
             } else if (square_is_legal_dest(r, c)) {
-                sdlx_render_rect(x + 4, y + 4, SQ_SIZE - 8, SQ_SIZE - 8, 3, COLOR_LIGHT_GREEN);
+                sdlx_render_rect(x + 4, y + 4, SQ_SIZE - 8, SQ_SIZE - 8, RECT_LINE_WIDTH, COLOR_LIGHT_GREEN);
             }
 
             piece = board.sq[r][c];
