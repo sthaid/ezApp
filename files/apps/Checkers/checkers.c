@@ -312,17 +312,17 @@ static void draw_and_register(void)
     }
 
     // on-screen controls below board
-    ploc = sdlx_render_printf_ex(20, Y_TOP + BOARD_SIZE + 80,
+    ploc = sdlx_render_printf_ex(20, Y_TOP + BOARD_SIZE + 120,
                                  FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                  "%s", "You First");
     sdlx_register_event(ploc, EVID_NEW_YOU);
 
-    ploc = sdlx_render_printf_ex(20, Y_TOP + BOARD_SIZE + 200,
+    ploc = sdlx_render_printf_ex(20, Y_TOP + BOARD_SIZE + 280,
                                  FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                  "%s", "CPU First");
     sdlx_register_event(ploc, EVID_NEW_CPU);
 
-    ploc = sdlx_render_printf_ex(20, Y_TOP + BOARD_SIZE + 320,
+    ploc = sdlx_render_printf_ex(20, Y_TOP + BOARD_SIZE + 440,
                                  FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                  "Diff: %s", diff_str[difficulty]);
     sdlx_register_event(ploc, EVID_DIFF);

@@ -593,13 +593,13 @@ void update_display(void)
 
     ploc = sdlx_render_printf_ex(sdlx_win_width / 2, 1600,
                                  FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_XY_CTR,
-                                 "%s", "New Game CPU First");
-    sdlx_register_event(ploc, EVID_NEW_CPU);
+                                 "%s", "New Game You First");
+    sdlx_register_event(ploc, EVID_NEW_YOU);
 
     ploc = sdlx_render_printf_ex(sdlx_win_width / 2, 1760,
                                  FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_XY_CTR,
-                                 "%s", "New Game You First");
-    sdlx_register_event(ploc, EVID_NEW_YOU);
+                                 "%s", "New Game CPU First");
+    sdlx_register_event(ploc, EVID_NEW_CPU);
 
     reg_event_show_readme_file();
 
