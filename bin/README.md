@@ -50,4 +50,3 @@ Other Scripts
 
 cscope_init: create cscope and tags database files
 
-git_meld_diff: git is configured to run this script to view diffs
