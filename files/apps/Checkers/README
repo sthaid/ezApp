@@ -1,0 +1,22 @@
+NAME: Checkers
+
+DESCRIPTION:
+
+American Checkers (English
+draughts). Play as Red against
+the CPU (Black).
+
+Controls (tap below the board):
+- You First: new game, you first
+- CPU First: new game, CPU first
+- Diff: cycle Easy/Medium/Hard
+
+Rules: mandatory captures,
+multi-jumps, men move/capture
+forward only, kings either
+direction (non-flying). Crowning
+ends the turn.
+
+CPU uses minimax with
+alpha-beta pruning. Difficulty
+sets search depth (2 / 3 / 4).
