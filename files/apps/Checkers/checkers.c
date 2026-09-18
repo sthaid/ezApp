@@ -4,7 +4,7 @@
 // defines
 //
 
-#define Y_TOP           80
+#define Y_TOP           180
 #define BOARD_SIZE      1000
 #define SQ_SIZE         125
 
@@ -77,6 +77,7 @@ int main(int argc, char **argv)
             new_game(SIDE_RED);
         } else if (evid == EVID_NEW_CPU) {
             new_game(SIDE_BLACK);
+            draw_and_register();
             maybe_cpu_move();
         } else if (evid == EVID_DIFF) {
             difficulty++;
@@ -186,6 +187,8 @@ static void handle_square_tap(int r, int c)
         apply_move(&board, &mv);
         sel_r = SEL_NONE;
         sel_c = SEL_NONE;
+        // Show the human move before the CPU thinks
+        draw_and_register();
         maybe_cpu_move();
         return;
     }
@@ -252,7 +255,7 @@ static void draw_and_register(void)
     } else {
         sprintf(status, "%s", "CPU turn");
     }
-    sdlx_render_printf_ex(sdlx_win_width / 2, 40,
+    sdlx_render_printf_ex(sdlx_win_width / 2, 140,
                           FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, "%s", status);
 
     // board squares and pieces
