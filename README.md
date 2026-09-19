@@ -63,6 +63,8 @@ can be viewed by tapping the '?'.
 - Memo:     Record an audio memo.
 - Morse:    Practice morse code.
 - Paddle:   Ball and paddle game.
+- Backgammon: Play Backgammon against
+            the computer.
 - Piano:    Beginner Piano simulator.
             Includes several melodies.
 - Reversi:  Play Reversi.

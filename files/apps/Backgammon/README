@@ -1,0 +1,34 @@
+NAME: Backgammon
+
+DESCRIPTION:
+
+Play Backgammon against the
+CPU. Landscape orientation.
+You are White (bottom), moving
+toward point 1. The CPU is
+Black (top), moving toward 24.
+
+Controls:
+- New Game: opening roll; the
+  higher die plays first using
+  those two numbers
+- Diff: cycle Easy / Medium
+
+Tap a point (or the bar) to
+select, then tap a destination
+or your bear-off tray. Hits
+send a blot to the bar.
+
+No doubling cube.
+
+CPU uses expectiminimax with
+a hand-crafted heuristic.
+Easy is 1-ply; Medium is
+2-ply over the best 1-ply
+candidates. Hard is planned
+for a later version.
+
+NOTES:
+
+This miniApp was generated
+by AI.
