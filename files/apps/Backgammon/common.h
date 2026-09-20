@@ -84,6 +84,8 @@ bool is_blocked(board_t *b, int side, int pt);
 bool all_in_home(board_t *b, int side);
 void generate_steps(board_t *b, int side, int die, step_list_t *sl);
 void generate_plays(board_t *b, int side, play_list_t *pl);
+void generate_next_steps(board_t *b, int side, play_list_t *pl);
+int  max_play_len(board_t *b, int side);
 void apply_step(board_t *b, int side, step_t *s);
 void apply_play(board_t *b, int side, play_t *p);
 int  game_winner(board_t *b);  // SIDE_HUMAN, SIDE_CPU, or -1

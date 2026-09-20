@@ -16,6 +16,8 @@ static void consider_leaf(board_t *b, step_t *cur, int nsteps, gen_ctx_t *ctx);
 static void gen_rec(board_t *b, int *remain, int nremain,
                     step_t *cur, int nsteps, gen_ctx_t *ctx);
 static void filter_plays(play_list_t *pl, int nremain, int r0, int r1);
+static int  first_step_same(step_t *a, step_t *b);
+static int  max_play_len_remain(board_t *b, int side, int *remain, int nremain);
 
 // -----------------  COPY / SIDE  -----------------------------
 
@@ -447,18 +449,72 @@ void generate_steps(board_t *b, int side, int die, step_list_t *sl)
 
 // -----------------  COMPLETE PLAYS  --------------------------
 
+static int first_step_same(step_t *a, step_t *b)
+{
+    if (a->from != b->from) {
+        return 0;
+    }
+    if (a->to != b->to) {
+        return 0;
+    }
+    if (a->die != b->die) {
+        return 0;
+    }
+    return 1;
+}
+
 static void add_play(play_list_t *pl, step_t *cur, int nsteps)
 {
-    int i;
+    int i, j, c, slot;
 
-    if (pl->max >= MAX_PLAYS) {
+    if (nsteps <= 0) {
         return;
     }
-    pl->play[pl->max].nsteps = nsteps;
-    for (i = 0; i < nsteps; i++) {
-        memcpy(&pl->play[pl->max].step[i], &cur[i], sizeof(step_t));
+
+    if (pl->max < MAX_PLAYS) {
+        pl->play[pl->max].nsteps = nsteps;
+        for (i = 0; i < nsteps; i++) {
+            memcpy(&pl->play[pl->max].step[i], &cur[i], sizeof(step_t));
+        }
+        pl->max++;
+        return;
     }
-    pl->max++;
+
+    for (i = 0; i < pl->max; i++) {
+        if (pl->play[i].nsteps <= 0) {
+            continue;
+        }
+        if (first_step_same(&pl->play[i].step[0], &cur[0])) {
+            return;
+        }
+    }
+
+    slot = -1;
+    for (i = 0; i < pl->max; i++) {
+        if (pl->play[i].nsteps > nsteps) {
+            continue;
+        }
+        c = 0;
+        for (j = 0; j < pl->max; j++) {
+            if (pl->play[j].nsteps <= 0) {
+                continue;
+            }
+            if (first_step_same(&pl->play[i].step[0], &pl->play[j].step[0])) {
+                c++;
+            }
+        }
+        if (c >= 2) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot < 0) {
+        return;
+    }
+    pl->play[slot].nsteps = nsteps;
+    for (i = 0; i < nsteps; i++) {
+        memcpy(&pl->play[slot].step[i], &cur[i], sizeof(step_t));
+    }
 }
 
 static void consider_leaf(board_t *b, step_t *cur, int nsteps, gen_ctx_t *ctx)
@@ -485,7 +541,9 @@ static void consider_leaf(board_t *b, step_t *cur, int nsteps, gen_ctx_t *ctx)
                 }
             }
         }
-        *(ctx->best_sc) = evaluate_board(b);
+        if (ctx->best_sc) {
+            *(ctx->best_sc) = evaluate_board(b);
+        }
         return;
     }
 
@@ -494,7 +552,9 @@ static void consider_leaf(board_t *b, step_t *cur, int nsteps, gen_ctx_t *ctx)
             if (cur[0].die == ctx->hi_die) {
                 if (*(ctx->has_hi) == 0) {
                     *(ctx->has_hi) = 1;
-                    *(ctx->best_sc) = evaluate_board(b);
+                    if (ctx->best_sc) {
+                        *(ctx->best_sc) = evaluate_board(b);
+                    }
                     return;
                 }
             } else {
@@ -506,6 +566,10 @@ static void consider_leaf(board_t *b, step_t *cur, int nsteps, gen_ctx_t *ctx)
     }
 
     if (use == 0) {
+        return;
+    }
+
+    if (ctx->best_sc == NULL) {
         return;
     }
 
@@ -659,6 +723,143 @@ void generate_plays(board_t *b, int side, play_list_t *pl)
 
     gen_rec(b, b->remain, b->nremain, cur, 0, &ctx);
     filter_plays(pl, b->nremain, r0, r1);
+}
+
+static int max_play_len_remain(board_t *b, int side, int *remain, int nremain)
+{
+    step_t cur[MAX_STEPS];
+    int r0, r1, hi, maxn, has_hi, i;
+    gen_ctx_t ctx;
+
+    if (nremain <= 0) {
+        return 0;
+    }
+
+    r0 = remain[0];
+    r1 = 0;
+    hi = 0;
+    if (nremain >= 2) {
+        r1 = remain[1];
+        if (r0 != r1) {
+            hi = r0;
+            if (r1 > hi) {
+                hi = r1;
+            }
+        }
+    }
+
+    maxn = 0;
+    has_hi = 0;
+    for (i = 0; i < MAX_STEPS; i++) {
+        cur[i].from = 0;
+        cur[i].to = 0;
+        cur[i].die = 0;
+        cur[i].hit = 0;
+    }
+
+    ctx.side = side;
+    ctx.pl = NULL;
+    ctx.best_sc = NULL;
+    ctx.maxn = &maxn;
+    ctx.has_hi = &has_hi;
+    ctx.hi_die = hi;
+
+    gen_rec(b, remain, nremain, cur, 0, &ctx);
+    return maxn;
+}
+
+int max_play_len(board_t *b, int side)
+{
+    return max_play_len_remain(b, side, b->remain, b->nremain);
+}
+
+void generate_next_steps(board_t *b, int side, play_list_t *pl)
+{
+    int maxn, rem_len, i, j, k, die, already, nnew, hi, has_hi;
+    int new_remain[MAX_STEPS];
+    step_list_t sl;
+    step_t st;
+
+    pl->max = 0;
+    if (b->nremain <= 0) {
+        return;
+    }
+
+    maxn = max_play_len(b, side);
+    if (maxn <= 0) {
+        return;
+    }
+
+    hi = 0;
+    if (b->nremain == 2) {
+        if (b->remain[0] != b->remain[1]) {
+            hi = b->remain[0];
+            if (b->remain[1] > hi) {
+                hi = b->remain[1];
+            }
+        }
+    }
+
+    has_hi = 0;
+    for (i = 0; i < b->nremain; i++) {
+        die = b->remain[i];
+        already = 0;
+        for (j = 0; j < i; j++) {
+            if (b->remain[j] == die) {
+                already = 1;
+            }
+        }
+        if (already) {
+            continue;
+        }
+
+        generate_steps(b, side, die, &sl);
+        for (k = 0; k < sl.max; k++) {
+            memcpy(&st, &sl.step[k], sizeof(step_t));
+            apply_step(b, side, &st);
+            nnew = 0;
+            for (j = 0; j < b->nremain; j++) {
+                if (j != i) {
+                    new_remain[nnew] = b->remain[j];
+                    nnew++;
+                }
+            }
+            rem_len = max_play_len_remain(b, side, new_remain, nnew);
+            undo_step(b, side, &st);
+            if (1 + rem_len != maxn) {
+                continue;
+            }
+            if (maxn == 1) {
+                if (hi != 0) {
+                    if (st.die == hi) {
+                        has_hi = 1;
+                    }
+                }
+            }
+            add_play(pl, &st, 1);
+        }
+    }
+
+    if (maxn != 1) {
+        return;
+    }
+    if (hi == 0) {
+        return;
+    }
+    if (!has_hi) {
+        return;
+    }
+
+    j = 0;
+    for (i = 0; i < pl->max; i++) {
+        if (pl->play[i].step[0].die == hi) {
+            if (j != i) {
+                copy_play(&pl->play[j], &pl->play[i]);
+            }
+            j++;
+        }
+    }
+    pl->max = j;
 }
 
 int score_best_play(board_t *b, int side)

@@ -168,7 +168,7 @@ static void play_or_skip(void)
         if (winner >= 0) {
             return;
         }
-        generate_plays(&board, board.side_to_move, &ui_pl);
+        generate_next_steps(&board, board.side_to_move, &ui_pl);
         if (!has_legal_play(&ui_pl)) {
             if (board.side_to_move == SIDE_HUMAN) {
                 sdlx_show_toast("No legal play");
@@ -286,7 +286,7 @@ static void try_play_step(int from, int to)
         return;
     }
 
-    generate_plays(&board, SIDE_HUMAN, &ui_pl);
+    generate_next_steps(&board, SIDE_HUMAN, &ui_pl);
     if (!has_legal_play(&ui_pl)) {
         board.side_to_move = SIDE_CPU;
         roll_turn_dice(&board);
