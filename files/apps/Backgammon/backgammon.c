@@ -20,8 +20,9 @@
 #define CHK_RADIUS  26
 #define CHK_STEP    48
 #define MAX_VIS     5
-#define RECT_LW     7
-#define CPU_STEP_US 450000
+#define RECT_LW     10
+#define CPU_STEP_US    2000000
+#define CPU_SETTLE_US  2000000
 
 #define EVID_NEW_GAME  100
 #define EVID_DIFF      101
@@ -44,12 +45,14 @@ static void new_game(void);
 static void draw_and_register(void);
 static void play_or_skip(void);
 static void do_cpu_turn(void);
+static void wait_cpu_pause(long usec);
 static void handle_point_tap(int pt);
 static void handle_bar_tap(void);
 static void handle_off_tap(void);
 static void try_play_step(int from, int to);
 static bool dest_is_legal(int from, int to);
 static bool from_is_legal(int from);
+static bool point_event_wanted(int pt);
 static bool find_step(int from, int to, step_t *out);
 static int  point_x(int pt);
 static int  point_y(int pt);
@@ -208,7 +211,6 @@ static void do_cpu_turn(void)
 {
     play_t play;
     int i;
-    sdlx_event_t event;
 
     draw_and_register();
 
@@ -246,16 +248,40 @@ static void do_cpu_turn(void)
             dest_hi = 25;
         }
         draw_and_register();
-        sdlx_get_event(CPU_STEP_US, &event);
-        if (event.event_id == EVID_QUIT) {
-            end_program = true;
+        wait_cpu_pause(CPU_STEP_US);
+        if (end_program) {
             return;
         }
         apply_step(&board, SIDE_CPU, &play.step[i]);
         consume_die(&board, play.step[i].die);
+        sel = SEL_NONE;
+        dest_hi = SEL_NONE;
+        draw_and_register();
+        wait_cpu_pause(CPU_SETTLE_US);
     }
     sel = SEL_NONE;
     dest_hi = SEL_NONE;
+}
+
+static void wait_cpu_pause(long usec)
+{
+    sdlx_event_t event;
+    long t0, left, now;
+
+    left = usec;
+    while (left > 0) {
+        if (end_program) {
+            return;
+        }
+        t0 = util_microsec_timer();
+        sdlx_get_event(left, &event);
+        if (event.event_id == EVID_QUIT) {
+            end_program = true;
+            return;
+        }
+        now = util_microsec_timer();
+        left = left - (now - t0);
+    }
 }
 
 static void try_play_step(int from, int to)
@@ -328,6 +354,25 @@ static bool from_is_legal(int from)
     return false;
 }
 
+static bool point_event_wanted(int pt)
+{
+    if (sel == FROM_BAR) {
+        return dest_is_legal(FROM_BAR, pt);
+    }
+    if (sel == pt) {
+        return true;
+    }
+    if (sel != SEL_NONE) {
+        if (dest_is_legal(sel, pt)) {
+            return true;
+        }
+    }
+    if (board.bar[SIDE_HUMAN] > 0) {
+        return false;
+    }
+    return from_is_legal(pt);
+}
+
 static bool find_step(int from, int to, step_t *out)
 {
     int i;
@@ -383,6 +428,11 @@ static void handle_point_tap(int pt)
         return;
     }
     if (game_winner(&board) >= 0) {
+        return;
+    }
+
+    if (sel == pt) {
+        sel = SEL_NONE;
         return;
     }
 
@@ -622,7 +672,7 @@ static void draw_and_register(void)
         if (sel == pt) {
             sdlx_render_rect(x + 2, y + 2, POINT_W - 4, POINT_H - 4, RECT_LW, hi);
         } else if (dest_hi == pt) {
-            sdlx_render_rect(x + 2, y + 2, POINT_W - 4, POINT_H - 4, RECT_LW, hi);
+            sdlx_render_rect(x + 2, y + 2, POINT_W - 4, POINT_H - 4, RECT_LW, legal);
         } else if (game_started && board.side_to_move == SIDE_HUMAN && sel != SEL_NONE) {
             if (dest_is_legal(sel, pt)) {
                 sdlx_render_rect(x + 4, y + 4, POINT_W - 8, POINT_H - 8, RECT_LW, legal);
@@ -644,12 +694,6 @@ static void draw_and_register(void)
                 draw_stack(cx, y + POINT_H, -1, -n, COLOR_BLACK);
             }
         }
-
-        loc.x = x;
-        loc.y = y;
-        loc.w = POINT_W;
-        loc.h = POINT_H;
-        sdlx_register_event(&loc, EVID_PT_BASE + pt);
     }
 
     if (sel == FROM_BAR) {
@@ -661,14 +705,11 @@ static void draw_and_register(void)
     draw_stack(bx + BAR_W / 2, BOARD_Y + 2 * POINT_H + MID_GAP, -1,
                board.bar[SIDE_HUMAN], COLOR_WHITE);
 
-    loc.x = bx;
-    loc.y = BOARD_Y;
-    loc.w = BAR_W;
-    loc.h = 2 * POINT_H + MID_GAP;
-    sdlx_register_event(&loc, EVID_BAR);
-
     sdlx_render_fill_rect(TRAY_X, BOARD_Y, TRAY_W, POINT_H, wood);
     sdlx_render_rect(TRAY_X, BOARD_Y, TRAY_W, POINT_H, 3, COLOR_GRAY);
+    if (dest_hi == 25) {
+        sdlx_render_rect(TRAY_X + 2, BOARD_Y + 2, TRAY_W - 4, POINT_H - 4, RECT_LW, legal);
+    }
     sdlx_render_printf_ex(TRAY_X + TRAY_W / 2, BOARD_Y + 16,
                           FONT_TINY, COLOR_LIGHT_GRAY, FLAG_X_CTR, "%s", "CPU");
     draw_stack(TRAY_X + TRAY_W / 2, BOARD_Y + 40, 1, board.off[SIDE_CPU], COLOR_BLACK);
@@ -681,20 +722,10 @@ static void draw_and_register(void)
                              TRAY_W - 8, POINT_H - 8, RECT_LW, legal);
         }
     }
-    if (dest_hi == 25) {
-        sdlx_render_rect(TRAY_X + 2, BOARD_Y + POINT_H + MID_GAP + 2,
-                         TRAY_W - 4, POINT_H - 4, RECT_LW, hi);
-    }
     sdlx_render_printf_ex(TRAY_X + TRAY_W / 2, BOARD_Y + POINT_H + MID_GAP + 16,
                           FONT_TINY, COLOR_LIGHT_GRAY, FLAG_X_CTR, "%s", "You");
     draw_stack(TRAY_X + TRAY_W / 2, BOARD_Y + 2 * POINT_H + MID_GAP - 8, -1,
                board.off[SIDE_HUMAN], COLOR_WHITE);
-
-    loc.x = TRAY_X;
-    loc.y = BOARD_Y + POINT_H + MID_GAP;
-    loc.w = TRAY_W;
-    loc.h = POINT_H;
-    sdlx_register_event(&loc, EVID_OFF);
 
     dx = BOARD_X + 6 * POINT_W + BAR_W / 2 - DIE_SIZE - 8;
     dy = BOARD_Y + POINT_H + (MID_GAP - DIE_SIZE) / 2;
@@ -702,6 +733,38 @@ static void draw_and_register(void)
         if (board.dice[0] >= 1) {
             draw_die(dx, dy, DIE_SIZE, board.dice[0]);
             draw_die(dx + DIE_SIZE + 16, dy, DIE_SIZE, board.dice[1]);
+        }
+    }
+
+    if (game_started) {
+        if (winner < 0) {
+            if (board.side_to_move == SIDE_HUMAN) {
+                for (pt = 1; pt <= 24; pt++) {
+                    if (point_event_wanted(pt)) {
+                        loc.x = point_x(pt);
+                        loc.y = point_y(pt);
+                        loc.w = POINT_W;
+                        loc.h = POINT_H;
+                        sdlx_register_event(&loc, EVID_PT_BASE + pt);
+                    }
+                }
+                if (from_is_legal(FROM_BAR)) {
+                    loc.x = bx;
+                    loc.y = BOARD_Y;
+                    loc.w = BAR_W;
+                    loc.h = 2 * POINT_H + MID_GAP;
+                    sdlx_register_event(&loc, EVID_BAR);
+                }
+                if (sel != SEL_NONE) {
+                    if (dest_is_legal(sel, TO_OFF)) {
+                        loc.x = TRAY_X;
+                        loc.y = BOARD_Y + POINT_H + MID_GAP;
+                        loc.w = TRAY_W;
+                        loc.h = POINT_H;
+                        sdlx_register_event(&loc, EVID_OFF);
+                    }
+                }
+            }
         }
     }
 
