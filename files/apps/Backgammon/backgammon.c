@@ -49,6 +49,7 @@ static void play_or_skip(void);
 static void do_cpu_turn(void);
 static void wait_cpu_pause(long usec);
 static void show_notice(char *msg);
+static void announce_turn(void);
 static void handle_point_tap(int pt);
 static void handle_bar_tap(void);
 static void handle_off_tap(void);
@@ -195,8 +196,10 @@ static void play_or_skip(void)
             if (board.bar[SIDE_HUMAN] > 0) {
                 sel = FROM_BAR;
             }
+            announce_turn();
             return;
         }
+        announce_turn();
         do_cpu_turn();
         winner = game_winner(&board);
         if (winner >= 0) {
@@ -294,6 +297,16 @@ static void show_notice(char *msg)
     draw_and_register();
     wait_cpu_pause(NOTICE_US);
     notice[0] = '\0';
+}
+
+static void announce_turn(void)
+{
+    util_text_to_speech_stop();
+    if (board.side_to_move == SIDE_HUMAN) {
+        util_text_to_speech("Your Move");
+    } else {
+        util_text_to_speech("CPU Move");
+    }
 }
 
 static void try_play_step(int from, int to)
