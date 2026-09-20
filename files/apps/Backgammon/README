@@ -3,8 +3,7 @@ NAME: Backgammon
 DESCRIPTION:
 
 Play Backgammon against the
-CPU. Landscape orientation.
-You are White (bottom), moving
+CPU. You are White (bottom), moving
 toward point 1. The CPU is
 Black (top), moving toward 24.
 
@@ -33,10 +32,9 @@ CPU uses expectiminimax with
 a hand-crafted heuristic.
 Easy is 1-ply; Medium is
 2-ply over the best 1-ply
-candidates. Hard is planned
-for a later version.
+candidates.
 
 NOTES:
 
 This miniApp was generated
-by AI.
+with AI assistance.
