@@ -17,6 +17,10 @@ Controls:
   tap to cycle difficulty
 - Status is below that
   (Your Move, CPU Wins, ...)
+- RstMv (bottom right, under
+  status): after you play a
+  checker, tap to undo this
+  turn and start it over
 
 Tap a point (or the bar) to
 select, then tap a destination

@@ -27,6 +27,7 @@
 
 #define EVID_NEW_GAME  100
 #define EVID_DIFF      101
+#define EVID_RST_MV    102
 #define EVID_BAR       200
 #define EVID_OFF       201
 #define EVID_PT_BASE   1000
@@ -34,12 +35,14 @@
 #define SEL_NONE  (-1)
 
 static board_t board;
+static board_t turn_start;
 static play_list_t ui_pl;
 static int difficulty;
 static int sel;
 static int dest_hi;
 static bool game_started;
 static bool end_program;
+static bool can_rst_mv;
 static char notice[80];
 static char *diff_str[2] = { "Easy", "Medium" };
 
@@ -50,9 +53,11 @@ static void do_cpu_turn(void);
 static void wait_cpu_pause(long usec);
 static void show_notice(char *msg);
 static void announce_turn(void);
+static void announce_winner(int winner);
 static void handle_point_tap(int pt);
 static void handle_bar_tap(void);
 static void handle_off_tap(void);
+static void handle_rst_mv(void);
 static void try_play_step(int from, int to);
 static bool dest_is_legal(int from, int to);
 static bool from_is_legal(int from);
@@ -102,6 +107,7 @@ int main(int argc, char **argv)
     dest_hi = SEL_NONE;
     game_started = false;
     end_program = false;
+    can_rst_mv = false;
     notice[0] = '\0';
     board_init(&board);
     ui_pl.max = 0;
@@ -132,6 +138,8 @@ int main(int argc, char **argv)
                 difficulty = DIFF_EASY;
             }
             util_set_numeric_param(data_dir, "difficulty", difficulty);
+        } else if (evid == EVID_RST_MV) {
+            handle_rst_mv();
         } else if (evid == EVID_BAR) {
             if (game_started) {
                 handle_bar_tap();
@@ -175,6 +183,7 @@ static void play_or_skip(void)
     while (game_started && !end_program) {
         winner = game_winner(&board);
         if (winner >= 0) {
+            announce_winner(winner);
             return;
         }
         generate_next_steps(&board, board.side_to_move, &ui_pl);
@@ -196,6 +205,8 @@ static void play_or_skip(void)
             if (board.bar[SIDE_HUMAN] > 0) {
                 sel = FROM_BAR;
             }
+            board_copy(&turn_start, &board);
+            can_rst_mv = false;
             announce_turn();
             return;
         }
@@ -203,6 +214,7 @@ static void play_or_skip(void)
         do_cpu_turn();
         winner = game_winner(&board);
         if (winner >= 0) {
+            announce_winner(winner);
             return;
         }
         if (end_program) {
@@ -309,6 +321,16 @@ static void announce_turn(void)
     }
 }
 
+static void announce_winner(int winner)
+{
+    util_text_to_speech_stop();
+    if (winner == SIDE_HUMAN) {
+        util_text_to_speech("You Win");
+    } else if (winner == SIDE_CPU) {
+        util_text_to_speech("CPU Wins");
+    }
+}
+
 static void try_play_step(int from, int to)
 {
     step_t st;
@@ -321,10 +343,12 @@ static void try_play_step(int from, int to)
     consume_die(&board, st.die);
     sel = SEL_NONE;
     dest_hi = SEL_NONE;
+    can_rst_mv = true;
 
     winner = game_winner(&board);
     if (winner >= 0) {
         ui_pl.max = 0;
+        announce_winner(winner);
         return;
     }
 
@@ -443,6 +467,24 @@ static void handle_off_tap(void)
         return;
     }
     try_play_step(sel, TO_OFF);
+}
+
+static void handle_rst_mv(void)
+{
+    if (!can_rst_mv) {
+        return;
+    }
+    if (board.side_to_move != SIDE_HUMAN) {
+        return;
+    }
+    board_copy(&board, &turn_start);
+    sel = SEL_NONE;
+    dest_hi = SEL_NONE;
+    can_rst_mv = false;
+    generate_next_steps(&board, SIDE_HUMAN, &ui_pl);
+    if (board.bar[SIDE_HUMAN] > 0) {
+        sel = FROM_BAR;
+    }
 }
 
 static void handle_point_tap(int pt)
@@ -809,6 +851,11 @@ static void draw_and_register(void)
         n = sdlx_win_width - (TRAY_X + TRAY_W);
         sdlx_render_printf_ex(new_x, y + ch + RAIL_GAP, FONT_NORMAL, COLOR_WHITE, n,
                               "%s", status);
+    }
+    if (can_rst_mv) {
+        ploc = sdlx_render_printf_ex(new_x, sdlx_win_height - ch, FONT_NORMAL,
+                                     COLOR_LIGHT_BLUE, FLAG_NONE, "%s", "RstMv");
+        sdlx_register_event(ploc, EVID_RST_MV);
     }
 
     reg_event_show_readme_file();
