@@ -529,6 +529,9 @@ struct Picoc_Struct {
     struct Table StringTable;
     struct TableEntry *StringHashTable[STRING_TABLE_SIZE];
     char *StrEmpty;
+
+    /* xxx comment */
+    void *PlatformLibraryCx;
 };
 
 /* table.c */

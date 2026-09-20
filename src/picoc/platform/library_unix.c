@@ -5,6 +5,8 @@
 #include <svcs.h>
 #include <private.h>
 
+#include <pthread.h>
+
 struct StdVararg
 {
     struct Value **Param;
@@ -1636,6 +1638,214 @@ typedef struct { \n\
 } svc_req_t; \n\
 ";
 
+// -----------------  PROFILE -------------------------------------------
+
+#define STOPPED 0
+#define RUNNING 1
+#define STOPPING 2
+
+#define MAX_FILE 10
+#define MAX_LINE 10000
+
+#define MUTEX_LOCK do { pthread_mutex_lock(&cx->mutex); } while (0)
+#define MUTEX_UNLOCK do { pthread_mutex_unlock(&cx->mutex); } while (0)
+
+typedef struct {
+    struct ParseState *Parser;
+    int profile_thread_state;
+    pthread_mutex_t mutex;
+    struct {
+        char base_name[100];
+        int  count[MAX_LINE];
+    } file[MAX_FILE];
+} cx_t ;
+
+static void *profile_thread(void *cx_arg)
+{
+    cx_t *cx = cx_arg;
+    char *p, *base_name;
+    int i, idx, line;
+    struct ParseState *parser;
+
+    while (true) {
+        // if thread stop requested then break
+        if (cx->profile_thread_state == STOPPING) {
+            break;
+        }
+
+        // acquire mutex
+        MUTEX_LOCK;
+
+        // get the current Parser, which contains the current FileName and Line number
+        parser = cx->Parser;
+
+        // convert the parser->Filename, which is full pathname, to base_name;
+        // the basename() proc is not used because it might modify its arg
+        base_name = parser->FileName;
+        for (p = base_name; *p; p++) {
+            if (*p == '/') base_name = p+1;
+        }
+        if (base_name[0] == '\0') {
+            printf("ERROR %s: failed to extract base_name from '%s'\n",
+                   __func__, parser->FileName);
+            goto do_continue;
+        }
+
+        // search for the base_name in the profile cx data
+        idx = -1;
+        for (i = 0; i < MAX_FILE; i++) {
+            if (cx->file[i].base_name[0] == '\0') {
+                break;
+            }
+            if (strcmp(base_name, cx->file[i].base_name) == 0) {
+                idx = i;
+                break;
+            }
+        }
+
+        // if base_name not found in the profile cx then add new cx->file entry
+        if (idx == -1) {
+            for (i = 0; i < MAX_FILE; i++) {
+                if (cx->file[i].base_name[0] == '\0') {
+                    strcpy(cx->file[i].base_name, base_name);
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx == -1) {
+                printf("ERROR %s: file table is full\n", __func__);
+                goto do_continue;
+            }
+        }
+
+        // increment hit counter for the specified line number
+        line = parser->Line;
+        if (line > 0 && line < MAX_LINE) {
+            cx->file[idx].count[line]++;
+        } else {
+            printf("ERROR %s: line %d out of range\n", __func__, line);
+        }
+
+do_continue:
+        // release mutex
+        MUTEX_UNLOCK;
+
+        // short sleep, 1 ms
+        usleep(1000);
+    }
+
+    // set thread state to stopped and return
+    cx->profile_thread_state = STOPPED;
+    return NULL;
+}
+
+void profile_set_parser(struct ParseState *Parser)
+{
+    Picoc *pc;
+
+    pc = Parser->pc;
+    if (pc->PlatformLibraryCx == NULL) {
+        return;
+    }
+
+    cx_t *cx = pc->PlatformLibraryCx;
+
+    MUTEX_LOCK;
+    cx->Parser = Parser;
+    MUTEX_UNLOCK;
+}
+
+// - - - - - - - - -  API  - - - - - - - - - - - 
+
+void Profile_start(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    pthread_t tid;
+    Picoc *pc;
+
+    // if PlatformLibraryCx is set then error because 
+    // profile is already started
+    pc = Parser->pc;
+    if (pc->PlatformLibraryCx != NULL) {
+        printf("ERROR %s: already started\n", __func__);
+        ReturnValue->Val->Integer = -1;
+        return;
+    }
+
+    // allocate PlatformLibraryCx; calloc will zero it
+    pc->PlatformLibraryCx = calloc(1, sizeof(cx_t));
+    if (pc->PlatformLibraryCx == NULL) {
+        printf("ERROR %s: calloc failed\n", __func__);
+        ReturnValue->Val->Integer = -1;
+        return;
+    }
+
+    // start the profiling
+    cx_t *cx = pc->PlatformLibraryCx;
+    pthread_mutex_init(&cx->mutex, NULL);
+    cx->Parser = Parser;
+    cx->profile_thread_state = RUNNING;
+    pthread_create(&tid, NULL, profile_thread, cx);
+
+    // return success
+    ReturnValue->Val->Integer = 0;
+}
+
+void Profile_stop(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    int filter = Param[0]->Val->Integer;
+    Picoc *pc;
+
+    // if PlatformLibraryCx is NULL then error because 
+    // profile is not started
+    pc = Parser->pc;
+    if (pc->PlatformLibraryCx == NULL) {
+        printf("ERROR %s: not started\n", __func__);
+        return;
+    }
+
+    // stop the profile_thread
+    cx_t *cx = pc->PlatformLibraryCx;
+    cx->profile_thread_state = STOPPING;
+    while (cx->profile_thread_state == STOPPING) {
+        usleep(1000);
+    }
+
+    // print results
+    for (int i = 0; i < MAX_FILE; i++) {
+        char *base_name = cx->file[i].base_name;
+        int  *count     = cx->file[i].count;
+        if (base_name[0] == '\0') {
+            break;
+        }
+        for (int j = 0; j < MAX_LINE; j++) {
+            if (count[j] > filter) {
+                printf("%s %d - %d\n", base_name, j, count[j]);
+            }
+        }
+    }
+
+    // final cleanup
+    pthread_mutex_destroy(&cx->mutex);
+    free(cx);
+    pc->PlatformLibraryCx = NULL;
+}
+
+// - - - - - - - REGISTRATION - - - - - - - - - 
+
+void ProfileSetupFunction(Picoc *pc)
+{
+}
+
+struct LibraryFunction ProfileFunctions[] = {
+    { Profile_start, "int profile_start(void);" },
+    { Profile_stop,  "void profile_stop(int filter);" },
+    { NULL, NULL } };
+
+const char ProfileDefs[] = "\
+";
+
 // -----------------  PLATFORM INIT PROC  -------------------------------
 
 void PlatformLibraryInit(Picoc *pc)
@@ -1660,4 +1870,11 @@ void PlatformLibraryInit(Picoc *pc)
         SvcsSetupFunction,
         SvcsFunctions, 
         SvcsDefs);
+
+    IncludeRegister(
+        pc, 
+        "profile.h", 
+        ProfileSetupFunction,
+        ProfileFunctions, 
+        ProfileDefs);
 }

@@ -2021,6 +2021,8 @@ void ExpressionParseMacroCall(struct ParseState *Parser,
     }
 }
 
+void profile_set_parser(struct ParseState *Parser);  // xxx pick this up from a hdr file
+
 /* do a function call */
 void ExpressionParseFunctionCall(struct ParseState *Parser,
     struct ExpressionStack **StackTop, const char *FuncName, int RunIt)
@@ -2110,6 +2112,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser,
                     FuncName);
 
             ParserCopy(&FuncParser, &FuncValue->Val->FuncDef.Body);
+            profile_set_parser(&FuncParser);
             VariableStackFrameAdd(Parser, FuncName,
                 FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
             Parser->pc->TopStackFrame->NumParams = ArgCount;
@@ -2141,6 +2144,8 @@ void ExpressionParseFunctionCall(struct ParseState *Parser,
             }
 
             VariableStackFramePop(Parser);
+
+            profile_set_parser(Parser);
         } else {
             // FIXME: too many parameters?
             // Warmomg -Wdeprecated-non-prototype is generated on Android build
