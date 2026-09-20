@@ -38,7 +38,6 @@ static int sel;
 static int dest_hi;
 static bool game_started;
 static bool end_program;
-static bool cpu_thinking;
 static char *diff_str[2] = { "Easy", "Medium" };
 
 static void new_game(void);
@@ -96,7 +95,6 @@ int main(int argc, char **argv)
     dest_hi = SEL_NONE;
     game_started = false;
     end_program = false;
-    cpu_thinking = false;
     board_init(&board);
     ui_pl.max = 0;
 
@@ -212,7 +210,6 @@ static void do_cpu_turn(void)
     int i;
     sdlx_event_t event;
 
-    cpu_thinking = true;
     draw_and_register();
 
 #ifdef TEST_HARNESS
@@ -235,10 +232,8 @@ static void do_cpu_turn(void)
     printf("I %s: cpu move duration = %0.3f\n", 
            progname, (util_microsec_timer() - start) / 1000000.0);
     if (rc < 0) {
-        cpu_thinking = false;
         return;
     }
-    cpu_thinking = false;
 #endif
 
     for (i = 0; i < play.nsteps; i++) {
@@ -569,8 +564,6 @@ static void draw_and_register(void)
         sprintf(status, "%s", "You Win");
     } else if (winner == SIDE_CPU) {
         sprintf(status, "%s", "CPU Wins");
-    } else if (cpu_thinking) {
-        sprintf(status, "%s", "CPU thinking...");
     } else if (board.side_to_move == SIDE_HUMAN) {
         sprintf(status, "%s", "Your Move");
     } else {
