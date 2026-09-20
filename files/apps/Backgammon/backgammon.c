@@ -1,8 +1,11 @@
 #include <apps/Backgammon/common.h>
 
-#include <profile.h>
-
 //#define TEST_HARNESS
+
+#ifdef TEST_HARNESS
+#include <profile.h>
+#endif
+
 
 #define BOARD_X     50
 #define BOARD_Y     0
@@ -12,12 +15,12 @@
 #define MID_GAP     80
 #define TRAY_X      1575
 #define TRAY_W      120
-#define DIE_SIZE    62
+#define DIE_SIZE    100
 #define RAIL_GAP    80
 #define CHK_RADIUS  26
 #define CHK_STEP    48
 #define MAX_VIS     5
-#define RECT_LW     5
+#define RECT_LW     7
 #define CPU_STEP_US 450000
 
 #define EVID_NEW_GAME  100
