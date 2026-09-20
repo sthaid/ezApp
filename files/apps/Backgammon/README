@@ -9,10 +9,14 @@ toward point 1. The CPU is
 Black (top), moving toward 24.
 
 Controls:
-- New Game: opening roll; the
-  higher die plays first using
-  those two numbers
-- Diff: cycle Easy / Medium
+- New (left of ?): opening
+  roll; higher die plays
+  first using those two
+  numbers
+- Easy / Medium (under New):
+  tap to cycle difficulty
+- Status is below that
+  (Your Move, CPU Wins, ...)
 
 Tap a point (or the bar) to
 select, then tap a destination

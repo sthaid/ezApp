@@ -5,14 +5,15 @@
 //#define TEST_HARNESS
 
 #define BOARD_X     50
-#define BOARD_Y     95
+#define BOARD_Y     0
 #define POINT_W     120
-#define POINT_H     400
+#define POINT_H     460
 #define BAR_W       80
-#define MID_GAP     85
-#define TRAY_X      1585
-#define TRAY_W      150
+#define MID_GAP     80
+#define TRAY_X      1575
+#define TRAY_W      120
 #define DIE_SIZE    62
+#define RAIL_GAP    80
 #define CHK_RADIUS  26
 #define CHK_STEP    48
 #define MAX_VIS     5
@@ -538,7 +539,7 @@ static void draw_stack(int cx, int y0, int dir, int n, sdlx_color_t col)
 
 static void draw_and_register(void)
 {
-    int pt, x, y, n, cx, winner, bx, dx, dy, top;
+    int pt, x, y, n, cx, winner, bx, dx, dy, top, cw, ch, new_x;
     sdlx_loc_t loc;
     sdlx_loc_t *ploc;
     sdlx_point_t tri[4];
@@ -560,33 +561,22 @@ static void draw_and_register(void)
         winner = game_winner(&board);
     }
     if (!game_started) {
-        sprintf(status, "%s", "Tap New Game");
+        status[0] = '\0';
     } else if (winner == SIDE_HUMAN) {
-        sprintf(status, "%s", "You win!");
+        sprintf(status, "%s", "You Win");
     } else if (winner == SIDE_CPU) {
-        sprintf(status, "%s", "CPU wins!");
+        sprintf(status, "%s", "CPU Wins");
     } else if (cpu_thinking) {
         sprintf(status, "%s", "CPU thinking...");
     } else if (board.side_to_move == SIDE_HUMAN) {
-        sprintf(status, "%s", "Your turn");
+        sprintf(status, "%s", "Your Move");
     } else {
-        sprintf(status, "%s", "CPU turn");
+        sprintf(status, "%s", "CPU Move");
     }
 
-    ploc = sdlx_render_printf_ex(30, 18, FONT_SMALL, COLOR_LIGHT_BLUE, FLAG_NONE,
-                                 "%s", "New Game");
-    sdlx_register_event(ploc, EVID_NEW_GAME);
-
-    sdlx_render_printf_ex(sdlx_win_width / 2, 40, FONT_SMALL, COLOR_WHITE, FLAG_XY_CTR,
-                          "%s", status);
-
-    ploc = sdlx_render_printf_ex(1480, 18, FONT_SMALL, COLOR_LIGHT_BLUE, FLAG_NONE,
-                                 "Diff: %s", diff_str[difficulty]);
-    sdlx_register_event(ploc, EVID_DIFF);
-
-    sdlx_render_fill_rect(BOARD_X - 8, BOARD_Y - 8,
+    sdlx_render_fill_rect(BOARD_X - 8, BOARD_Y,
                           12 * POINT_W + BAR_W + 16,
-                          2 * POINT_H + MID_GAP + 16,
+                          2 * POINT_H + MID_GAP,
                           wood);
 
     bx = bar_x();
@@ -717,6 +707,22 @@ static void draw_and_register(void)
             draw_die(dx, dy, DIE_SIZE, board.dice[0]);
             draw_die(dx + DIE_SIZE + 16, dy, DIE_SIZE, board.dice[1]);
         }
+    }
+
+    cw = sdlx_char_width(FONT_NORMAL);
+    ch = sdlx_char_height(FONT_NORMAL);
+    new_x = sdlx_win_width - 6 * cw;
+    ploc = sdlx_render_printf_ex(new_x, 0, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
+                                 "%s", "New");
+    sdlx_register_event(ploc, EVID_NEW_GAME);
+    y = ch + RAIL_GAP;
+    ploc = sdlx_render_printf_ex(new_x, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
+                                 "%s", diff_str[difficulty]);
+    sdlx_register_event(ploc, EVID_DIFF);
+    if (status[0] != '\0') {
+        n = sdlx_win_width - (TRAY_X + TRAY_W);
+        sdlx_render_printf_ex(new_x, y + ch + RAIL_GAP, FONT_NORMAL, COLOR_WHITE, n,
+                              "%s", status);
     }
 
     reg_event_show_readme_file();
