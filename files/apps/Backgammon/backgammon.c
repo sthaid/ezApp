@@ -23,6 +23,7 @@
 #define RECT_LW     10
 #define CPU_STEP_US    2000000
 #define CPU_SETTLE_US  2000000
+#define NOTICE_US      3000000
 
 #define EVID_NEW_GAME  100
 #define EVID_DIFF      101
@@ -39,6 +40,7 @@ static int sel;
 static int dest_hi;
 static bool game_started;
 static bool end_program;
+static char notice[80];
 static char *diff_str[2] = { "Easy", "Medium" };
 
 static void new_game(void);
@@ -46,6 +48,7 @@ static void draw_and_register(void);
 static void play_or_skip(void);
 static void do_cpu_turn(void);
 static void wait_cpu_pause(long usec);
+static void show_notice(char *msg);
 static void handle_point_tap(int pt);
 static void handle_bar_tap(void);
 static void handle_off_tap(void);
@@ -98,6 +101,7 @@ int main(int argc, char **argv)
     dest_hi = SEL_NONE;
     game_started = false;
     end_program = false;
+    notice[0] = '\0';
     board_init(&board);
     ui_pl.max = 0;
 
@@ -175,9 +179,9 @@ static void play_or_skip(void)
         generate_next_steps(&board, board.side_to_move, &ui_pl);
         if (!has_legal_play(&ui_pl)) {
             if (board.side_to_move == SIDE_HUMAN) {
-                sdlx_show_toast("No legal play");
+                show_notice("No legal play");
             } else {
-                sdlx_show_toast("CPU has no play");
+                show_notice("CPU has no play");
             }
             board.side_to_move = other_side(board.side_to_move);
             roll_turn_dice(&board);
@@ -282,6 +286,14 @@ static void wait_cpu_pause(long usec)
         now = util_microsec_timer();
         left = left - (now - t0);
     }
+}
+
+static void show_notice(char *msg)
+{
+    sprintf(notice, "%s", msg);
+    draw_and_register();
+    wait_cpu_pause(NOTICE_US);
+    notice[0] = '\0';
 }
 
 static void try_play_step(int from, int to)
@@ -608,7 +620,9 @@ static void draw_and_register(void)
     if (game_started) {
         winner = game_winner(&board);
     }
-    if (!game_started) {
+    if (notice[0] != '\0') {
+        sprintf(status, "%s", notice);
+    } else if (!game_started) {
         status[0] = '\0';
     } else if (winner == SIDE_HUMAN) {
         sprintf(status, "%s", "You Win");
