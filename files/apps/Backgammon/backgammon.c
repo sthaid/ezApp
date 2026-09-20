@@ -1,5 +1,9 @@
 #include <apps/Backgammon/common.h>
 
+#include <profile.h>
+
+//#define TEST_HARNESS
+
 #define BOARD_X     50
 #define BOARD_Y     95
 #define POINT_W     120
@@ -59,6 +63,10 @@ int main(int argc, char **argv)
     sdlx_event_t event;
     int evid, pt;
 
+#ifdef TEST_HARNESS
+    bool first_call = true;
+#endif
+
     if (argc != 2) {
         printf("E %s: argc=%d is not 2\n", "Backgammon", argc);
         return 1;
@@ -67,12 +75,18 @@ int main(int argc, char **argv)
     data_dir = argv[1];
     printf("I %s: starting, data_dir=%s\n", progname, data_dir);
 
+#ifndef TEST_HARNESS
     srandom(time(NULL));
+#endif
 
     difficulty = (int)util_get_numeric_param(data_dir, "difficulty", DIFF_MEDIUM);
     if (difficulty < DIFF_EASY || difficulty > DIFF_MEDIUM) {
         difficulty = DIFF_MEDIUM;
     }
+
+#ifdef TEST_HARNESS
+    difficulty = DIFF_MEDIUM;
+#endif
 
     sel = SEL_NONE;
     dest_hi = SEL_NONE;
@@ -84,7 +98,16 @@ int main(int argc, char **argv)
 
     while (!end_program) {
         draw_and_register();
+#ifdef TEST_HARNESS
+        if (first_call) {
+            event.event_id = EVID_NEW_GAME;
+            first_call = false;
+        } else {
+            sdlx_get_event(-1, &event);
+        }
+#else
         sdlx_get_event(-1, &event);
+#endif
         evid = event.event_id;
 
         if (evid == EVID_QUIT) {
@@ -187,11 +210,32 @@ static void do_cpu_turn(void)
 
     cpu_thinking = true;
     draw_and_register();
-    if (cpu_choose_play(&board, difficulty, &play) < 0) {
+
+#ifdef TEST_HARNESS
+    if (profile_start() != 0) {
+        printf("E %s: profile_start failed\n", progname);
+    }
+
+    long start = util_microsec_timer();
+    cpu_choose_play(&board, difficulty, &play);
+    long duration = util_microsec_timer() - start;
+
+    profile_stop(100);
+
+    printf("I %s: test harness end program, cpu move duration = %0.3f seconds\n",
+           progname, duration/1000000.0);
+    exit(1);
+#else
+    long start = util_microsec_timer();
+    int rc = cpu_choose_play(&board, difficulty, &play);
+    printf("I %s: cpu move duration = %0.3f\n", 
+           progname, (util_microsec_timer() - start) / 1000000.0);
+    if (rc < 0) {
         cpu_thinking = false;
         return;
     }
     cpu_thinking = false;
+#endif
 
     for (i = 0; i < play.nsteps; i++) {
         if (end_program) {

@@ -9,14 +9,12 @@
 // offered in the UI. If selected, Medium behavior is used.
 
 static play_list_t cpu_pl;
-static play_list_t opp_pl;
 static int pscore[MAX_PLAYS];
 static int pord[MAX_PLAYS];
+static board_t ranked_child[TOP_N_MEDIUM];
+static int kept_idx[TOP_N_MEDIUM];
 
-static int evaluate(board_t *b);
-static int best_1ply_score(board_t *b, int side);
 static int pick_best_1ply_play(board_t *b, int side, play_list_t *pl, play_t *out);
-static int prime_len(board_t *b, int side);
 
 int difficulty_to_depth(int difficulty)
 {
@@ -29,107 +27,122 @@ int difficulty_to_depth(int difficulty)
     return DEPTH_MEDIUM;
 }
 
-static int prime_len(board_t *b, int side)
-{
-    int p, run, best, made;
-
-    run = 0;
-    best = 0;
-    for (p = 1; p <= 24; p++) {
-        made = 0;
-        if (side == SIDE_HUMAN) {
-            if (b->point[p] >= 2) {
-                made = 1;
-            }
-        } else {
-            if (b->point[p] <= -2) {
-                made = 1;
-            }
-        }
-        if (made) {
-            run++;
-            if (run > best) {
-                best = run;
-            }
-        } else {
-            run = 0;
-        }
-    }
-    return best;
-}
-
 // Score from CPU perspective: positive favors the CPU.
-static int evaluate(board_t *b)
+// Single pass over the 24 points: pips, contact, blots, anchors, primes.
+int evaluate_board(board_t *b)
 {
-    int score, ph, pc, p, n, winner;
-    int pr_cpu, pr_hum;
+    int score, ph, pc, p, n;
+    int pr_cpu, pr_hum, run_c, run_h;
+    int hum_max, cpu_min, contact;
 
-    winner = game_winner(b);
-    if (winner == SIDE_CPU) {
+    if (b->off[SIDE_CPU] >= N_CHECKERS) {
         return WIN_SCORE;
     }
-    if (winner == SIDE_HUMAN) {
+    if (b->off[SIDE_HUMAN] >= N_CHECKERS) {
         return -WIN_SCORE;
     }
 
-    ph = pip_count(b, SIDE_HUMAN);
-    pc = pip_count(b, SIDE_CPU);
-
-    if (!has_contact(b)) {
-        score = (ph - pc) * 5;
-        score += (b->off[SIDE_CPU] - b->off[SIDE_HUMAN]) * 40;
-        return score;
-    }
-
-    score = (ph - pc) * 2;
-    score += (b->off[SIDE_CPU] - b->off[SIDE_HUMAN]) * 30;
-    score += b->bar[SIDE_HUMAN] * 80;
-    score -= b->bar[SIDE_CPU] * 90;
+    ph = b->bar[SIDE_HUMAN] * 25;
+    pc = b->bar[SIDE_CPU] * 25;
+    hum_max = 0;
+    cpu_min = 25;
+    pr_cpu = 0;
+    pr_hum = 0;
+    run_c = 0;
+    run_h = 0;
+    score = 0;
 
     for (p = 1; p <= 24; p++) {
         n = b->point[p];
-        if (n == 1) {
-            if (p <= 6) {
-                score += 20;
-            } else if (p >= 19) {
-                score += 12;
-            } else {
-                score += 8;
+        if (n > 0) {
+            ph += n * p;
+            if (p > hum_max) {
+                hum_max = p;
             }
-        }
-        if (n == -1) {
-            if (p >= 19) {
-                score -= 20;
-            } else if (p <= 6) {
-                score -= 12;
-            } else {
-                score -= 8;
-            }
-        }
-        if (p >= 1) {
-            if (p <= 6) {
-                if (n <= -2) {
-                    score += 28;
+            if (n == 1) {
+                if (p <= 6) {
+                    score += 20;
+                } else if (p >= 19) {
+                    score += 12;
+                } else {
+                    score += 8;
                 }
-                if (n >= 2) {
+            }
+            if (n >= 2) {
+                run_h++;
+                if (run_h > pr_hum) {
+                    pr_hum = run_h;
+                }
+                if (p <= 6) {
                     score -= 14;
                 }
-            }
-        }
-        if (p >= 19) {
-            if (p <= 24) {
-                if (n >= 2) {
+                if (p >= 19) {
                     score -= 28;
                 }
-                if (n <= -2) {
+            } else {
+                run_h = 0;
+            }
+            run_c = 0;
+        } else if (n < 0) {
+            pc += (-n) * (25 - p);
+            if (p < cpu_min) {
+                cpu_min = p;
+            }
+            if (n == -1) {
+                if (p >= 19) {
+                    score -= 20;
+                } else if (p <= 6) {
+                    score -= 12;
+                } else {
+                    score -= 8;
+                }
+            }
+            if (n <= -2) {
+                run_c++;
+                if (run_c > pr_cpu) {
+                    pr_cpu = run_c;
+                }
+                if (p <= 6) {
+                    score += 28;
+                }
+                if (p >= 19) {
                     score += 14;
+                }
+            } else {
+                run_c = 0;
+            }
+            run_h = 0;
+        } else {
+            run_h = 0;
+            run_c = 0;
+        }
+    }
+
+    contact = 0;
+    if (b->bar[SIDE_HUMAN] > 0) {
+        contact = 1;
+    }
+    if (b->bar[SIDE_CPU] > 0) {
+        contact = 1;
+    }
+    if (contact == 0) {
+        if (hum_max != 0) {
+            if (cpu_min != 25) {
+                if (hum_max > cpu_min) {
+                    contact = 1;
                 }
             }
         }
     }
 
-    pr_cpu = prime_len(b, SIDE_CPU);
-    pr_hum = prime_len(b, SIDE_HUMAN);
+    if (contact == 0) {
+        return (ph - pc) * 5 + (b->off[SIDE_CPU] - b->off[SIDE_HUMAN]) * 40;
+    }
+
+    score += (ph - pc) * 2;
+    score += (b->off[SIDE_CPU] - b->off[SIDE_HUMAN]) * 30;
+    score += b->bar[SIDE_HUMAN] * 80;
+    score -= b->bar[SIDE_CPU] * 90;
     score += pr_cpu * 10;
     score -= pr_hum * 10;
     if (pr_cpu >= 6) {
@@ -140,49 +153,6 @@ static int evaluate(board_t *b)
     }
 
     return score;
-}
-
-// Opponent (or self) plays a 1-ply best complete play; returns evaluate()
-// of the resulting position. Human minimizes CPU score; CPU maximizes it.
-static int best_1ply_score(board_t *b, int side)
-{
-    int i, sc, best, n_ties;
-    board_t child;
-
-    generate_plays(b, side, &opp_pl);
-    if (!has_legal_play(&opp_pl)) {
-        return evaluate(b);
-    }
-
-    if (side == SIDE_CPU) {
-        best = -INFIN;
-    } else {
-        best = INFIN;
-    }
-    n_ties = 0;
-
-    for (i = 0; i < opp_pl.max; i++) {
-        board_copy(&child, b);
-        apply_play(&child, side, &opp_pl.play[i]);
-        sc = evaluate(&child);
-        if (side == SIDE_CPU) {
-            if (sc > best) {
-                best = sc;
-                n_ties = 1;
-            } else if (sc == best) {
-                n_ties++;
-            }
-        } else {
-            if (sc < best) {
-                best = sc;
-                n_ties = 1;
-            } else if (sc == best) {
-                n_ties++;
-            }
-        }
-    }
-
-    return best;
 }
 
 static int pick_best_1ply_play(board_t *b, int side, play_list_t *pl, play_t *out)
@@ -201,7 +171,7 @@ static int pick_best_1ply_play(board_t *b, int side, play_list_t *pl, play_t *ou
     for (i = 0; i < pl->max; i++) {
         board_copy(&child, b);
         apply_play(&child, side, &pl->play[i]);
-        sc = evaluate(&child);
+        sc = evaluate_board(&child);
         if (sc > best) {
             best = sc;
             n_ties = 1;
@@ -238,7 +208,7 @@ int cpu_choose_play(board_t *b, int difficulty, play_t *out_play)
         pord[i] = i;
         board_copy(&child, b);
         apply_play(&child, SIDE_CPU, &cpu_pl.play[i]);
-        pscore[i] = evaluate(&child);
+        pscore[i] = evaluate_board(&child);
     }
 
     for (i = 0; i < n; i++) {
@@ -253,19 +223,36 @@ int cpu_choose_play(board_t *b, int difficulty, play_t *out_play)
         pord[best_i] = t;
     }
 
-    nkeep = n;
-    if (nkeep > TOP_N_MEDIUM) {
-        nkeep = TOP_N_MEDIUM;
+    nkeep = 0;
+    for (i = 0; i < n; i++) {
+        if (nkeep >= TOP_N_MEDIUM) {
+            break;
+        }
+        board_copy(&child, b);
+        apply_play(&child, SIDE_CPU, &cpu_pl.play[pord[i]]);
+        t = 0;
+        for (j = 0; j < nkeep; j++) {
+            if (memcmp(&ranked_child[j], &child, sizeof(board_t)) == 0) {
+                t = 1;
+            }
+        }
+        if (t) {
+            continue;
+        }
+        board_copy(&ranked_child[nkeep], &child);
+        kept_idx[nkeep] = pord[i];
+        nkeep++;
+    }
+    if (nkeep <= 0) {
+        return pick_best_1ply_play(b, SIDE_CPU, &cpu_pl, out_play);
     }
 
     best_eq = -INFIN;
     n_ties = 0;
-    copy_play(out_play, &cpu_pl.play[pord[0]]);
+    copy_play(out_play, &cpu_pl.play[kept_idx[0]]);
 
     for (i = 0; i < nkeep; i++) {
-        board_copy(&child, b);
-        apply_play(&child, SIDE_CPU, &cpu_pl.play[pord[i]]);
-        if (game_winner(&child) == SIDE_CPU) {
+        if (game_winner(&ranked_child[i]) == SIDE_CPU) {
             eq = WIN_SCORE * 36;
         } else {
             eq = 0;
@@ -276,21 +263,21 @@ int cpu_choose_play(board_t *b, int difficulty, play_t *out_play)
                     } else {
                         w = 2;
                     }
-                    board_copy(&after_roll, &child);
+                    board_copy(&after_roll, &ranked_child[i]);
                     after_roll.side_to_move = SIDE_HUMAN;
                     set_dice(&after_roll, d1, d2);
-                    eq += w * best_1ply_score(&after_roll, SIDE_HUMAN);
+                    eq += w * score_best_play(&after_roll, SIDE_HUMAN);
                 }
             }
         }
         if (eq > best_eq) {
             best_eq = eq;
             n_ties = 1;
-            copy_play(out_play, &cpu_pl.play[pord[i]]);
+            copy_play(out_play, &cpu_pl.play[kept_idx[i]]);
         } else if (eq == best_eq) {
             n_ties++;
             if ((random() % n_ties) == 0) {
-                copy_play(out_play, &cpu_pl.play[pord[i]]);
+                copy_play(out_play, &cpu_pl.play[kept_idx[i]]);
             }
         }
     }

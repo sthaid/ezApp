@@ -37,6 +37,7 @@ typedef struct {
     int from;  // 1-24, or FROM_BAR
     int to;    // 1-24, or TO_OFF
     int die;
+    int hit;   // 1 if this step sent a blot to the bar
 } step_t;
 
 typedef struct {
@@ -89,8 +90,10 @@ int  game_winner(board_t *b);  // SIDE_HUMAN, SIDE_CPU, or -1
 int  pip_count(board_t *b, int side);
 bool has_contact(board_t *b);
 bool has_legal_play(play_list_t *pl);
+int  score_best_play(board_t *b, int side);
 
 // ai.c
+int  evaluate_board(board_t *b);  // CPU-positive heuristic
 int  difficulty_to_depth(int difficulty);
 // Returns 0 on success (fills out_play), or -1 if no legal plays.
 int  cpu_choose_play(board_t *b, int difficulty, play_t *out_play);
