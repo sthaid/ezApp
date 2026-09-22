@@ -239,7 +239,7 @@ void show_photo(int idx)
     sdlx_loc_t     *loc;
     bool            show;
     char           *s;
-    long            last_next_prev_time = util_microsec_timer();
+    long            last_next_prev_time;
     bool            done = false;
     bool            restart = false;
 
@@ -258,6 +258,7 @@ void show_photo(int idx)
     // this loop supports moving to the next or prev photo
     do {
         restart = false;
+        last_next_prev_time = util_microsec_timer();
 
         // get the photo num and the metadata ptr
         num = photos[idx].num;
@@ -306,7 +307,16 @@ void show_photo(int idx)
         // init scale and center, so that the full photo will be displayed
         xc = jpeg_w / 2;
         yc = jpeg_h / 2;
-        scale = 1;
+        if (jpeg_w > jpeg_h) {
+            // This should usually set scale to 0.5625,
+            // because the usual aspect ratio is 4:3.
+            // This equation was determined empirically.
+            scale = ((double)jpeg_h / jpeg_w) * ((double)jpeg_h / jpeg_w);
+        } else {
+            scale = 1;
+        }
+        printf("I %s: show_photo jpeg_w,jpeg_h = %d %d  scale = %0.4f\n",
+               progname, jpeg_w, jpeg_h, scale);
             
         // display the photo and handle events, 
         // until eiter the EVID_QUIT or EVID_NEXT/PREV envents rcvd
@@ -318,11 +328,17 @@ void show_photo(int idx)
             get_src_and_dest(&src, &dest);
             sdlx_render_texture(t, &src, &dest);
 
-            // display photo num at top left of photo;
+            // display photo num, and zoom indicator, at top left of photo;
             // the x coord is adjusted when at the top left of the photo because
             //  that is mostly obscured by the bezel
-            int tmp_x = ((dest.x == 0 && dest.y == 0) ? 40 : dest.x);
-            sdlx_render_printf_ex(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%d", md->num);
+            int tmp_x = ((dest.x == 0 && dest.y < sdlx_char_height(FONT_SMALL)) ? 40 : dest.x);
+            char str[10];
+            if (scale == 1) {
+                sprintf(str, "%d", md->num);
+            } else {
+                sprintf(str, "%d:Z", md->num);
+            }
+            sdlx_render_printf_ex(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%s", str);
 
             // display metadata below photo
             y = 1400;
@@ -342,7 +358,7 @@ void show_photo(int idx)
             }
 
             // register events
-            show = (util_microsec_timer() - last_next_prev_time) < 3000000;
+            show = (util_microsec_timer() - last_next_prev_time) < 1000000;
             s = (show ? "<" : " ");
             loc = sdlx_render_printf_ex(0.5*sdlx_char_width(FONT_LARGE), 1333/2, 
                                          FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, "%s", s);
@@ -361,7 +377,7 @@ void show_photo(int idx)
             sdlx_display_present();
 
             // wait for an event, with infinite timeout
-            sdlx_get_event(-1, &event);
+            sdlx_get_event(!show ? -1 : 1000000, &event);
 
             // process the event
             switch (event.event_id) {
@@ -380,6 +396,7 @@ void show_photo(int idx)
                 scale /= event.u.pinch.scale;
                 if (scale > 1) scale = 1;
                 if (scale < 0.01) scale = 0.01;
+                last_next_prev_time = util_microsec_timer();
                 break;
             case EVID_RST:
                 xc = jpeg_w / 2;
