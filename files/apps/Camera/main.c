@@ -227,10 +227,13 @@ void get_src_and_dest(sdlx_loc_t *src, sdlx_loc_t *dest);
 int jpeg_w, jpeg_h;
 double xc, yc, scale;
 
+// this value determined empirically
+#define ZOOM_SCALE 0.5625
+
 void show_photo(int idx)
 {
     int             num, rc, texture_w=0, texture_h=0, y, i;
-    char            file[50];
+    char            file[50], str[50];
     metadata_t     *md;
     sdlx_texture_t *t = NULL;
     sdlx_loc_t      src, dest;
@@ -304,19 +307,12 @@ void show_photo(int idx)
         sdlx_set_texture_pixels(t, pixels);
         free(pixels);
 
-        // init scale and center, so that the full photo will be displayed
+        // init scale and center, so that the photo will be displayed
+        // scaled to use the entire dest; this will zoom the photo if
+        // it was taken in landscape
         xc = jpeg_w / 2;
         yc = jpeg_h / 2;
-        if (jpeg_w > jpeg_h) {
-            // This should usually set scale to 0.5625,
-            // because the usual aspect ratio is 4:3.
-            // This equation was determined empirically.
-            scale = ((double)jpeg_h / jpeg_w) * ((double)jpeg_h / jpeg_w);
-        } else {
-            scale = 1;
-        }
-        printf("I %s: show_photo jpeg_w,jpeg_h = %d %d  scale = %0.4f\n",
-               progname, jpeg_w, jpeg_h, scale);
+        scale = (jpeg_w > jpeg_h ? ZOOM_SCALE : 1);
             
         // display the photo and handle events, 
         // until eiter the EVID_QUIT or EVID_NEXT/PREV envents rcvd
@@ -328,20 +324,16 @@ void show_photo(int idx)
             get_src_and_dest(&src, &dest);
             sdlx_render_texture(t, &src, &dest);
 
-            // display photo num, and zoom indicator, at top left of photo;
-            // the x coord is adjusted when at the top left of the photo because
-            //  that is mostly obscured by the bezel
-            int tmp_x = ((dest.x == 0 && dest.y < sdlx_char_height(FONT_SMALL)) ? 40 : dest.x);
-            char str[10];
+            // display photo num, and zoom indicator beneath the photo
             if (scale == 1) {
-                sprintf(str, "%d", md->num);
+                sprintf(str, "Photo %d", md->num);
             } else {
-                sprintf(str, "%d:Z", md->num);
+                sprintf(str, "Photo %d Zoom", md->num);
             }
-            sdlx_render_printf_ex(tmp_x, dest.y, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%s", str);
+            sdlx_render_printf_ex(0, dest.y+dest.h, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%s", str);
 
             // display metadata below photo
-            y = 1400;
+            y = 1450;
             sdlx_render_printf(0, y, "%s %s\n%s", md->day, md->date, md->time);
             y += 2 * sdlx_char_height_dflt;
             if (md->city[0] != '\0') {
@@ -358,7 +350,7 @@ void show_photo(int idx)
             }
 
             // register events
-            show = (util_microsec_timer() - last_next_prev_time) < 1000000;
+            show = (util_microsec_timer() - last_next_prev_time) < 3000000;
             s = (show ? "<" : " ");
             loc = sdlx_render_printf_ex(0.5*sdlx_char_width(FONT_LARGE), 1333/2, 
                                          FONT_LARGE, COLOR_WHITE, FLAG_XY_CTR, "%s", s);
@@ -401,7 +393,11 @@ void show_photo(int idx)
             case EVID_RST:
                 xc = jpeg_w / 2;
                 yc = jpeg_h / 2;
-                scale = 1;
+                if (scale == 1 && jpeg_w > jpeg_h) {
+                    scale = ZOOM_SCALE;
+                } else {
+                    scale = 1;
+                }
                 break;
             case EVID_TAKE: {
                 rc = take_photo();
