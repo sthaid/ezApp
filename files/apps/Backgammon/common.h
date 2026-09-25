@@ -20,11 +20,11 @@
 
 #define DIFF_EASY    0
 #define DIFF_MEDIUM  1
-#define DIFF_HARD    2   // reserved; not offered in the UI yet
+#define DIFF_HARD    2
 
 #define DEPTH_EASY    1
 #define DEPTH_MEDIUM  2
-#define DEPTH_HARD    2  // later: 2-ply over all plays and/or rollouts
+#define DEPTH_HARD    2
 
 #define MAX_STEPS  4
 #define MAX_PLAYS  512

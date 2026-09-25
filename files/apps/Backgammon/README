@@ -12,8 +12,9 @@ Controls:
   roll; higher die plays
   first using those two
   numbers
-- Easy / Medium (under New):
-  tap to cycle difficulty
+- Easy / Medium / Hard
+  (under New): tap to cycle
+  difficulty
 - Status is below that
   (Your Move, CPU Wins, ...)
 - RstMv (bottom right, under
@@ -28,11 +29,12 @@ send a blot to the bar.
 
 No doubling cube.
 
-CPU uses expectiminimax with
-a hand-crafted heuristic.
-Easy is 1-ply; Medium is
-2-ply over the best 1-ply
-candidates.
+CPU looks ahead one roll.
+Easy picks the best move
+it sees immediately.
+Medium and Hard also weigh
+the opponent's replies.
+Hard checks more moves.
 
 NOTES:
 

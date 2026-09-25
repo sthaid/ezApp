@@ -10,12 +10,12 @@
 #define TRAY_W      120
 #define DIE_SIZE    100
 #define RAIL_GAP    80
-#define CHK_RADIUS  26
-#define CHK_STEP    48
+#define CHK_RADIUS  35
+#define CHK_STEP    70
 #define MAX_VIS     5
 #define RECT_LW     10
-#define CPU_STEP_US    2000000
-#define CPU_SETTLE_US  2000000
+#define CPU_STEP_US    1500000
+#define CPU_SETTLE_US   500000
 #define NOTICE_US      3000000
 
 #define EVID_NEW_GAME  100
@@ -37,8 +37,9 @@ static bool game_started;
 static bool end_program;
 static bool can_rst_mv;
 static char notice[80];
-static char *diff_str[2] = { "Easy", "Medium" };
+static char *diff_str[3] = { "Easy", "Medium", "Hard" };
 
+static bool cpu_can_move(board_t *b);
 static void new_game(void);
 static void draw_and_register(void);
 static void play_or_skip(void);
@@ -82,7 +83,7 @@ int main(int argc, char **argv)
     srandom(time(NULL));
 
     difficulty = (int)util_get_numeric_param(data_dir, "difficulty", DIFF_MEDIUM);
-    if (difficulty < DIFF_EASY || difficulty > DIFF_MEDIUM) {
+    if (difficulty < DIFF_EASY || difficulty > DIFF_HARD) {
         difficulty = DIFF_MEDIUM;
     }
 
@@ -108,7 +109,7 @@ int main(int argc, char **argv)
             new_game();
         } else if (evid == EVID_DIFF) {
             difficulty++;
-            if (difficulty > DIFF_MEDIUM) {
+            if (difficulty > DIFF_HARD) {
                 difficulty = DIFF_EASY;
             }
             util_set_numeric_param(data_dir, "difficulty", difficulty);
@@ -149,6 +150,35 @@ static void new_game(void)
     play_or_skip();
 }
 
+// A legal turn exists exactly when some remaining die has a step.
+// The full move list is built later, inside the CPU search.
+static bool cpu_can_move(board_t *b)
+{
+    step_list_t sl;
+    int i, j, die, already;
+
+    if (b->nremain <= 0) {
+        return false;
+    }
+    for (i = 0; i < b->nremain; i++) {
+        die = b->remain[i];
+        already = 0;
+        for (j = 0; j < i; j++) {
+            if (b->remain[j] == die) {
+                already = 1;
+            }
+        }
+        if (already) {
+            continue;
+        }
+        generate_steps(b, SIDE_CPU, die, &sl);
+        if (sl.max > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static void play_or_skip(void)
 {
     int winner, skips;
@@ -160,14 +190,36 @@ static void play_or_skip(void)
             announce_winner(winner);
             return;
         }
-        generate_next_steps(&board, board.side_to_move, &ui_pl);
-        if (!has_legal_play(&ui_pl)) {
-            if (board.side_to_move == SIDE_HUMAN) {
-                show_notice("No legal play");
-            } else {
+        if (board.side_to_move == SIDE_CPU) {
+            if (!cpu_can_move(&board)) {
                 show_notice("CPU has no play");
+                board.side_to_move = SIDE_HUMAN;
+                roll_turn_dice(&board);
+                skips++;
+                if (skips > 8) {
+                    return;
+                }
+                continue;
             }
-            board.side_to_move = other_side(board.side_to_move);
+            announce_turn();
+            do_cpu_turn();
+            winner = game_winner(&board);
+            if (winner >= 0) {
+                announce_winner(winner);
+                return;
+            }
+            if (end_program) {
+                return;
+            }
+            board.side_to_move = SIDE_HUMAN;
+            roll_turn_dice(&board);
+            skips = 0;
+            continue;
+        }
+        generate_next_steps(&board, SIDE_HUMAN, &ui_pl);
+        if (!has_legal_play(&ui_pl)) {
+            show_notice("No legal play");
+            board.side_to_move = SIDE_CPU;
             roll_turn_dice(&board);
             skips++;
             if (skips > 8) {
@@ -175,28 +227,13 @@ static void play_or_skip(void)
             }
             continue;
         }
-        if (board.side_to_move == SIDE_HUMAN) {
-            if (board.bar[SIDE_HUMAN] > 0) {
-                sel = FROM_BAR;
-            }
-            board_copy(&turn_start, &board);
-            can_rst_mv = false;
-            announce_turn();
-            return;
+        if (board.bar[SIDE_HUMAN] > 0) {
+            sel = FROM_BAR;
         }
+        board_copy(&turn_start, &board);
+        can_rst_mv = false;
         announce_turn();
-        do_cpu_turn();
-        winner = game_winner(&board);
-        if (winner >= 0) {
-            announce_winner(winner);
-            return;
-        }
-        if (end_program) {
-            return;
-        }
-        board.side_to_move = SIDE_HUMAN;
-        roll_turn_dice(&board);
-        skips = 0;
+        return;
     }
 }
 
