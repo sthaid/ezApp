@@ -5,12 +5,29 @@
 // - full review and update comments
 // - test the full 5000 photos
 // - add num_photos to Stg
-// - option to delete all photos
 
 #include "apps/Camera/common.h"
 
+// TEST mode will create MAX_PHOTOS test photo files; all the same photo.
+//
+// The purpose is to test the worst case, verifying:
+// - the Camera app work properly
+// - ezbackup and ezrestore function correctly
+//
+// To use this TEST:
+// - #define TEST
+// - mv photos photos_sv
+// - mkdir photos
+// - run the Camera app to create the test photos
+// - verify test photos have been created.
+// - comment out TEST, and run the Camera app
+// - comment out #define TEST when done
+
+//#define TEST
+
 // prototypes
-void init(void);
+int init(void);
+int create_test_photos(void);
 void cleanup(void);
 
 unsigned int *jpeg_file_to_rgba_pixels(char *dir, char *file, int *w, int *h);
@@ -33,7 +50,11 @@ int main(int argc, char **argv)
     printf("I %s: starting, data_dir=%s\n", progname, data_dir);
 
     // initialize
-    init();
+    int rc = init();
+    if (rc != 0) {
+        printf("E %s: init failed\n", progname);
+        return 1;
+    }
 
     // runtime
     while (!end_program) {
@@ -56,7 +77,8 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void init(void)
+
+int init(void)
 {
     int         num, cnt;
     char        cmd[200], s[100], metadata_filename[100];
@@ -69,6 +91,14 @@ void init(void)
 
     // init global variable photos_dir
     sprintf(photos_dir, "%s/photos", data_dir);
+
+#ifdef TEST
+    // if TEST mode enabled then create MAX_PHOTOS-1 test photos
+    int rc = create_test_photos();
+    if (rc != 0) {
+        return -1;
+    }
+#endif
 
     // initialize the photos array using sorted list of jpg 
     // files that are in the photos dir
@@ -113,7 +143,57 @@ void init(void)
 
     printf("I %s: init complete, max_photos = %d  duration = %ld ms\n", 
           progname, max_photos, (util_microsec_timer() - t_start) / 1000);
+    return 0;
 }
+
+#ifdef TEST
+int create_test_photos(void)
+{
+    void       *jpg;
+    metadata_t *md;
+    int         i, jpg_len, md_len, num_files;
+    char        filename[100];
+    FILE       *fp;
+
+    // read 000001.jpg/000001 from photos_sv dir
+    jpg = util_read_file("apps/Camera/photos_sv", "000001.jpg", &jpg_len);
+    md = util_read_file("apps/Camera/photos_sv", "000001.meta", &md_len);
+    if (jpg == NULL || md == NULL) {
+        printf("E %s: failed to read basis test files\n", progname);
+        free(jpg);
+        free(md);
+        return -1;
+    }
+    printf("I %s: jpg_len = %d md_len = %d\n", progname, jpg_len, md_len);
+
+    // sanity check that there are no files in the photos dir
+    num_files = -1;
+    fp = popen("/bin/ls -1 apps/Camera/photos | wc", "r");
+    fscanf(fp, "%d", &num_files);
+    pclose(fp);
+    if (num_files != 0) {
+        printf("E %s: num_files=%d should be 0, failing\n", progname, num_files);
+        free(jpg);
+        free(md);
+        return -1;
+    }
+
+    // loop over MAX_PHOTOS, creating test photos
+    for (i = 1; i < MAX_PHOTOS; i++) {
+        sprintf(filename, "%06d.jpg", i);
+        util_write_file(photos_dir, filename, jpg, jpg_len);
+
+        md->num = i;
+        sprintf(filename, "%06d.meta", i);
+        util_write_file(photos_dir, filename, md, md_len);
+    }
+
+    // free memory allocated
+    free(jpg);
+    free(md);
+    return 0;
+}
+#endif
 
 void cleanup(void)
 {

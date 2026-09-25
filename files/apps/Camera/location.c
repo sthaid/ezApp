@@ -66,6 +66,9 @@ int motioning_state;
 // photos display
 sdlx_texture_t *display_map_texture;
 
+// for rendering the photo thumbs
+sdlx_texture_t *thumb_texture;
+
 // used to adjust the map width
 #define MAX_MAP_W_MILES_TBL     12
 #define MAP_W_MILES_IDX_DEFAULT 8
@@ -76,6 +79,11 @@ double map_w_miles_tbl[MAX_MAP_W_MILES_TBL] = {
         1, 2, 5,
         10, 20, 50,
         100, 200, 500 };
+
+// flag indicating call to display_init is needed; 
+// don't want to call display_init unless needed because it takes many cpu cycles
+// to place the photos on the proper head list
+bool display_init_needed;
 
 //
 // prototypes
@@ -107,6 +115,9 @@ void location(void)
     map_location_init();
     map_w_miles_idx = MAP_W_MILES_IDX_DEFAULT;
     motioning_state = MOTIONING_OFF;
+    display_map_texture = sdlx_create_texture(MAP_W, MAP_H);
+    thumb_texture = sdlx_create_texture(THUMB, THUMB);
+    display_init_needed = true;
 
     // loop until either reqeusted to switch to gallery view, or end program
     while (!switch_view && !end_program) {
@@ -114,7 +125,10 @@ void location(void)
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
         // render the map and photos to the display
-        display_init();
+        if (display_init_needed) {
+            display_init();
+            display_init_needed = false;
+        }
         display_photos();
         display_map();
 
@@ -170,9 +184,11 @@ void location(void)
                 break;
             case EVID_TAKE:
                 take_photo();
+                display_init_needed = true;
                 break;
             case EVID_DEL:
                 del_mode = !del_mode;
+                display_init_needed = true;
                 break;
             case EVID_MOTION_BEGIN:
                 motioning_state = (event.u.motion_begin.y >= PHOTOS_Y 
@@ -190,6 +206,7 @@ void location(void)
                                          LAT2MILES;
                     map_longitude -= event.u.motion.xrel * (MAP_W_MILES / MAP_W) / 
                                          (LAT2MILES * map_lat_cosine);
+                    display_init_needed = true;
 
                     sanitize_map_lat_and_long();
 
@@ -215,15 +232,18 @@ void location(void)
             case EVID_MAP_SCALE_PLUS:
                 if (map_w_miles_idx < MAX_MAP_W_MILES_TBL-1) {
                     map_w_miles_idx++;
+                    display_init_needed = true;
                 }
                 break;
             case EVID_MAP_SCALE_MINUS:
                 if (map_w_miles_idx > 0) {
                     map_w_miles_idx--;
+                    display_init_needed = true;
                 }
                 break;
             case EVID_MAP_CENTER:
                 map_location_init();
+                display_init_needed = true;
                 break;
             case EVID_HOME:
                 y_top = 0;
@@ -248,10 +268,11 @@ void location(void)
         }
     }
 
-    if (display_map_texture) {
-        sdlx_destroy_texture(display_map_texture);
-        display_map_texture = NULL;
-    }
+    // cleanup
+    sdlx_destroy_texture(display_map_texture);
+    display_map_texture = NULL;
+    sdlx_destroy_texture(thumb_texture);
+    thumb_texture = NULL;
 }
 
 void map_location_init(void)
@@ -362,10 +383,6 @@ void display_map(void)
     char name[9];
     bool slctd;
 
-    if (display_map_texture == NULL) {
-        display_map_texture = sdlx_create_texture(MAP_W, MAP_H);
-    }
-
     sdlx_set_render_target(display_map_texture);
 
     sdlx_render_fill_rect(0, MAP_Y, MAP_W, MAP_H, COLOR_DARK_GRAY);
@@ -428,7 +445,6 @@ void display_photos(void)
     int i, num_selected_photos, max_y_top;
     node_t *node;
     int cnt = -1;
-    sdlx_texture_t *t;
     bool slctd[MAX_HEAD];
 
     for (i = 0; i < max_photos; i++) {
@@ -449,9 +465,6 @@ void display_photos(void)
     max_y_top = ((num_selected_photos + 1) / 2 - 2) * SPACING;
     if (y_top > max_y_top) y_top = max_y_top;
     if (y_top < 0) y_top = 0;
-
-    // create texture to display the thumb
-    t = sdlx_create_texture(THUMB, THUMB);
 
     // loop over map list heads
     for (i = 0; i < MAX_HEAD; i++) {
@@ -482,12 +495,12 @@ void display_photos(void)
                 continue;
             }
 
-            sdlx_set_texture_pixels(t, md->pixels);
+            sdlx_set_texture_pixels(thumb_texture, md->pixels);
             dest.x = x;
             dest.y = y - y_top + PHOTOS_Y;
             dest.w = THUMB;
             dest.h = THUMB;
-            sdlx_render_texture(t, NULL, &dest);
+            sdlx_render_texture(thumb_texture, NULL, &dest);
 
             // should be able to use 'idx = photo - photos;' 
             // however picoc does not handle that correctly, 
@@ -505,8 +518,6 @@ void display_photos(void)
                                    FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, "%s", md->date);
         }
     }
-
-    sdlx_destroy_texture(t);
 }
 
 // -----------------  UTILS  -------------------------------------

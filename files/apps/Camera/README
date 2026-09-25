@@ -1,5 +1,22 @@
-README TODO
-README TODO
-README TODO
-README TODO
-README TODO
+NAME: Cameras
+
+DESCRIPTION:
+
+To take a photo tap the white circle.
+This will bring up the Android Camera,
+finish taking the photo using Android
+Camera.
+
+Switch between Gallery and Location
+views by tapping View. When in Location
+view, the photos are orgznized by the
+location at which they were taken.
+
+Tap a photo and drag or pinch to pan
+and zoom.
+
+Tap Del to enable deletion of photos.
+Then, to actually delete a photo, tap
+the red X at the upper right of the
+photo.
+
