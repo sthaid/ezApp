@@ -492,7 +492,7 @@ void display_photos(void)
                 continue;
             }
             if (y > y_top + PHOTOS_H) {
-                continue;
+                break;
             }
 
             sdlx_set_texture_pixels(thumb_texture, md->pixels);

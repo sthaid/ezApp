@@ -240,6 +240,11 @@ void sdlx_get_event(long timeout_us, sdlx_event_t *event)
         return;
     }
 
+    // xxx comment this
+    if (timeout_us == -1) {
+        timeout_us = 1000000;
+    }
+
 try_again:
     // preset return sdlx event 
     memset(event, 0, sizeof(*event));
