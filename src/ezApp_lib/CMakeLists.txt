@@ -14,6 +14,7 @@ set(LIB_SRCS
     utils_openssl.c
     utils_android.cpp
     utils_jpeg_decode.c
+    profile.c
     logging.c
     run.c
 )

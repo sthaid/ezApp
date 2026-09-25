@@ -12,6 +12,7 @@
 
 #include <sdlx.h>
 #include <utils.h>
+#include <profile.h>
 
 #include "apps/Test/common.h"
 #include "lib/lib.h"
@@ -91,6 +92,10 @@ static void page_15_draw(void);
 static void page_15_process_event(sdlx_event_t *event);
 static void page_15_exit(void);
 
+static void page_16_init(void);
+static void page_16_draw(void);
+static void page_16_exit(void);
+
 // -----------------  MAIN  ------------------------------------------
 
 int main(int argc, char **argv)
@@ -164,6 +169,7 @@ char *page_title[] = {     // Page
         "SvcMakeReq",      //  13
         "Camera",          //  14
         "Pinch",           //  15
+        "Profile",         //  16
             };
 static int pagenum = 0;
 
@@ -188,6 +194,7 @@ static void page_hndlr()
     case 13: page_13_init(); break;
     case 14: page_14_init(); break;
     case 15: page_15_init(); break;
+    case 16: page_16_init(); break;
     }
 
     while (true) {
@@ -227,6 +234,7 @@ static void page_hndlr()
         case 13: page_13_draw(); break;
         case 14: page_14_draw(); break;
         case 15: page_15_draw(); break;
+        case 16: page_16_draw(); break;
         default:
             printf("E %s: invalid pagenum %d\n", progname, pagenum);
             end_program = true;
@@ -306,6 +314,7 @@ static void page_hndlr()
     case 13: page_13_exit(); break;
     case 14: page_14_exit(); break;
     case 15: page_15_exit(); break;
+    case 16: page_16_exit(); break;
     }
 
     // update pagenum
@@ -1849,4 +1858,59 @@ static void page_15_process_event(sdlx_event_t *ev)
         pg15_focus_y += ev->u.motion.yrel;
         break;
     }
+}
+
+// -----------------  PAGE 16: PROFILE  -----------------------
+
+bool profile_test_done;
+bool profile_test_failed;
+
+static void page_16_init(void)
+{
+    profile_test_done = false;
+    profile_test_failed = false;
+}
+
+static void page_16_draw(void)
+{
+    long   start;
+    int    rc, sum=0;
+    double duration;
+
+    if (profile_test_done) {
+        sdlx_render_printf(0, sdlx_win_height/2, "View results in log");
+        return;
+    } else if (profile_test_failed) {
+        sdlx_render_printf(0, sdlx_win_height/2, "Test failed");
+        return;
+    }
+
+    sdlx_render_printf(0, sdlx_win_height/2, "Gathering data");
+    sdlx_display_present();
+
+    start = util_microsec_timer();
+    rc = profile_start();
+    if (rc != 0) {
+        printf("E %s: profile_start failed\n", progname);
+        profile_test_failed = true;
+        return;
+    }
+
+    do { 
+        for (int i = 0; i < 1000; i++) sum++;
+        for (int i = 0; i < 2000; i++) sum++;
+        for (int i = 0; i < 4000; i++) sum++;
+
+        duration = (util_microsec_timer() - start) / 1000000.0;
+        profile_test_done = (duration > 5);
+    } while (!profile_test_done);
+
+    // print results containing counts that are greater than 
+    // 10 percent of the max count
+    profile_stop(10);
+}
+
+static void page_16_exit(void)
+{
+    // nothing needed here
 }

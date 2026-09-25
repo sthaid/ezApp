@@ -16,7 +16,9 @@ struct StdVararg
 int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut,
     int StrOutLen, char *Format, struct StdVararg *Args);
 
-// -----------------  SDL PLATFORM ROUTINES  ----------------------------
+// ---------------------------------------------------------------------
+// -----------------  SDL PLATFORM ROUTINES  ---------------------------
+// ---------------------------------------------------------------------
 
 //
 // init & quit
@@ -691,7 +693,7 @@ void Sdlx_vibrate(struct ParseState *Parser, struct Value *ReturnValue,
     sdlx_vibrate(strength, duration_ms);
 }
 
-// -----------------  SDL REGISTRATION  ---------------------------------
+// - - - - - - SDL REGISTRATION - - - - - - - 
 
 void SdlSetupFunction(Picoc *pc)
 {
@@ -935,7 +937,9 @@ typedef struct { \n\
 } sdlx_event_t; \n\
 ";
 
+// ----------------------------------------------------------------------
 // -----------------  UTILS PLATFORM ROUTINES  --------------------------
+// ----------------------------------------------------------------------
 
 //
 // utils time routines
@@ -1456,7 +1460,7 @@ void Util_decode_jpeg_to_raw(struct ParseState *Parser, struct Value *ReturnValu
     ReturnValue->Val->Integer = rc;
 }
 
-// -----------------  UTILS REGISTRATION  -------------------------------
+// - - - - - - UTILS REGISTRATION - - - - - - -
 
 void UtilsSetupFunction(Picoc *pc)
 {
@@ -1552,7 +1556,9 @@ typedef struct { \n\
 } complex_t; \n\
 ";
 
+// ---------------------------------------------------------------------
 // -----------------  SVCS PLATFORM ROUTINES  --------------------------
+// ---------------------------------------------------------------------
 
 //
 // make service request routine, called by apps
@@ -1604,7 +1610,7 @@ void Svc_req_completed(struct ParseState *Parser, struct Value *ReturnValue,
     svc_req_completed(svc_name, req, comp_status);
 }
 
-// -----------------  SVCS REGISTRATION  -------------------------------
+// - - - - - - SVCS REGISTRATION - - - - - - -
 
 void SvcsSetupFunction(Picoc *pc)
 {
@@ -1638,7 +1644,9 @@ typedef struct { \n\
 } svc_req_t; \n\
 ";
 
-// -----------------  PROFILE -------------------------------------------
+// ---------------------------------------------------------------------
+// ----------------- PROFILE PLATFORM ROUTINES -------------------------
+// ---------------------------------------------------------------------
 
 #define STOPPED 0
 #define RUNNING 1
@@ -1654,9 +1662,10 @@ typedef struct {
     struct ParseState *Parser;
     int profile_thread_state;
     pthread_mutex_t mutex;
+    unsigned int max_count;
     struct {
         char base_name[100];
-        int  count[MAX_LINE];
+        unsigned int count[MAX_LINE];
     } file[MAX_FILE];
 } cx_t ;
 
@@ -1718,10 +1727,14 @@ static void *profile_thread(void *cx_arg)
             }
         }
 
-        // increment hit counter for the specified line number
+        // increment counter for the currently executing file and line number
         line = parser->Line;
         if (line > 0 && line < MAX_LINE) {
             cx->file[idx].count[line]++;
+            // keep track of max_count
+            if (cx->file[idx].count[line] > cx->max_count) {
+                cx->max_count = cx->file[idx].count[line];
+            }
         } else {
             printf("ERROR %s: line %d out of range\n", __func__, line);
         }
@@ -1755,7 +1768,7 @@ void profile_set_parser(struct ParseState *Parser)
     MUTEX_UNLOCK;
 }
 
-// - - - - - - - - -  API  - - - - - - - - - - - 
+// - - - - - - PROFILE API - - - - - - -
 
 void Profile_start(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
@@ -1794,7 +1807,7 @@ void Profile_start(struct ParseState *Parser, struct Value *ReturnValue,
 void Profile_stop(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    int filter = Param[0]->Val->Integer;
+    int filter_percent = Param[0]->Val->Integer;
     Picoc *pc;
 
     // if PlatformLibraryCx is NULL then error because 
@@ -1812,19 +1825,23 @@ void Profile_stop(struct ParseState *Parser, struct Value *ReturnValue,
         usleep(1000);
     }
 
-    // print results
+    // print results;
+    // count values are printed only if they exceed filter_percent of max_count
+    printf("profile results ...\n");
+    unsigned int filter_count = nearbyint(cx->max_count * (filter_percent / 100.0));
     for (int i = 0; i < MAX_FILE; i++) {
         char *base_name = cx->file[i].base_name;
-        int  *count     = cx->file[i].count;
+        unsigned int  *count = cx->file[i].count;
         if (base_name[0] == '\0') {
             break;
         }
         for (int j = 0; j < MAX_LINE; j++) {
-            if (count[j] > filter) {
-                printf("%s %d - %d\n", base_name, j, count[j]);
+            if (count[j] > filter_count) {
+                printf("%s %d - %u\n", base_name, j, count[j]);
             }
         }
     }
+    printf("profile results end\n");
 
     // final cleanup
     pthread_mutex_destroy(&cx->mutex);
@@ -1832,7 +1849,7 @@ void Profile_stop(struct ParseState *Parser, struct Value *ReturnValue,
     pc->PlatformLibraryCx = NULL;
 }
 
-// - - - - - - - REGISTRATION - - - - - - - - - 
+// - - - - - - PROFILE REGISTRATION - - - - - - -
 
 void ProfileSetupFunction(Picoc *pc)
 {
@@ -1846,7 +1863,9 @@ struct LibraryFunction ProfileFunctions[] = {
 const char ProfileDefs[] = "\
 ";
 
+// ----------------------------------------------------------------------
 // -----------------  PLATFORM INIT PROC  -------------------------------
+// ----------------------------------------------------------------------
 
 void PlatformLibraryInit(Picoc *pc)
 {
