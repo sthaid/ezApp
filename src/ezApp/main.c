@@ -428,7 +428,7 @@ static void display_menu(void)
 
     for (int i = first; i <= last; i++) {
         char     *name = apps[i];
-        char      s1[10], s2[10];
+        char      s1[15], s2[15];
         int       len, l1, l2, lmax, x, y, fontid;
         double    chw, chh;
         sdlx_loc_t loc;
@@ -440,7 +440,7 @@ static void display_menu(void)
 
         // break app name into one or two strings, depending the name length
         len  = strlen(name);
-        if (len > 8) len = 8;
+        if (len > 10) len = 10;
         if (len <= 4) {
             l1 = len;
             l2 = 0;
