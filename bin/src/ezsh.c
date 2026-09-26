@@ -1,4 +1,3 @@
-// xxx print when connected,  also try to reestablish connection
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -30,11 +29,16 @@
 // defines
 //
 
+#define MB 0x100000L
+#define GB (1024 * MB)
+
 #define DEFAULT_PORT 9000
 
 #define NOT_A_SPECIAL_CMD -9999
 
 #define MAX_ALIAS 500
+
+#define STATUS_UNKNOWN 99
 
 //
 // typedefs
@@ -63,25 +67,45 @@ char    cwd_initial[200];
 alias_t alias_tbl[MAX_ALIAS];
 int     max_alias;
 
-// fp used to communicate to server process running on android
+// used to communicate to server process running on android
 FILE   *sockfp;
 int     sockfd = -1;
-bool    socket_is_shutdown;
+bool    recon_needed;
 
 // used when ctrl-c a running cmd
 sigset_t sigset;
-jmp_buf  err_jmp_buf;
 
-// -----------------  MAIN  -------------------------------------------------
+//
+// global prototypes
+//
 
 int display_help(void);
 void remove_leading_and_trailing_spaces_and_newline(char *s);
 void connect_to_android(void);
-char *get_str_con_to_android(FILE *fp, char *s, int s_len);
 void read_ezsh_alias(void);
 void substitue_alias(char *cmdline);
 void *sig_hndlr_thread(void *cx);
+
 int run_cmd(char *cmdline);
+
+int run_android_cmd(char *cmdline);
+int run_android_put_cmd(char *src, char *dest);
+int run_android_get_cmd(char *src, char *dest);
+
+int run_special_cmd(char *cmdline);
+int special_cmd_cd(char *path);
+int special_cmd_pwd(void);
+int special_cmd_alias(void);
+int special_cmd_vi(char *android_path);
+int special_cmd_local(char *cmdline);
+
+int get_str(FILE *fp, char *s, int s_len);
+int put_fmt(FILE *fp, char *fmt, ...);
+long file_size(char *path);
+void print_cmd_status(int status, char *cmdline);
+int copy(FILE *dest_fp, FILE *src_fp, long data_len);
+
+// -----------------  MAIN  -------------------------------------------------
 
 int main(int argc, char **argv)
 {
@@ -294,9 +318,8 @@ void remove_leading_and_trailing_spaces_and_newline(char *s)
 
 void connect_to_android(void)
 {
-    int             ret, len;
-    char            response[200];
-    char            port_str[30];
+    int             rc, len;
+    char            response[200], port_str[30];
     struct addrinfo hints, *result;
     unsigned char  *ssl_key;
     ssl_payload_t   ssl_payload;
@@ -305,11 +328,14 @@ void connect_to_android(void)
 
     // if socket has benn shutdown then close sockfp;
     // closing sockfp implicitely closes sockfd
-    if (socket_is_shutdown) {
-        if (sockfp) fclose(sockfp);
+    if (recon_needed) {
+        if (sockfp) {
+            shutdown(sockfd, SHUT_RDWR);
+            fclose(sockfp);
+        }
         sockfp = NULL;
         sockfd = -1;
-        socket_is_shutdown = false;
+        recon_needed = false;
     }
 
     // if already connected then return
@@ -320,7 +346,7 @@ void connect_to_android(void)
     // create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
-        printf("ERROR: socket\n");
+        printf("ERROR: socket, %s\n", strerror(errno));
         exit(1);
     }
 
@@ -333,15 +359,15 @@ void connect_to_android(void)
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     sprintf(port_str, "%d", port);
-    ret = getaddrinfo(hostname, port_str, &hints, &result);
-    if (ret != 0) {
+    rc = getaddrinfo(hostname, port_str, &hints, &result);
+    if (rc != 0) {
         printf("ERROR: getaddrinfo %s:%s, %s\n", hostname, port_str, strerror(errno));
         exit(1);
     }
 
     // connect to android
     struct sockaddr_in *ipv4 = (struct sockaddr_in *)result[0].ai_addr;
-    if (!quiet && first_call) {
+    if (!quiet) {
         char *ipaddr_str = inet_ntoa(ipv4->sin_addr);
         if (strncmp(hostname, ipaddr_str, strlen(hostname)) != 0) {
             printf("connecting to %s - %s:%s\n", hostname, ipaddr_str, port_str);
@@ -349,8 +375,8 @@ void connect_to_android(void)
             printf("connecting to %s:%s\n", ipaddr_str, port_str);
         }
     }
-    ret = connect(sockfd, result[0].ai_addr, result[0].ai_addrlen);
-    if (ret != 0) {
+    rc = connect(sockfd, result[0].ai_addr, result[0].ai_addrlen);
+    if (rc != 0) {
         printf("ERROR: connect %s:%s, %s\n", hostname, port_str, strerror(errno));
         exit(1);
     }
@@ -366,19 +392,23 @@ void connect_to_android(void)
         printf("ERROR: ssl_keygen failed\n");
         exit(1);
     }
-    ret = ssl_encrypt(ssl_key, password, &ssl_payload);
-    if (ret != 0) {
+    rc = ssl_encrypt(ssl_key, password, &ssl_payload);
+    if (rc != 0) {
         printf("ERROR: ssl_encrypt failed\n");
         exit(1);
     }
-    ret = fwrite(&ssl_payload, 1, sizeof(ssl_payload), sockfp);
-    if (ret != sizeof(ssl_payload)) {
+    rc = fwrite(&ssl_payload, 1, sizeof(ssl_payload), sockfp);
+    if (rc != sizeof(ssl_payload)) {
         printf("ERROR: failed to send encrypted password\n");
         exit(1);
     }
 
     // read response, verify password was accepted
-    get_str_con_to_android(sockfp, response, sizeof(response));
+    rc = get_str(sockfp, response, sizeof(response));
+    if (rc != 0) {
+        printf("ERROR: failed to connect\n");
+        exit(1);
+    }
     if (strcmp(response, "password okay") != 0) {
         printf("ERROR: %s\n", response);
         exit(1);   
@@ -386,7 +416,11 @@ void connect_to_android(void)
 
     if (first_call) {
         // get the ezApp current working dir
-        get_str_con_to_android(sockfp, cwd, sizeof(cwd));
+        rc = get_str(sockfp, cwd, sizeof(cwd));
+        if (rc != 0) {
+            printf("ERROR: failed to connect\n");
+            exit(1);
+        }
 
         // ensure cwd includes terminating '/'
         len = strlen(cwd);
@@ -403,29 +437,17 @@ void connect_to_android(void)
         first_call = false;
     } else {
         char cwd_throw_away[200];
-        get_str_con_to_android(sockfp, cwd_throw_away, sizeof(cwd_throw_away));
-    }
-}
-
-char *get_str_con_to_android(FILE *fp, char *s, int s_len)
-{
-    char *p;
-    int len;
-
-    s[0] = '\0';
-
-    p = fgets(s, s_len, fp);
-    if (p == NULL) {
-        printf("ERROR: lost connection to android, ezsh terminating\n");
-        exit(1);
+        rc = get_str(sockfp, cwd_throw_away, sizeof(cwd_throw_away));
+        if (rc != 0) {
+            printf("ERROR: failed to connect\n");
+            exit(1);
+        }
     }
 
-    len = strlen(s);
-    if (len > 0 && s[len-1] == '\n') {
-        s[len-1] = '\0';
+    // print that connection is established
+    if (!quiet) {
+        printf("connected\n");
     }
-
-    return s;
 }
 
 void read_ezsh_alias(void)
@@ -509,39 +531,14 @@ void *sig_hndlr_thread(void *cx)
 
     while (true) {
         sigwait(&sigset, &sig);
-        socket_is_shutdown = true;
         shutdown(sockfd, SHUT_RDWR);
+        recon_needed = true;
     }
 
     return NULL;
 }
 
 // -----------------  RUN CMD  ---------------------------
-
-#define ANDROID_ERROR \
-    do { \
-        printf("\nERROR %s line %d\n\n", __func__, __LINE__); \
-        longjmp(err_jmp_buf, 1); \
-    } while (0)
-
-int run_special_cmd(char *cmdline);
-int special_cmd_put(char *src, char *dest);
-int special_cmd_get(char *src, char *dest);
-int special_cmd_quiesced(char *src, char *dest);
-int special_cmd_cd(char *path);
-int special_cmd_pwd(void);
-int special_cmd_alias(void);
-int special_cmd_vi(char *android_path);
-int special_cmd_local(char *cmdline);
-
-int run_cmd_on_android(char *cmdline, char *short_cmdline,
-                       char *data_out, int data_out_len,
-                       char **data_in, int *data_in_len);
-
-void put_fmt(FILE *fp, char *fmt, ...);
-char *get_str(FILE *fp, char *s, int s_len);
-int read_file(char *fn, void **buf, int *buf_len);
-int write_file(char *fn, void *buf, int len);
 
 // retcode values:
 // . = 0  : success
@@ -550,22 +547,17 @@ int write_file(char *fn, void *buf, int len);
 
 int run_cmd(char *cmdline)
 {
-    int status;
-    char cd_plus_cmdline[1000];
+    int  status;
+    char cd_plus_cmdline[500];
 
     // check for empty cmdline; this should never happen
     if (cmdline[0] == '\0') {
-        printf("ERROR: %s, cmdline is empty\n", __func__);
+        printf("ERROR: cmdline is empty\n");
         return -EINVAL;
     }
 
     // connect to android device, this does nothing if already connected
     connect_to_android();
-
-    // set target for error longjmp
-    if (setjmp(err_jmp_buf) == 1) {
-        return -ENOTCONN;
-    }
 
     // first try running cmdline using run_special_cmd;
     // if the cmdline is not a special cmd the NOT_A_SPECIAL_CMD status is returned
@@ -574,167 +566,58 @@ int run_cmd(char *cmdline)
         return status;
     }
 
-    // it wasn't a special cmd; try running the cmd on android
+    // it wasn't a special cmd, run the cmd on Android
     sprintf(cd_plus_cmdline, "cd %s; %s", cwd, cmdline);
-    status = run_cmd_on_android(cd_plus_cmdline, cmdline, NULL, 0, NULL, 0);
+    status = run_android_cmd(cd_plus_cmdline);
     return status;
 }
 
-// - - - - - - - - -  run cmd on android - - - - - - - - - - - - 
+// -----------------  RUN CMDS ON ANDROID  ---------------
 
-int run_cmd_on_android(char *cmdline, char *short_cmdline,
-                       char *data_out, int data_out_len,
-                       char **data_in, int *data_in_len)
+// This routine is used to run all commands on Android, except for the
+// get and put cmds. The get and put cmds are used to transfer files to/from
+// the Android device, and they have unique requirements.
+int run_android_cmd(char *cmdline)
 {
-    char  s[200];
-    char *p;
-    int   rc;
-    int   status = 99;
+    int  rc, status;
+    char s[500], *p;
 
-    // preset returned values
-    if (data_in != NULL) {
-        *data_in = NULL;
-        *data_in_len = 0;
+    // send cmdline to Android
+    rc = put_fmt(sockfp, "run\n%s\n", cmdline);
+    if (rc != 0) {
+        printf("ERROR: failed to send cmd to Android, %s\n", strerror(errno));
+        recon_needed = true;
+        return -EINVAL;
     }
 
-    // send 'run' and cmdline to android
-    put_fmt(sockfp, "run\n");
-    put_fmt(sockfp, "%s\n", cmdline);
-
-    // if data_out is provided then send data buffer to android 
-    if (data_out != NULL) {
-        put_fmt(sockfp, "data_len %d\n", data_out_len);
-
-        rc = fwrite(data_out, 1, data_out_len, sockfp);
-        if (rc != data_out_len) {
-            ANDROID_ERROR;
+    // get cmd output from android, and print;
+    // check for cmd completion, break out of loop when CMD_COMPLETE received
+    status = STATUS_UNKNOWN;
+    while (true) {
+        rc = get_str(sockfp, s, sizeof(s));
+        if (rc != 0) {
+            printf("ERROR: failed to receive response from Android, %s\n", strerror(errno));
+            recon_needed = true;
+            return -EINVAL;
         }
 
-        get_str(sockfp, s, sizeof(s));
-        if (strncmp(s, "CMD_COMPLETE ", 13) != 0) {
-            ANDROID_ERROR;
-        }
-        sscanf(s+13, "%d", &status);
-
-    // if data_in is provided then recv data buffer from adnroid
-    } else if (data_in != NULL) {
-        static char *buf;
-        int          buf_len;
-
-        // Prior execution of this code may have leaked buf.
-        // This can happen if 2nd call to get_str had an eror, and longjmps.
-        // If buf is non NULL then get_str error had previously occurred, so free buf.
-        if (buf != NULL) {
-            free(buf);
-            buf = NULL;
-        }
-
-        // get buf_len from android
-        get_str(sockfp, s, sizeof(s));
-        if (sscanf(s, "data_len %d", &buf_len) != 1) {
-            ANDROID_ERROR;
-        }
-
-        // allocate buf
-        buf = malloc(buf_len);
-
-        // read data from android
-        rc = fread(buf, 1, buf_len, sockfp);
-        if (rc != buf_len) {
-            free(buf);
-            buf = NULL;
-            ANDROID_ERROR;
-        }
-
-        // read cmd completion string from android
-        get_str(sockfp, s, sizeof(s));
-        if (strncmp(s, "CMD_COMPLETE ", 13) != 0) {
-            free(buf);
-            buf = NULL;
-            ANDROID_ERROR;
-        }
-
-        // return data to caller; caller must free data
-        *data_in = buf;
-        *data_in_len = buf_len;
-        buf = NULL;
-
-        // parse the status returned from android
-        sscanf(s+13, "%d", &status);
-
-    // otherwise android will have run this cmd using popen;
-    // read and print the provided output from popen
-    } else {
-        while (true) {
-            // get string from android, and print
-            get_str(sockfp, s, sizeof(s));
-
-            // check for cmd complete, and parse status
-            if ((p = strstr(s, "CMD_COMPLETE "))) {
-                sscanf(p+13, "%d", &status);
-                *p = '\0';
-                if (strlen(s) > 0) {
-                    printf("%s\n", s);
-                }
-                break;
+        if ((p = strstr(s, "CMD_COMPLETE "))) {
+            sscanf(p+13, "%d", &status);
+            *p = '\0';
+            if (strlen(s) > 0) {
+                printf("%s\n", s);
             }
-
-            printf("%s\n", s);
+            break;
         }
+
+        printf("%s\n", s);
     }
 
-    // print status
-    // - status == 0 : success
-    // - status > 0  : is an exitcode from the cmdline executed on android
-    // - status < 0  : is an errno
-    if (status == 0) {
-        // success
-    } else if (status > 0) {
-        if (status == 127) {
-            printf("ezsh: Command '%s' not found.\n", short_cmdline);
-        } else {
-            printf("ERROR: exit_status %d\n", status);
-        }
-    } else if (status < 0) {
-        printf("ERROR: %s\n", strerror(-status));
-    }
+    // print response status from Android
+    print_cmd_status(status, cmdline);
 
     // return status
     return status;
-}
-
-// - - - - - - - - -  run special cmd  - - - - - - - - - - - - - 
-
-int run_special_cmd(char *cmdline)
-{
-    char cmd[200], arg1[200], arg2[200];
-
-    // extract cmd, arg1, and arg2 from cmdline
-    cmd[0] = arg1[0] = arg2[0] = '\0';
-    sscanf(cmdline, "%s %s %s", cmd, arg1, arg2);
-
-    // process special cmds
-    if (strcmp(cmd, "cd") == 0) {
-        return special_cmd_cd(arg1);
-    } else if (strcmp(cmd, "pwd") == 0) {
-        return special_cmd_pwd();
-    } else if (strcmp(cmd, "alias") == 0) {
-        return special_cmd_alias();
-    } else if (strcmp(cmd, "put") == 0) {
-        return special_cmd_put(arg1, arg2);
-    } else if (strcmp(cmd, "get") == 0) {
-        return special_cmd_get(arg1, arg2);
-    } else if (strcmp(cmd, "quiesced") == 0) {
-        return special_cmd_quiesced(arg1, arg2);
-    } else if (strcmp(cmd, "vi") == 0) {
-        return special_cmd_vi(arg1);
-    } else if (strcmp(cmd, "local") == 0) {
-        return special_cmd_local(cmdline);
-    } else if (strcmp(cmd, "help") == 0) {
-        return display_help();
-    } else {
-        return NOT_A_SPECIAL_CMD;
-    }
 }
 
 // copy file to android:
@@ -742,19 +625,30 @@ int run_special_cmd(char *cmdline)
 // - dest: path to dest file or dest dir on android,
 //   . will be prepended with cwd
 //   . may be empty str
-int special_cmd_put(char *src, char *dest)
+int run_android_put_cmd(char *src, char *dest)
 {
-    char  cmdline[1000];
-    char  temp[200];
-    char  dest_path[200];
-    char *src_filename;
-    void *data;
-    int   data_len;
-    int   status;
+    char  temp[200], dest_path[200], *src_filename, s[100];
+    long  data_len;
+    int   rc, status;
+    FILE *filefp = NULL;
 
     // src is required
     if (src[0] == '\0') {
-        printf("ERROR: %s, src arg required\n", __func__);
+        printf("ERROR: src arg required\n");
+        return -EINVAL;
+    }
+
+    // get size of src file
+    data_len = file_size(src);
+    if (data_len == 0) {
+        printf("ERROR: failed to get file_size of %s, %s\n", src, strerror(errno));
+        return -EINVAL;
+    }
+
+    // open src file for reading
+    filefp = fopen(src, "r");
+    if (filefp == NULL) {
+        printf("ERROR: failed to open %s for reading, %s\n", src, strerror(errno));
         return -EINVAL;
     }
 
@@ -769,19 +663,46 @@ int special_cmd_put(char *src, char *dest)
         sprintf(dest_path, "%s%s", cwd, dest);
     }
 
-    // read src file
-    status = read_file(src, &data, &data_len);
-    if (status != 0) {
-        printf("ERROR: %s, failed to read_file %s\n", __func__, src);
-        return status;
+    // send the cmd and data_len to Android
+    rc = put_fmt(sockfp,
+                 "run\n"
+                 "put %s %s\n"
+                 "data_len %ld\n",
+                 dest_path, src_filename, data_len);
+    if (rc != 0) {
+        printf("ERROR: failed to send cmd to Android, %s\n", strerror(errno));
+        fclose(filefp);
+        recon_needed = true;
+        return -EINVAL;
     }
 
-    // run 'put <dest_path> <src_filename>' on android
-    sprintf(cmdline, "put %s %s", dest_path, src_filename);
-    status = run_cmd_on_android(cmdline, cmdline, data, data_len, NULL, 0);
+    // copy the file data to Android
+    rc = copy(sockfp, filefp, data_len);
+    fclose(filefp);
+    filefp = NULL;
+    if (rc != 0) {
+        printf("ERROR: failed to copy file data to Android, %s\n", strerror(errno));
+        recon_needed = true;
+        return -EINVAL;
+    }
+    
+    // get response from Android
+    rc = get_str(sockfp, s, sizeof(s));
+    if (rc != 0) {
+        printf("ERROR: failed to receive status from Android, %s\n", strerror(errno));
+        recon_needed = true;
+        return -EINVAL;
+    }
+    if (strncmp(s, "CMD_COMPLETE ", 13) != 0) {
+        printf("ERROR: failed to receive status from Android, %s\n", strerror(errno));
+        recon_needed = true;
+        return -EINVAL;
+    }
+    status = STATUS_UNKNOWN;
+    sscanf(s+13, "%d", &status);
 
-    // free data
-    free(data);
+    // print response from Android
+    print_cmd_status(status, "put");
 
     // return status
     return status;
@@ -791,16 +712,17 @@ int special_cmd_put(char *src, char *dest)
 // - src: path to src file on android
 // - dest: path to dest file or dest dir on develsys,
 //   . if empty str then will be replaced with "."
-int special_cmd_get(char *src, char *dest)
+int run_android_get_cmd(char *src, char *dest)
 {
-    char  src_path[200], dest_path[200], cmdline[1000];
+    char  src_path[200], dest_path[200], s[100];
     DIR  *dir;
-    int   status, data_len;
-    char *data;
+    int   status, rc;
+    long  data_len;
+    FILE *filefp;
 
     // src is required
     if (src[0] == '\0') {
-        printf("ERROR: %s, src arg required\n", __func__);
+        printf("ERROR: src arg required\n");
         return -EINVAL;
     }
 
@@ -833,39 +755,111 @@ int special_cmd_get(char *src, char *dest)
     }
 
     // debug print
-    //printf("src_path '%s'\n", src_path);
+    //printf("src_path  '%s'\n", src_path);
     //printf("dest_path '%s'\n", dest_path);
 
-    // run 'get <src_path>' on android
-    sprintf(cmdline, "get %s", src_path);
-    status = run_cmd_on_android(cmdline, cmdline, NULL, 0, &data, &data_len);
-    if (status != 0) {
-        printf("ERROR: %s, failed to get file %s from Android\n", __func__, src_path);
-        free(data);
-        return status;
+    // open dest path for writing
+    filefp = fopen(dest_path, "w");
+    if (filefp == NULL) {
+        printf("ERROR: failed to open %s for writing, %s\n", dest_path, strerror(errno));
+        return -EINVAL;
     }
 
-    // write file to dest_path on devel computer
-    status = write_file(dest_path, data, data_len);
-    if (status != 0) {
-        printf("ERROR: %s, failed to write file %s to devel computer\n", __func__, dest_path);
-        free(data);
-        return status;
+    // send the cmd to Android
+    rc = put_fmt(sockfp,
+                 "run\n"
+                 "get %s\n",
+                 src_path);
+    if (rc != 0) {
+        printf("ERROR: failed to send cmd to Android, %s\n", strerror(errno));
+        fclose(filefp);
+        recon_needed = true;
+        return -EINVAL;
     }
 
-    // free data, and return status
-    free(data);
+    // read data_len from Android
+    s[0] = '\0';
+    rc = get_str(sockfp, s, sizeof(s));
+    if (rc != 0) {
+        printf("ERROR: failed to recv data_len from Android, %s\n", strerror(errno));
+        fclose(filefp);
+        recon_needed = true;
+        return -EINVAL;
+    }
+    if (sscanf(s, "data_len %ld", &data_len) != 1) {
+        printf("ERROR: failed to recv data_len from Android\n");
+        fclose(filefp);
+        recon_needed = true;
+        return -EINVAL;
+    }
+
+    // copy the file data provided from Android to the dest_path file on devel PC
+    rc = copy(filefp, sockfp, data_len);
+    fclose(filefp);
+    filefp = NULL;
+    if (rc != 0) {
+        printf("ERROR: failed to copy file data to Android, %s\n", strerror(errno));
+        recon_needed = true;
+        return -EINVAL;
+    }
+
+    // get response from Android
+    rc = get_str(sockfp, s, sizeof(s));
+    if (rc != 0) {
+        printf("ERROR: failed to recv status from Android, %s\n", strerror(errno));
+        recon_needed = true;
+        return -EINVAL;
+    }
+    if (strncmp(s, "CMD_COMPLETE ", 13) != 0) {
+        printf("ERROR: failed to recv status from Android, %s\n", strerror(errno));
+        recon_needed = true;
+        return -EINVAL;
+    }
+    status = STATUS_UNKNOWN;
+    sscanf(s+13, "%d", &status);
+
+    // print response from Android
+    print_cmd_status(status, "get");
+
+    // return status
     return status;
 }
 
-// returns 0 if ezApp currently has no app and no svcs running
-int special_cmd_quiesced(char *src, char *dest)
-{
-    char *cmdline = "quiesced";
-    int status;
+// -----------------  RUN SPECIAL CMD --------------------
 
-    status = run_cmd_on_android(cmdline, cmdline, NULL, 0, NULL, 0);
-    return status;
+int run_special_cmd(char *cmdline)
+{
+    char cmd[200], arg1[200], arg2[200];
+
+    // extract cmd, arg1, and arg2 from cmdline
+    cmd[0] = arg1[0] = arg2[0] = '\0';
+    sscanf(cmdline, "%s %s %s", cmd, arg1, arg2);
+
+    // process special cmds
+    if (strcmp(cmd, "cd") == 0) {
+        return special_cmd_cd(arg1);
+    } else if (strcmp(cmd, "pwd") == 0) {
+        return special_cmd_pwd();
+    } else if (strcmp(cmd, "alias") == 0) {
+        return special_cmd_alias();
+    } else if (strcmp(cmd, "local") == 0) {
+        return special_cmd_local(cmdline);
+    } else if (strcmp(cmd, "vi") == 0) {
+        return special_cmd_vi(arg1);
+
+    } else if (strcmp(cmd, "put") == 0) {
+        return run_android_put_cmd(arg1, arg2);
+    } else if (strcmp(cmd, "get") == 0) {
+        return run_android_get_cmd(arg1, arg2);
+    } else if (strcmp(cmd, "quiesced") == 0) {
+        return run_android_cmd(cmd);
+
+    } else if (strcmp(cmd, "help") == 0) {
+        return display_help();
+
+    } else {
+        return NOT_A_SPECIAL_CMD;
+    }
 }
 
 // this routine updates cwd; and will always terminate cwd with '/'.
@@ -922,12 +916,12 @@ int special_cmd_cd(char *path)
         strcat(new_cwd, "/");
     }
 
-    // run_cmd_on_android to verify new_cwd is an android directory;
+    // run_andorid_cmd to verify new_cwd is an android directory;
     // if so then the new_cwd will be used
     char cmd[300];
     int  status;
     sprintf(cmd, "if [ ! -d %s ]; then exit 1; else exit 0; fi", new_cwd);
-    status = run_cmd_on_android(cmd, cmd, NULL, 0, NULL, 0);
+    status = run_android_cmd(cmd);
     if (status == 0) {
         strcpy(cwd, new_cwd);
     }
@@ -962,22 +956,20 @@ int special_cmd_vi(char *android_path)
 
     // android_path is required
     if (android_path[0] == '\0') {
-        printf("ERROR: %s, android_path required\n", __func__);
+        printf("ERROR: android_path required\n");
         return -EINVAL;
     }
 
     // construct /tmp path
     strcpy(temp, android_path);
     sprintf(tmp_path, "/tmp/%s", basename(temp));
+    unlink(tmp_path);
 
     // copy android file to tmp on devel computer
-    status = special_cmd_get(android_path, tmp_path);
+    status = run_android_get_cmd(android_path, tmp_path);
     if (status != 0) {
-        if (status == -ENOENT) {
-            unlink(tmp_path);
-        } else {
-            return status;
-        }
+        printf("ERROR: failed to get file %s\n", android_path);
+        return status;
     }
 
     // edit tmp_path file on devel computer
@@ -985,7 +977,7 @@ int special_cmd_vi(char *android_path)
     system(vi_cmd);
 
     // copy editted file back to android
-    status = special_cmd_put(tmp_path, android_path);
+    status = run_android_put_cmd(tmp_path, android_path);
     if (status != 0) {
         return status;
     }
@@ -1043,24 +1035,26 @@ int special_cmd_local(char *cmdline)
     return status;
 }
 
-// - - - - - - - - -  run cmd support routines - - - - - - - - - 
+// - - - - - - - - -  support routines - - - - - - - - - - - - - 
 
-void put_fmt(FILE *fp, char *fmt, ...)
+int put_fmt(FILE *fp, char *fmt, ...)
 {
     va_list ap;
     int rc;
 
     va_start(ap, fmt);
-
     rc = vfprintf(fp, fmt, ap);
+    va_end(ap);
+
     if (rc < 0) {
-        ANDROID_ERROR;
+        printf("ERROR: put_fmt failed, '%s'\n", fmt);
+        return -EINVAL;
     }
 
-    va_end(ap);
+    return 0;
 }
 
-char *get_str(FILE *fp, char *s, int s_len)
+int get_str(FILE *fp, char *s, int s_len)
 {
     char *p;
     int len;
@@ -1069,7 +1063,8 @@ char *get_str(FILE *fp, char *s, int s_len)
 
     p = fgets(s, s_len, fp);
     if (p == NULL) {
-        ANDROID_ERROR;
+        printf("ERROR: failed to get string from Android\n");
+        return -EINVAL;
     }
 
     len = strlen(s);
@@ -1077,63 +1072,93 @@ char *get_str(FILE *fp, char *s, int s_len)
         s[len-1] = '\0';
     }
 
-    return s;
-}
-
-int read_file(char *fn, void **buf_arg, int *buf_len_arg)
-{
-    int fd, ret;
-    struct stat statbuf;
-    char *buf;
-
-    *buf_len_arg = 0;
-    *buf_arg = NULL;
-
-    ret = stat(fn, &statbuf);
-    if (ret < 0) {
-        return errno ? -errno : -EINVAL;
-    }
-    
-    fd = open(fn, O_RDONLY);
-    if (fd < 0) {
-        return errno ? -errno : -EINVAL;
-    }
-
-    buf = malloc(statbuf.st_size);
-    if (buf == NULL) {
-        close(fd);
-        return errno ? -errno : -EINVAL;
-    }
-    
-    ret = read(fd, buf, statbuf.st_size);
-    if (ret != statbuf.st_size) {
-        free(buf);
-        close(fd);
-        return errno ? -errno : -EINVAL;
-    }
-
-    close(fd);
-
-    *buf_arg = buf;
-    *buf_len_arg = statbuf.st_size;
-    return 0;  
-}
-
-int write_file(char *fn, void *buf, int len)
-{
-    int fd, ret;
-
-    fd = open(fn, O_CREAT | O_TRUNC | O_WRONLY, 0666);
-    if (fd < 0) {
-        return errno ? -errno : -EINVAL;
-    }
-
-    ret = write(fd, buf, len);
-    if (ret != len) {
-        return errno ? -errno : -EINVAL;
-    }
-
-    close(fd);
     return 0;
 }
 
+long file_size(char *path)
+{
+    struct stat statbuf;
+    int rc;
+
+    rc = stat(path, &statbuf);
+    return (rc == 0 ? statbuf.st_size : 0);
+}
+
+void print_cmd_status(int status, char *cmdline)
+{
+    char *short_cmdline, *p=NULL;
+
+    // print status
+    // - status == 0 : success
+    // - status > 0  : is an exitcode from the cmdline executed on android
+    // - status < 0  : is an errno
+
+    if (status == 0) {
+        // success
+    } else if (status > 0) {
+        if ((strncmp(cmdline, "cd ", 3) == 0) && ((p = strstr(cmdline, "; ")) != NULL)) {
+            short_cmdline = p+2;
+        } else {
+            short_cmdline = cmdline;
+        }
+        if (status == 127) {
+            printf("ERROR: cmd '%s' not found.\n", short_cmdline);
+        } else if (status == STATUS_UNKNOWN) {
+            printf("ERROR: cmd '%s' status unknown\n", short_cmdline);
+        } else {
+            printf("ERROR: cmd '%s' status %d\n", short_cmdline, status);
+        }
+    } else if (status < 0) {
+        printf("ERROR: %s\n", strerror(-status));
+    }
+}
+
+int copy(FILE *dest_fp, FILE *src_fp, long total_len)
+{
+    char *buff;
+    long xfer_len, rc, total_xfered, len_remaining;
+
+    #define MAX_BUFF (16 * MB)
+
+    buff = malloc(MAX_BUFF);
+    if (buff == NULL) {
+        return -EINVAL;
+    }
+
+    total_xfered = 0;
+    len_remaining = total_len;
+    while (true) {
+        xfer_len = (len_remaining > MAX_BUFF ? MAX_BUFF : len_remaining);
+
+        rc = fread(buff, 1, xfer_len, src_fp);
+        if (rc != xfer_len) {
+            printf("ERROR: fread failed, xfer_len=%ld rc=%ld, %s\n", 
+                  xfer_len, rc, strerror(errno));
+            free(buff);
+            return -EINVAL;
+        }
+
+        rc = fwrite(buff, 1, xfer_len, dest_fp);
+        if (rc != xfer_len) {
+            printf("ERROR: write failed, xfer_len=%ld rc=%ld, %s\n", 
+                  xfer_len, rc, strerror(errno));
+            free(buff);
+            return -EINVAL;
+        }
+
+        total_xfered += xfer_len;
+        len_remaining -= xfer_len;
+
+        printf("\r%0.3f GB / %0.3f GB (%0.0f%%)",
+               (double)total_xfered / GB,
+               (double)total_len / GB,
+               (double)total_xfered / total_len * 100);
+        fflush(stdout);
+
+        if (len_remaining == 0) {
+            printf("\n");
+            free(buff);
+            return 0;
+        }
+    }
+}
