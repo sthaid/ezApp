@@ -300,6 +300,7 @@ static void wait_cpu_pause(long usec)
 
 static void show_notice(char *msg)
 {
+    util_text_to_speech(msg);
     sprintf(notice, "%s", msg);
     draw_and_register();
     wait_cpu_pause(NOTICE_US);
