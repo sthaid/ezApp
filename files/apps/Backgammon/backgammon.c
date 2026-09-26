@@ -835,19 +835,28 @@ static void draw_and_register(void)
 
     cw = sdlx_char_width(FONT_NORMAL);
     ch = sdlx_char_height(FONT_NORMAL);
+    y = 2 * ch;
+
+    // EVID_NEW_GAME
     new_x = sdlx_win_width - 6 * cw;
-    ploc = sdlx_render_printf_ex(new_x, 0, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
-                                 "%s", "New");
+    ploc = sdlx_render_printf_ex(new_x, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE, "%s", "New");
     sdlx_register_event(ploc, EVID_NEW_GAME);
-    y = ch + RAIL_GAP;
+
+    // EVID_DIFF (difficlutly)
+    y += ch + RAIL_GAP;
     ploc = sdlx_render_printf_ex(new_x, y, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                  "%s", diff_str[difficulty]);
     sdlx_register_event(ploc, EVID_DIFF);
+
+    // Status 
     if (status[0] != '\0') {
         n = sdlx_win_width - (TRAY_X + TRAY_W);
         sdlx_render_printf_ex(new_x, y + ch + RAIL_GAP, FONT_NORMAL, COLOR_WHITE, n,
                               "%s", status);
     }
+
+    // EVID_RST_MV - used by Human player to reset move prior to fully
+    // makeing the move
     if (can_rst_mv) {
         ploc = sdlx_render_printf_ex(new_x, sdlx_win_height - ch, FONT_NORMAL,
                                      COLOR_LIGHT_BLUE, FLAG_NONE, "%s", "RstMv");

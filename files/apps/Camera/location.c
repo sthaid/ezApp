@@ -475,7 +475,16 @@ void display_photos(void)
             continue;
         }
 
-        // loop over all photos in the list 
+        // loop over all photos in the list, and set the show flag; 
+        // the show flag specifies which of the photos will be displayed
+        // when calling show_photo and selecting '>' (next) or '<' (previous)
+        for (node = hd->node.next; node != &hd->node; node = node->next) {
+            photo_t *photo = (photo_t*)node;
+            photo->show = true;
+        }
+
+        // loop over all photos in the list, and display the thumb
+        // for each photo that is visible on the display
         for (node = hd->node.next; node != &hd->node; node = node->next) {
             photo_t *photo = (photo_t*)node;
             metadata_t *md = photo->md;
@@ -483,7 +492,6 @@ void display_photos(void)
             int x, y, idx;
 
             cnt++;
-            photo->show = true;
 
             x = (cnt % 2) * SPACING;
             y = (cnt / 2) * SPACING;
