@@ -62,13 +62,8 @@ can be viewed by tapping the '?'.
             and miniApp printf.
 - Memo:     Record an audio memo.
 - Morse:    Practice morse code.
-- Paddle:   Ball and paddle game.
-- Backgammon: Play Backgammon against
-            the computer.
 - Piano:    Beginner Piano simulator.
             Includes several melodies.
-- Reversi:  Play Reversi.
-- TicTacToe: Play vs the computer.
 - Steps:    View Steps and Miles for
             specified day, month, or
             year.
@@ -77,6 +72,13 @@ can be viewed by tapping the '?'.
             and calibration.
 - Weather:  Views and speaks the weather
             forecast, from weather.gov.
+
+Games:
+- Backgammon: Board game.
+- Blackjack   Card game.
+- Paddle:     Ball and paddle game.
+- Reversi:    Board game.
+- TicTacToe:  X and O Grid game
 
 Test and Examples:
 - Test:     Unit Test.

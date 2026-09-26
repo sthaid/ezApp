@@ -2,40 +2,32 @@ NAME: Backgammon
 
 DESCRIPTION:
 
-Play Backgammon against the
-CPU. You are White (bottom), moving
-toward point 1. The CPU is
-Black (top), moving toward 24.
+Play Backgammon against the CPU.  You 
+are White (bottom), moving toward 
+point 1. The CPU is Black (top), moving
+toward 24.
 
 Controls:
-- New (left of ?): opening
-  roll; higher die plays
-  first using those two
-  numbers
-- Easy / Medium / Hard
-  (under New): tap to cycle
+- New: opening roll; higher die plays
+  first using those two numbers
+- Easy / Medium / Hard: tap to cycle
   difficulty
-- Status is below that
-  (Your Move, CPU Wins, ...)
-- RstMv (bottom right, under
-  status): after you play a
-  checker, tap to undo this
-  turn and start it over
+- Status: Your Move, CPU Move, CPU Wins,
+  etc.
+- RstMv: after you play a checker, tap
+  to undo this turn and start it over
 
-Tap a point (or the bar) to
-select, then tap a destination
-or your bear-off tray. Hits
-send a blot to the bar.
+Tap a point (or the bar) to select, 
+then tap a destination or your bear-off 
+tray. Hits send a blot to the bar.
 
 No doubling cube.
 
-CPU looks ahead one roll.
-Easy picks the best move
-it sees immediately.
-Medium and Hard also weigh
-the opponent's replies.
-Hard checks more moves.
+CPU looks ahead one roll. Easy picks the
+best move it sees immediately. Medium 
+and Hard also weigh the opponent's
+replies. Hard checks more moves.
 
 NOTES:
 
-Developed with AI assistance
+Developed with AI assistance.

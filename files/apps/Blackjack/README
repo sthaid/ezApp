@@ -1,0 +1,23 @@
+NAME: Blackjack
+
+DESCRIPTION:
+
+Play Blackjack against the computer.
+The computer is the dealer.
+
+You start with 200. Bet in steps of 10,
+then tap Deal.
+
+On your turn:
+- Hit     take another card
+- Stand   keep your total
+- Double  double the bet & take one card
+
+Dealer stands on 17.  
+Blackjack pays 3 to 2.
+
+Tap Reset Bank when you are out of chips.
+
+NOTES:
+
+Developed by AI.
