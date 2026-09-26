@@ -17,6 +17,7 @@
 // To use this TEST:
 // - #define TEST
 // - mv photos photos_sv
+// - ensure photos_sv has 0000001.jpg and 000001.meta  xxx
 // - mkdir photos
 // - run the Camera app to create the test photos
 // - verify test photos have been created.

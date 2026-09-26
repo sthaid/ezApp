@@ -1,10 +1,12 @@
 #!/bin/bash
 
+# xxx update restore too
+
 function usage()
 {
 cat << EOF
 This script creates a backup tar file of ezApp data files that are on the
-Android device. The backup tar file is copied to ezApp/bin/backups on the 
+Android device. The backup tar file is saved in ~ezApp_backups on the 
 Devel PC.
 
 The data files included in the backup are: *.dat, *.mp3, *.jpg, *.meta, and params.
@@ -64,25 +66,27 @@ if [ $# -ne 0 ]; then
     exit 1
 fi
 
-# cd ezApp/bin/backups
-top=$(git rev-parse --show-toplevel)
+# cd ~/ezApp_backups
+backup_dir=$HOME/ezApp_backups
+mkdir -p $backup_dir
+cd $backup_dir
 if [ $? -ne 0 ]; then
-    echo "ERROR: failed to get top repo directory"
+    echo "ERROR: failed to cd to ~/ezApp_backups"
     exit 1
 fi
-mkdir -p $top/bin/backups
-cd $top/bin/backups
 
 # create backup_filename, incorporating the current date/time
 backup_filename=$(date +%y%m%d_%H%M%S)_backup.tar
-backup_pathname=$top/bin/backups/$backup_filename
+backup_pathname=$backup_dir/$backup_filename
+echo "Backing up to $backup_pathname"
+echo
 
 # define EZSH
 EZSH="ezsh -d $dev -p $password"
 
 # verify Android device is quiesced, there should be no apps/svcs running
 # when the Android ezApp data files are being backed up 
-echo "checking that android device is quiesced"
+echo "Checking that android device is quiesced"
 $EZSH quiesced
 if [ $? -ne 0 ]; then
     echo "ERROR: android device is either not responding, or"
@@ -92,7 +96,7 @@ fi
 echo
 
 # create the backup on the android device
-echo "creating $backup_filename on android device"
+echo "Creating $backup_filename on android device"
 $EZSH "find apps svcs -type f \
     \( -name "*.mp3" -o -name "*.dat" -o -name "*.jpg" -o -name "*.meta" -o -name "params" \) \
     -print0 | tar --null -cvf $backup_filename -T -"
@@ -103,7 +107,7 @@ fi
 echo
 
 # copy the file from the android device to the current dir
-echo "copying $backup_filename from android device"
+echo "Copying $backup_filename from android device"
 $EZSH "get $backup_filename"
 if [ $? -ne 0 ]; then
     echo "ERROR: ezsh failed to copy $backup_filename from Android device to Devel PC"
@@ -112,7 +116,7 @@ fi
 echo
 
 # delete the backup file on the android device
-echo "removing $backup_filename from android device"
+echo "Removing $backup_filename from android device"
 $EZSH "rm $backup_filename"
 if [ $? -ne 0 ]; then
     echo "ERROR: ezsh failed to remove $backup_filename from Android device"
@@ -122,7 +126,7 @@ echo
 
 # verify the file has been created
 if [ -f "$backup_pathname" ]; then
-    echo "created $backup_pathname"
+    echo "Created $backup_pathname"
     exit 0
 else
     echo "ERROR: failed to create $backup_pathname"
