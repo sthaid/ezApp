@@ -183,8 +183,8 @@ typedef struct { \
 /* all stdlib.h functions */
 struct LibraryFunction StdlibFunctions[] =
 {
-    {StdlibAtof, "float atof(char *);"},
-    {StdlibStrtod, "float strtod(char *,char **);"},
+    {StdlibAtof, "double atof(char *);"},
+    {StdlibStrtod, "double strtod(char *,char **);"},
     {StdlibAtoi, "int atoi(char *);"},
     {StdlibAtol, "int atol(char *);"},
     {StdlibStrtol, "int strtol(char *,char **,int);"},
