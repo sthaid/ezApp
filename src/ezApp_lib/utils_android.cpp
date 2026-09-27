@@ -2,13 +2,13 @@
 
 #ifdef ANDROID
 
-#include <sdlx.h>
-#include <utils.h>
-#include <private.h>
-
 #include <SDL3/SDL.h>
 #include <jni.h>
 #include <unistd.h>
+
+#include <sdlx.h>
+#include <utils.h>
+#include <private.h>
 
 // The following comment is copied from here:
 //   https://wiki.libsdl.org/SDL3/SDL_GetAndroidActivity

@@ -1,10 +1,10 @@
 #include <std_hdrs.h>
 
+#include <SDL3/SDL.h>
+
 #include <sdlx.h>
 #include <utils.h>
 #include <private.h>
-
-#include <SDL3/SDL.h>
 
 //
 // defines

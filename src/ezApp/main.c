@@ -52,6 +52,7 @@ typedef struct {
     double record_gain;
     double record_silence;
     bool   event_box_enable;
+    bool   landscape_flipped;
 } params_t;
 
 typedef struct {
@@ -168,9 +169,11 @@ static int init(void)
     params.record_gain = util_get_numeric_param(".", "record_gain", DEFAULT_RECORD_GAIN);
     params.record_silence = util_get_numeric_param(".", "record_silence", DEFAULT_RECORD_SILENCE);
     params.event_box_enable = util_get_numeric_param(".", "event_box_enable", false);
+    params.landscape_flipped = util_get_numeric_param(".", "landscape_flipped", false);
 
     // provide params to other modules, when needed
     sdlx_event_box_ctrl(params.event_box_enable);
+    sdlx_landscape_ctrl(params.landscape_flipped);
     sdlx_audio_params_t ap = { params.record_gain, params.record_silence };
     sdlx_audio_set_params(&ap);
 
@@ -730,6 +733,7 @@ static void settings(void)
     #define EVID_RECORD_TEST          1010
     #define EVID_RESET_APPS_AND_SVCS  1011
     #define EVID_EVENT_BOX_ENABLE     1012
+    #define EVID_LANDSCAPE            1013
 
     #define GET_Y2 ({ y2 += 2*sdlx_char_height_dflt; \
                       y2 >= y_top - 1.5 * sdlx_char_height_dflt && y2 <= y_bottom; })
@@ -818,6 +822,12 @@ static void settings(void)
                 sdlx_render_fill_rect(0, y2, bar_value_w, bar_height, COLOR_GREEN);
                 sdlx_render_rect(0, y2, sdlx_win_width, bar_height, 2, COLOR_WHITE);
             }
+        }
+
+        // display Landscape
+        if (GET_Y2) {
+            loc = sdlx_render_printf(0, y2, "Landscape = %s", params.landscape_flipped ? "FLIPPED" : "NORMAL");
+            sdlx_register_event(loc, EVID_LANDSCAPE);
         }
 
         // display Event_Box
@@ -991,6 +1001,11 @@ static void settings(void)
             params.event_box_enable = (params.event_box_enable ? false : true);
             util_set_numeric_param(".", "event_box_enable", params.event_box_enable);
             sdlx_event_box_ctrl(params.event_box_enable);
+            break; }
+        case EVID_LANDSCAPE: {
+            params.landscape_flipped = !params.landscape_flipped;
+            util_set_numeric_param(".", "landscape_flipped", params.landscape_flipped);
+            sdlx_landscape_ctrl(params.landscape_flipped);
             break; }
         case EVID_MOTION:
             y += event.u.motion.yrel;

@@ -1,12 +1,12 @@
 #include <std_hdrs.h>
 #include <sys/queue.h>
 
+#include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
+
 #include <sdlx.h>
 #include <utils.h>
 #include <private.h>
-
-#include <SDL3/SDL.h>
-#include <SDL3_ttf/SDL_ttf.h>
 
 //
 // defines
@@ -51,18 +51,23 @@ int sdlx_char_height_dflt;
 // variables
 //
 
-SDL_Window          *window;  // needed by sdlx_misc.c
+static SDL_Renderer    *renderer;
+static font_t           font[MAX_FONT_PTSIZE];
+static int              real_win_width, real_win_height;
+static sdlx_texture_t  *texture_display;
 
-static SDL_Renderer *renderer;
-static font_t        font[MAX_FONT_PTSIZE];
-sdlx_texture_t      *texture_display;
-int                  orientation;
-int                  real_win_width, real_win_height;
-int                  logical_win_width, logical_win_height;
-int                  logical_win_width_portrait, logical_win_height_portrait;
-int                  logical_win_width_landscape, logical_win_height_landscape;
-double               scale_events_x;
-double               scale_events_y;
+//
+// global variables
+//
+
+SDL_Window  *window;
+bool         landscape_flipped;
+int          orientation;
+int          logical_win_width, logical_win_height;
+int          logical_win_width_portrait, logical_win_height_portrait;
+int          logical_win_width_landscape, logical_win_height_landscape;
+double       scale_events_x;
+double       scale_events_y;
 
 //
 // prototypes
@@ -309,6 +314,11 @@ static bool event_watcher(void* userdata, SDL_Event* event)
     return 0;
 }
 
+void sdlx_landscape_ctrl(bool flipped)
+{
+    landscape_flipped = flipped;
+}
+
 // ----------------- DISPLAY INIT / PRESENT ---------------
 
 void sdlx_display_init(sdlx_color_t color, int orientation_arg)
@@ -373,7 +383,9 @@ void sdlx_display_present(void)
     } else {
         sdlx_loc_t dest = {0, 0, real_win_height, real_win_width};
         sdlx_point_t center = {real_win_width/2, real_win_width/2};
-        sdlx_render_texture_rotated(texture_display, NULL, &dest, 90, &center, FLIP_NONE);
+        sdlx_render_texture_rotated(
+            texture_display, NULL, &dest, 90, &center, 
+            !landscape_flipped ? FLIP_NONE : FLIP_HORIZONTAL_AND_VERTICAL);
     }
 
     // present the display

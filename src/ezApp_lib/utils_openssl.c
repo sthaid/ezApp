@@ -1,11 +1,11 @@
 #include <string.h>
 #include <stdbool.h>
             
-#include <private.h>
-
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+
+#include <private.h>
     
 // ----------------- KEYGEN ------------------
 

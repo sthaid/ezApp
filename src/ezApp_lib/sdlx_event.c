@@ -1,10 +1,10 @@
 #include <std_hdrs.h>
     
+#include <SDL3/SDL.h>
+
 #include <sdlx.h>
 #include <utils.h>
 #include <private.h>
-
-#include <SDL3/SDL.h>
 
 //
 // defines
@@ -123,10 +123,20 @@ static void register_event(sdlx_loc_t *loc, int event_id, bool allow_ctrl_event_
     // the portrait location is what is stored the event_tbl
     if (orientation == LANDSCAPE) { 
         int x,y,w,h;
-        x = logical_win_width_portrait - loc2.y - loc2.h;
-        y = loc2.x;
-        w = loc2.h;
-        h = loc2.w;
+
+        if (!landscape_flipped) {
+            // normal (typical) top of device at left
+            x = logical_win_width_portrait - (loc2.y + loc2.h);
+            y = loc2.x;
+            w = loc2.h;
+            h = loc2.w;
+        } else {
+            // flipped (atypical) top of device at right
+            x = loc2.y;
+            y = logical_win_height_portrait - (loc2.x + loc2.w);
+            w = loc2.h;
+            h = loc2.w;
+        }
 
         loc2.x = x;
         loc2.y = y;
