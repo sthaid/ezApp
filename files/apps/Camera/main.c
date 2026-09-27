@@ -1,12 +1,7 @@
-// future improvements:
-// - backup photos to cloud storage
-
-// xxx todo
-// - full review and update comments
-// - test the full 5000 photos
-// - add num_photos to Stg
-
 #include "apps/Camera/common.h"
+
+// Possible Future Improvements:
+// - backup photos to cloud storage
 
 // TEST mode will create MAX_PHOTOS test photo files; all the same photo.
 //
@@ -14,15 +9,16 @@
 // - the Camera app work properly
 // - ezbackup and ezrestore function correctly
 //
-// To use this TEST:
+// To use TEST mode:
 // - #define TEST
 // - mv photos photos_sv
-// - ensure photos_sv has 0000001.jpg and 000001.meta  xxx
+// - ensure photos_sv has 0000001.jpg and 000001.meta; this is the 
+//    template photo that is replicated to populate the photos dir with
+//    MAX_PHOTOS
 // - mkdir photos
 // - run the Camera app to create the test photos
 // - verify test photos have been created.
-// - comment out TEST, and run the Camera app
-// - comment out #define TEST when done
+// - comment out #define TEST, and run/test the Camera app
 
 //#define TEST
 

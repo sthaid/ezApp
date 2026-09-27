@@ -2021,8 +2021,6 @@ void ExpressionParseMacroCall(struct ParseState *Parser,
     }
 }
 
-void profile_set_parser(struct ParseState *Parser);  // xxx pick this up from a hdr file
-
 /* do a function call */
 void ExpressionParseFunctionCall(struct ParseState *Parser,
     struct ExpressionStack **StackTop, const char *FuncName, int RunIt)

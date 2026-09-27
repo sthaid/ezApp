@@ -530,7 +530,7 @@ struct Picoc_Struct {
     struct TableEntry *StringHashTable[STRING_TABLE_SIZE];
     char *StrEmpty;
 
-    /* xxx comment */
+    /* for use by platform/library_unix.c */
     void *PlatformLibraryCx;
 };
 
@@ -700,6 +700,7 @@ extern void PlatformVPrintf(IOFILE *Stream, const char *Format, va_list Args);
 extern void PlatformExit(Picoc *pc, int ExitVal);
 extern char *PlatformMakeTempName(Picoc *pc, char *TempNameBuffer);
 extern void PlatformLibraryInit(Picoc *pc);
+extern void profile_set_parser(struct ParseState *Parser);
 
 /* include.c */
 extern void IncludeInit(Picoc *pc);

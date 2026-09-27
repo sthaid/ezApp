@@ -7,7 +7,7 @@
 #define Y_TOP           180
 #define BOARD_SIZE      1000
 #define SQ_SIZE         125
-#define RECT_LINE_WIDTH 6
+#define RECT_LINE_WIDTH 10
 #define CPU_HIGHLIGHT_US 1000000
 
 #define EVID_NEW_YOU    100
