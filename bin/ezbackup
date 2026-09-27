@@ -1,13 +1,10 @@
 #!/bin/bash
 
-# xxx update restore too
-
 function usage()
 {
 cat << EOF
 This script creates a backup tar file of ezApp data files that are on the
-Android device. The backup tar file is saved in ~ezApp_backups on the 
-Devel PC.
+Android device. The backup tar file is saved in $backup_dir on the Devel PC.
 
 The data files included in the backup are: *.dat, *.mp3, *.jpg, *.meta, and params.
 
@@ -15,7 +12,13 @@ This script can be used to save these data files if it becomes necessary
 to uninstall the ezApp from your Android device. After reinstalling ezApp these
 data files can then be restored to the Android device using the ezrestore script.
   
-This script may be run from any directory within the ezApp repo.
+This script may be run from any directory, and does not need to be run from 
+within the ezApp repo.
+
+This script queries ezApp to ensure that it is quiesced; all miniSvcs stopped,
+and no miniApp running. If ezApp is not quiesced then this script will fail.
+
+ezApp Developer Mode must be enabled.
 
 Options:
   -h             : display help and exit
@@ -27,6 +30,9 @@ EOF
 }
 
 # #############  MAIN  ################
+
+# directory where backups are saved
+backup_dir=$HOME/ezApp_backups
 
 # get device and developer password from optional env vars
 dev=$EZAPP_DEVICE
@@ -67,7 +73,6 @@ if [ $# -ne 0 ]; then
 fi
 
 # cd ~/ezApp_backups
-backup_dir=$HOME/ezApp_backups
 mkdir -p $backup_dir
 cd $backup_dir
 if [ $? -ne 0 ]; then

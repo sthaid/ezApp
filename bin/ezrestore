@@ -4,9 +4,15 @@ function usage()
 {
 cat << EOF
 This script restores Android ezApp data files that had previously been
-saved by the ezbackup script.
+saved by the ezbackup script, in directory $backup_dir.
 
-This script may be run from any directory within the ezApp repo.
+This script may be run from any directory, and does not need to be run from 
+within the ezApp repo.
+
+This script queries ezApp to ensure that it is quiesced; all miniSvcs stopped,
+and no miniApp running. If ezApp is not quiesced then this script will fail.
+
+ezApp Developer Mode must be enabled.
 
 Options:
   -h             : display help and exit
@@ -18,6 +24,9 @@ EOF
 }
 
 # #############  MAIN  ################
+
+# directory where backups are saved
+backup_dir=$HOME/ezApp_backups
 
 # get device and developer password from optional env vars
 dev=$EZAPP_DEVICE
@@ -51,21 +60,16 @@ if [ -z "$dev" -o -z "$password" ]; then
     exit 1
 fi
 
-# cd ezApp/bin/backups
-top=$(git rev-parse --show-toplevel)
+# cd to directory containing the backup tar files
+cd $backup_dir
 if [ $? -ne 0 ]; then
-    echo "ERROR: failed to get top repo directory"
-    exit 1
-fi
-cd $top/bin/backups
-if [ $? -ne 0 ]; then
-    echo "ERROR: failed cd to $top/bin/backups"
+    echo "ERROR: failed cd to $backup_dir"
     exit 1
 fi
 
 # if num args > 1 then error
 if [ $# -gt 1 ]; then
-    echo "ERROR: just one arg expected"
+    echo "ERROR: just zero or one arg expected"
     exit 1
 fi
 
@@ -80,6 +84,7 @@ if [ $# -eq 0 ]; then
     echo
     read -p "Enter backup_filename: " backup_filename
     if [ -z "$backup_filename" ]; then
+        echo "ABORT"
         exit 1
     fi
 else
@@ -97,7 +102,7 @@ EZSH="ezsh -d $dev -p $password"
 
 # verify Android device is quiesced, there should be no apps/svcs running
 # when the Android ezApp data files are being restored 
-echo "checking that android device is quiesced"
+echo "Checking that android device is quiesced"
 $EZSH quiesced
 if [ $? -ne 0 ]; then
     echo "ERROR: android device is either not responding, or"
@@ -107,7 +112,7 @@ fi
 echo
 
 # copy the backup tar file to the Android device
-echo "copying $backup_filename to android device"
+echo "Copying $backup_filename to android device"
 $EZSH "put $backup_filename"
 if [ $? -ne 0 ]; then
     echo "ERROR: ezsh put failed"
@@ -116,7 +121,7 @@ fi
 echo
 
 # extract the backup tar file on the Android device
-echo "extracting $backup_filename on android device"
+echo "Extracting $backup_filename on android device"
 $EZSH "tar -xvf $backup_filename"
 if [ $? -ne 0 ]; then
     echo "ERROR: ezsh tar -xvf failed"
@@ -125,7 +130,7 @@ fi
 echo
 
 # remove the backup tar file from the Android device
-echo "removing $backup_filename from android device"
+echo "Removing $backup_filename from android device"
 $EZSH "rm $backup_filename"
 if [ $? -ne 0 ]; then
     echo "ERROR: ezsh rm failed"
