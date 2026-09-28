@@ -18,10 +18,10 @@
 #define CREATE_IF_NEEDED true
 
 // variables
-loc_hist_t *loc_hist;
-bool        param_enabled = false;
-bool        end_program   = false;
-bool        test_loc_hist = false;
+loc_hist_t  *loc_hist;
+loc_hist2_t *loc_hist2;
+bool         param_enabled;
+bool         end_program;
 
 // prototypes
 void periodic_processing(void);
@@ -32,7 +32,7 @@ void add_entry_to_loc_hist(time_t t, char *city, char *state);
 char *most_recent_loc_hist_city(void);
 void clear_loc_history(void);
 
-void add_simulated_entries_to_loc_hist(void);
+void add_entry_to_loc_hist2(time_t t, double latitude, double longitude);
 
 // -----------------  MAIN  -----------------------------------------
 
@@ -58,13 +58,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // when test mode is anabled, delete LOC_HIST_FILENAME, so that
-    // a new empty LOC_HIST_FILENAME will be created, and initialized 
-    // with test data
-    if (test_loc_hist) {
-        util_delete_file(data_dir, LOC_HIST_FILENAME);
-    }
-
     // map the loc_hist file
     loc_hist = util_map_file(data_dir, LOC_HIST_FILENAME, sizeof(loc_hist_t),
                              CREATE_IF_NEEDED, &created);
@@ -73,9 +66,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // if test_mode is enabled add simulated entries to the loc_hist file
-    if (test_loc_hist) {
-        add_simulated_entries_to_loc_hist();
+    // map the loc_hist2 file
+    loc_hist2 = util_map_file(data_dir, LOC_HIST2_FILENAME, sizeof(loc_hist2_t),
+                             CREATE_IF_NEEDED, &created);
+    if (loc_hist2 == NULL) {
+        printf("E %s: failed to map %s\n", progname, LOC_HIST2_FILENAME);
+        return 1;
     }
 
     // read parameters
@@ -113,6 +109,7 @@ void periodic_processing(void)
     char   city[MAX_NAME];
     char   state[MAX_NAME];
     double latitude, longitude;
+    time_t t;
 
 #if 0
     // print interval since last call
@@ -129,15 +126,25 @@ void periodic_processing(void)
         return;
     }
 
-    // find location in database that is closest to current lat/long;
+    // get current time, latitude and longitude
     util_get_location(&latitude, &longitude, NULL, NULL);
-    find_closest_loc_data(latitude, longitude, city, state, NULL, NULL);
-
-    // if city is different than most recent entry in loc_file
-    // then add new entry to loc file, 
-    if (city[0] != '\0' && strcmp(most_recent_loc_hist_city(), city) != 0) {
-        add_entry_to_loc_hist(time(NULL), city, state);
+    if (latitude == INVALID_NUMBER || longitude == INVALID_NUMBER) {
+        return;
     }
+    t = time(NULL);
+
+    // update loc_hist file ...
+    // - find location in database that is closest to current lat/long;
+    // - if city is different than most recent entry in loc_file
+    //   then add new entry to loc file, 
+    find_closest_loc_data(latitude, longitude, city, state, NULL, NULL);
+    if (city[0] != '\0' && strcmp(most_recent_loc_hist_city(), city) != 0) {
+        add_entry_to_loc_hist(t, city, state);
+    }
+
+    // update loc_hist2 file ...
+    // xxx comment
+    add_entry_to_loc_hist2(t, latitude, longitude);
 }
 
 // -----------------  PROCESS REQ  ----------------------------------
@@ -251,6 +258,7 @@ void add_entry_to_loc_hist(time_t t, char *city, char *state)
     }
 
     // if buffer is full then discard the first half (oldest data)
+    // xxx maybe make loc_hist a cirular file too
     if (loc_hist->count == MAX_LOC_HIST) {
         memmove(&loc_hist->loc[0], 
                 &loc_hist->loc[MAX_LOC_HIST/2], 
@@ -316,43 +324,24 @@ void clear_loc_history(void)
     util_sync_file(loc_hist, sizeof(loc_hist_t));
 }
 
-// -----------------  TEST USING SIMULATED LOCATION HISTORY  --------
+// -----------------  LOC_HIST2 SUPPORT  -----------------------------
 
-double rand_double(void);
-
-void add_simulated_entries_to_loc_hist(void)
+void add_entry_to_loc_hist2(time_t t, double latitude, double longitude)
 {
-    double latitude, longitude;
-    char city[MAX_NAME];
-    char state[MAX_NAME];
-    time_t t;
+    struct loc_hist2_entry_s *entry;
+    unsigned long idx;
 
-    t = time(NULL) - 30 * 86400;
-    t = t / 3600 * 3600;
+    printf("I %s: adding to loc_hist2, time=%ld lat/long=%0.4f %0.4f\n",
+           progname, t, latitude, longitude);
+    
+    idx = (loc_hist2->tail % MAX_LOC_HIST2);
+    entry = &loc_hist2->loc[idx];
+    entry->t = t;
+    entry->latitude = latitude;
+    entry->longitude = longitude;
 
-    for (int i = 0; i < MAX_LOC_HIST; i++) {
-        // get random location in Massachusett
-        latitude  = 41.23 + (42.88 - 41.23) * rand_double();
-        longitude = -(69.93 + (73.50 - 69.93) * rand_double());
+    loc_hist2->tail++;
 
-        // find closest location from loc_data
-        find_closest_loc_data(latitude, longitude, city, state, NULL, NULL);
-
-        // add to loc_hist file
-        if (city[0] != '\0') {
-            add_entry_to_loc_hist(t, city, state);
-        }
-
-        // advance time one hour
-        t += 3600;
-    }
+    util_sync_file(entry, sizeof(*entry));
+    util_sync_file(&loc_hist2->tail, sizeof(loc_hist2->tail));
 }
-
-double rand_double(void)
-{
-    double rand;
-
-    rand = (double)random() / 0x7fffffff;
-    return rand;
-}
-

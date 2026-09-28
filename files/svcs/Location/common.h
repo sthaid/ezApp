@@ -1,7 +1,11 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+//
 // private header file, do not include in client app
+//
+
+#define MAX_NAME 32
 
 // program name and data_dir strings
 char *progname;
