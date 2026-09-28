@@ -18,6 +18,7 @@ android/setup_files/orig
 
 files/svcs/Altitude/altitude.dat
 files/svcs/Location/loc_hist.dat
+files/svcs/Location/loc_hist2.dat
 files/svcs/Steps/steps.dat
 
 files/apps/Test/*.png
