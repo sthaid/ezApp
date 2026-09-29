@@ -71,6 +71,7 @@ int main(int argc, char **argv)
                              CREATE_IF_NEEDED, &created);
     if (loc_hist2 == NULL) {
         printf("E %s: failed to map %s\n", progname, LOC_HIST2_FILENAME);
+        util_unmap_file(loc_hist, sizeof(loc_hist_t));
         return 1;
     }
 
@@ -98,6 +99,7 @@ int main(int argc, char **argv)
     // cleanup and end program
     free_loc_data();
     util_unmap_file(loc_hist, sizeof(loc_hist_t));
+    util_unmap_file(loc_hist2, sizeof(loc_hist2_t));
     printf("I %s: terminating\n", progname);
     return 0;
 }
@@ -326,22 +328,33 @@ void clear_loc_history(void)
 
 // -----------------  LOC_HIST2 SUPPORT  -----------------------------
 
+#define SYNC_INTVL_USECS (300 * 1000000000L)  // 5 minutes
 void add_entry_to_loc_hist2(time_t t, double latitude, double longitude)
 {
-    struct loc_hist2_entry_s *entry;
-    unsigned long idx;
+    int                     day;
+    long                    t_now;
+    struct loc_hist2_day_s *lh2d;
+    static long             t_last_sync;
 
-    printf("I %s: adding to loc_hist2, time=%ld lat/long=%0.4f %0.4f\n",
-           progname, t, latitude, longitude);
+    //printf("I %s: adding to loc_hist2, time=%ld lat/long=%0.4f %0.4f\n",
+    //       progname, t, latitude, longitude);
     
-    idx = (loc_hist2->tail % MAX_LOC_HIST2);
-    entry = &loc_hist2->loc[idx];
-    entry->t = t;
-    entry->latitude = latitude;
-    entry->longitude = longitude;
+    day = loc_hist2->last_day;
+    // xxx check if day needs to advance
 
-    loc_hist2->tail++;
+    lh2d = &loc_hist2->day[day % MAX_LH2_DAY];
 
-    util_sync_file(entry, sizeof(*entry));
-    util_sync_file(&loc_hist2->tail, sizeof(loc_hist2->tail));
+    if (lh2d->max_loc < MAX_LH2_LOC) {
+        lh2d->loc[lh2d->max_loc].t = t;
+        lh2d->loc[lh2d->max_loc].latitude = latitude;
+        lh2d->loc[lh2d->max_loc].longitude = longitude;
+        lh2d->max_loc++;
+    }
+
+    t_now = util_microsec_timer();
+    if ((t_now - t_last_sync) > SYNC_INTVL_USECS) {
+        printf("I %s: syncing %s\n", progname, LOC_HIST2_FILENAME);
+        util_sync_file(loc_hist2, sizeof(loc_hist2_t));
+        t_last_sync = t_now;
+    }
 }

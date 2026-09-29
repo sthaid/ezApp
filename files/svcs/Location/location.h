@@ -31,8 +31,9 @@ typedef struct {
 // -----------------
 
 #define LOC_HIST2_FILENAME   "loc_hist2.dat"
-#define MAX_LOC_HIST2  100000
 
+#if 0
+#define MAX_LOC_HIST2  100000
 typedef struct {
     unsigned long tail;
     struct loc_hist2_entry_s {
@@ -40,6 +41,22 @@ typedef struct {
         double latitude;
         double longitude;
     } loc[MAX_LOC_HIST2];
+} loc_hist2_t;
+#endif
+
+#define MAX_LH2_DAY 30
+#define MAX_LH2_LOC 8640   // sample every 10 seconds for 1 day
+
+typedef struct {
+    int last_day;   // doesn't wrap
+    struct loc_hist2_day_s {
+        int max_loc;
+        struct {
+            time_t t;
+            double latitude;
+            double longitude;
+        } loc[MAX_LH2_LOC];
+    } day[MAX_LH2_DAY];
 } loc_hist2_t;
 
 #endif
