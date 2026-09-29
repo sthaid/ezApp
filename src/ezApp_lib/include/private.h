@@ -36,6 +36,7 @@ extern int    logical_win_width, logical_win_height;
 extern int    logical_win_width_portrait, logical_win_height_portrait;
 extern int    logical_win_width_landscape, logical_win_height_landscape;
 extern bool   landscape_flipped;
+extern bool   redraw_needed;
 
 int sdlx_video_init(void);
 void sdlx_video_quit(void);

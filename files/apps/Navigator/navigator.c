@@ -21,6 +21,8 @@
 // defines
 //
 
+#define ONE_SEC 1000000
+
 #define MODE_VIEW 0
 #define MODE_NAV  1
 
@@ -138,8 +140,8 @@ void view_mode_display(void)
         // present the display
         sdlx_display_present();
 
-        // wait for event, with infinite timeout
-        sdlx_get_event(-1, &event);
+        // wait for event, with 10 sec timeout
+        sdlx_get_event(10*ONE_SEC, &event);
 
         // process events
         switch (event.event_id) {
@@ -176,6 +178,7 @@ void display_trail(struct loc_hist2_day_s *lh2d)
     }
 
     printf("num points %d\n", cnt);
+    sdlx_render_printf(0, MAP_Y+MAP_H, "num points %d\n", cnt);
 }
 
 // --------------------------------------------------------

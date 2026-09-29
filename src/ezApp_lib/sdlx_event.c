@@ -255,6 +255,14 @@ try_again:
     memset(event, 0, sizeof(*event));
     event->event_id = -1;
 
+    // if redraw_needed flag is set then return EVID_REDRAW
+    if (redraw_needed) {
+        INFO("returning EVID_REDRAW\n");
+        event->event_id = EVID_REDRAW;
+        redraw_needed = false;
+        return;
+    }
+
     // get SDL event
     got_event = SDL_PollEvent(&ev);
 
