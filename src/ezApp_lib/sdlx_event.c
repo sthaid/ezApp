@@ -466,6 +466,16 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         //INFO("SDL_EVENT_PINCH_UPDATE: scale=%f span=%f %f focus=%f %f\n",
         //     x->scale, x->span_x, x->span_y, x->focus_x, x->focus_y);
 
+        // consolidate additional PINCH_UPDATE events into this event
+        while (true) {
+            SDL_Event tmp_ev;
+            int rc = SDL_PeepEvents(
+                        &tmp_ev, 1, SDL_GETEVENT,
+                        SDL_EVENT_PINCH_UPDATE, SDL_EVENT_PINCH_UPDATE);
+            if (rc != 1) break;
+            x->scale *= tmp_ev.pinch.scale;
+        }
+
         event->event_id = EVID_PINCH;
         if (orientation == PORTRAIT) {
             event->u.pinch.scale = x->scale;

@@ -97,12 +97,15 @@ double cosd(double angle)
 #define EVID_NEXT 1
 #define EVID_PREV 2
 
-#define MAP_X      0
-#define MAP_Y      0
+#define MAP_XL     0
+#define MAP_XR     999
 #define MAP_W      1000
+#define MAP_X_CTR  500
+
+#define MAP_YT     0
+#define MAP_YB     1499
 #define MAP_H      1500
-#define MAP_X_CTR  500   // MAP_X + MAP_W / 2
-#define MAP_Y_CTR  750   // MAP_Y + MAP_H / 2
+#define MAP_Y_CTR  750
 
 #define MILES_PER_DEGREE_LATITUDE       69.0
 #define MILES_PER_DEGREE_LONGITUDE(lat) (cosd(lat) * 69.0)
@@ -130,10 +133,12 @@ void view_mode_display(void)
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
         // xxx comment
-        sdlx_render_rect(MAP_X, MAP_Y, MAP_W, MAP_H, 5, COLOR_GREEN);
+        sdlx_render_rect(MAP_XL, MAP_YT, MAP_W, MAP_H, 5, COLOR_GREEN);
         display_trail(&lh2->day[day % MAX_LH2_DAY]);
         
         // register events
+        sdlx_register_event(NULL, EVID_PINCH);
+        sdlx_register_event(NULL, EVID_MOTION);
         reg_event_show_readme_file();
         sdlx_register_control_events(EVID_PREV, "<", EVID_NEXT, ">", EVID_QUIT, "X");
 
@@ -154,6 +159,20 @@ void view_mode_display(void)
         case EVID_NEXT:
             if (day < lh2->last_day) day++;
             break;
+        case EVID_MOTION:
+            map_ctr_lat  += event.u.motion.yrel * 
+                            (map_height_miles / MAP_H) / 
+                            MILES_PER_DEGREE_LATITUDE;
+            map_ctr_long -= event.u.motion.xrel * 
+                            (map_width_miles / MAP_W) / 
+                            MILES_PER_DEGREE_LONGITUDE(map_ctr_lat);
+            break;
+        case EVID_PINCH:
+            // xxx limit scaling
+            if (event.u.pinch.scale == 0) break;
+            map_width_miles /= event.u.pinch.scale;
+            map_height_miles = map_width_miles * ((double)MAP_H / MAP_W);
+            break;
         case EVID_QUIT:
             end_program = true;
             break;
@@ -163,22 +182,33 @@ void view_mode_display(void)
 
 void display_trail(struct loc_hist2_day_s *lh2d)
 {
-    double lat, lng;
-    int x, y, i;
-    int cnt=0;
+    int x, y, i, cnt=0;
 
+    //double delta_lat, k_lat;
+    //double delta_lng, k_lng;
+
+    double k_lat, k_lng;
+
+    k_lat = MILES_PER_DEGREE_LATITUDE / map_height_miles * MAP_H;
+    k_lng = MILES_PER_DEGREE_LONGITUDE(map_ctr_lat) / map_width_miles * MAP_W;
+
+    // xxx
+    // make a points array,  but then can't control color
+    // consolidate pinch events
+    // further optimize this code
     for (i = 0; i < lh2d->max_loc; i++) {
-        lat = lh2d->loc[i].latitude;
-        lng = lh2d->loc[i].longitude;
-        x = MAP_X_CTR + ((lng - map_ctr_long) * MILES_PER_DEGREE_LONGITUDE(lat) / map_width_miles * MAP_W);
-        y = MAP_Y_CTR - ((lat - map_ctr_lat)  * MILES_PER_DEGREE_LATITUDE / map_height_miles * MAP_H);
+        y = MAP_Y_CTR - (lh2d->loc[i].latitude - map_ctr_lat) * k_lat;
+        if (y < MAP_YT || y > MAP_YB) continue;
+
+        x = MAP_X_CTR + (lh2d->loc[i].longitude - map_ctr_long) * k_lng;
+        if (x < MAP_XL || x > MAP_XR) continue;
 
         cnt++;
         sdlx_render_point(x, y, COLOR_WHITE, MAX_POINT_SIZE);
     }
 
     printf("num points %d\n", cnt);
-    sdlx_render_printf(0, MAP_Y+MAP_H, "num points %d\n", cnt);
+    sdlx_render_printf(0, MAP_YB, "num points %d\n", cnt);
 }
 
 // --------------------------------------------------------
