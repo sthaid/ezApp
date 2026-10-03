@@ -180,14 +180,14 @@ void view_mode_display(void)
     } while (!end_program && mode == MODE_VIEW);
 }
 
+// xxx test and cleanup
+#define HOUR 3600
+
 void display_trail(struct loc_hist2_day_s *lh2d)
 {
-    int x, y, i, cnt=0;
-
-    //double delta_lat, k_lat;
-    //double delta_lng, k_lng;
-
-    double k_lat, k_lng;
+    int          x, y, i, num_points=0;
+    sdlx_color_t color;
+    double       k_lat, k_lng, wvlen;
 
     k_lat = MILES_PER_DEGREE_LATITUDE / map_height_miles * MAP_H;
     k_lng = MILES_PER_DEGREE_LONGITUDE(map_ctr_lat) / map_width_miles * MAP_W;
@@ -203,12 +203,24 @@ void display_trail(struct loc_hist2_day_s *lh2d)
         x = MAP_X_CTR + (lh2d->loc[i].longitude - map_ctr_long) * k_lng;
         if (x < MAP_XL || x > MAP_XR) continue;
 
-        cnt++;
-        sdlx_render_point(x, y, COLOR_WHITE, MAX_POINT_SIZE);
+        if (lh2d->loc[i].secs < (6 * HOUR)) {
+            wvlen = 380.;  // purple
+        } else if (lh2d->loc[i].secs > (21 * HOUR)) {
+            wvlen = 700.;  // red
+        } else {
+            wvlen = 380. + 
+                    (lh2d->loc[i].secs - (6.0 * HOUR)) / (15.0 * HOUR) *
+                    320.;
+        }
+        color = sdlx_wavelength_to_color(wvlen);
+
+        sdlx_render_point(x, y, color, MAX_POINT_SIZE);
+
+        num_points++;
     }
 
-    printf("num points %d\n", cnt);
-    sdlx_render_printf(0, MAP_YB, "num points %d\n", cnt);
+    printf("num points %d\n", num_points);
+    sdlx_render_printf(0, MAP_YB, "num points %d\n", num_points);
 }
 
 // --------------------------------------------------------

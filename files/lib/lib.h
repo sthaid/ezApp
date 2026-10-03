@@ -3,8 +3,9 @@
 
 #include <svcs.h>
 
-// device orientation
-int get_device_orientation(void);
+// ===============================================================================
+// =================  ROUTINES FOR USE BY MINI-APPS ONLY  ========================
+// ===============================================================================
 
 // bar graph
 void display_bar_graph(
@@ -13,6 +14,22 @@ void display_bar_graph(
         char *x_axis_str);
 void bar_graph_increase_y_axis(int *max_y);
 void bar_graph_decrease_y_axis(int *max_y);
+
+// show file
+void show_file(char *dir, char *filename);
+
+// event registration
+#define EVID_SHOW_README_FILE 999999999
+void reg_event_str(int x, int y, sdlx_color_t color, char *event_name, int event_id);
+void reg_event_fill_rect(int x, int y, int w, int h, sdlx_color_t color, int event_id);
+void reg_event_show_readme_file(void);
+
+// ===============================================================================
+// =================  ROUTINES FOR USE BY MINI-APPS OR MINI SVCS  ================
+// ===============================================================================
+
+// device orientation
+int get_device_orientation(void);
 
 // date utils, args:
 // - y = year, for example 2026
@@ -25,6 +42,7 @@ bool is_weekend(int y, int m, int d);
 bool is_today(int y, int m, int d);
 int days_in_month(int y, int m);
 void get_current_ymd(int *y, int *m, int *d);
+void get_current_ymd_hms(int *y, int *m, int *d, int *hour, int *min, int *sec);
 void set_ymd_to_prior(int *y, int *m, int *d);
 void set_ymd_to_next(int *y, int *m, int *d);
 
@@ -32,16 +50,7 @@ void set_ymd_to_next(int *y, int *m, int *d);
 void str_remove_trailing_newline(char *s);
 void str_sanitize(char *s);
 
-// show file
-void show_file(char *dir, char *filename);
-
-// event registration
-#define EVID_SHOW_README_FILE 999999999
-void reg_event_str(int x, int y, sdlx_color_t color, char *event_name, int event_id);
-void reg_event_fill_rect(int x, int y, int w, int h, sdlx_color_t color, int event_id);
-void reg_event_show_readme_file(void);
-
-// init service request
+// init mini service request
 svc_req_t *svc_req_init(int req_id, char *data, int data_len);
 
 // double linked list

@@ -96,6 +96,8 @@ static void page_16_init(void);
 static void page_16_draw(void);
 static void page_16_exit(void);
 
+static void page_17_draw(void);
+
 // -----------------  MAIN  ------------------------------------------
 
 int main(int argc, char **argv)
@@ -170,6 +172,7 @@ char *page_title[] = {     // Page
         "Camera",          //  14
         "Pinch",           //  15
         "Profile",         //  16
+        "Spectrum",        //  17
             };
 static int pagenum = 0;
 
@@ -235,6 +238,7 @@ static void page_hndlr()
         case 14: page_14_draw(); break;
         case 15: page_15_draw(); break;
         case 16: page_16_draw(); break;
+        case 17: page_17_draw(); break;
         default:
             printf("E %s: invalid pagenum %d\n", progname, pagenum);
             end_program = true;
@@ -653,9 +657,9 @@ static void page_4_draw(void)
     color = sdlx_scale_color(COLOR_YELLOW, inten);
     sdlx_render_fill_rect(100, 800, 100, 100, color);
 
-    static double wavelen = 750;
+    static double wavelen = 780;  // xxx use #defines for min,max wavelen
     wavelen -= 2;
-    if (wavelen < 440) wavelen = 750;
+    if (wavelen < 380) wavelen = 780;
     color = sdlx_wavelength_to_color(wavelen);
     sdlx_render_fill_rect(800, 800, 100, 100, color);
 
@@ -1913,4 +1917,38 @@ static void page_16_draw(void)
 static void page_16_exit(void)
 {
     // nothing needed here
+}
+
+// -----------------  PAGE 17: SPECTRUM  ----------------------
+
+#define WAVELEN_START 380.0  // xxx make public defines
+#define WAVELEN_END   780.0
+
+static bool is_close(double a, double b)
+{
+    return fabs(a-b) < 0.000001;
+}
+
+static void page_17_draw(void)
+{
+    double wavelength, step;
+    int y;
+    sdlx_color_t color;
+
+    step = (WAVELEN_END - WAVELEN_START) / 1600;
+    y = 200;
+
+    for (wavelength = WAVELEN_START; wavelength < WAVELEN_END; wavelength += step) {
+        color = sdlx_wavelength_to_color(wavelength);
+        sdlx_render_line(300, y, 999, y, color);
+
+        if (is_close(round(wavelength/50)*50, wavelength)) {
+            sdlx_render_line(0, y-1, 290, y-1, COLOR_WHITE);
+            sdlx_render_line(0, y, 290, y, COLOR_WHITE);
+            sdlx_render_line(0, y+1, 290, y+1, COLOR_WHITE);
+            sdlx_render_printf_ex(0, y-sdlx_char_height(FONT_SMALL), FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%0.0f", wavelength);
+        }
+            
+        y++;
+    }
 }

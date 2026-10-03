@@ -13,6 +13,7 @@
 
 #include "svcs/Location/location.h"
 #include "svcs/Location/common.h"
+#include "lib/lib.h"
 
 // defines
 #define CREATE_IF_NEEDED true
@@ -28,11 +29,11 @@ void periodic_processing(void);
 
 void process_req(svc_req_t *req);
 
-void add_entry_to_loc_hist(time_t t, char *city, char *state);
+void add_entry_to_loc_hist(char *city, char *state);
 char *most_recent_loc_hist_city(void);
 void clear_loc_history(void);
 
-void add_entry_to_loc_hist2(time_t t, double latitude, double longitude);
+void add_entry_to_loc_hist2(double latitude, double longitude);
 
 // -----------------  MAIN  -----------------------------------------
 
@@ -111,7 +112,6 @@ void periodic_processing(void)
     char   city[MAX_NAME];
     char   state[MAX_NAME];
     double latitude, longitude;
-    time_t t;
 
 #if 0
     // print interval since last call
@@ -128,12 +128,11 @@ void periodic_processing(void)
         return;
     }
 
-    // get current time, latitude and longitude
+    // get current latitude and longitude
     util_get_location(&latitude, &longitude, NULL, NULL);
     if (latitude == INVALID_NUMBER || longitude == INVALID_NUMBER) {
         return;
     }
-    t = time(NULL);
 
     // update loc_hist file ...
     // - find location in database that is closest to current lat/long;
@@ -141,12 +140,12 @@ void periodic_processing(void)
     //   then add new entry to loc file, 
     find_closest_loc_data(latitude, longitude, city, state, NULL, NULL);
     if (city[0] != '\0' && strcmp(most_recent_loc_hist_city(), city) != 0) {
-        add_entry_to_loc_hist(t, city, state);
+        add_entry_to_loc_hist(city, state);
     }
 
     // update loc_hist2 file ...
     // xxx comment
-    add_entry_to_loc_hist2(t, latitude, longitude);
+    add_entry_to_loc_hist2(latitude, longitude);
 }
 
 // -----------------  PROCESS REQ  ----------------------------------
@@ -251,7 +250,7 @@ void process_req(svc_req_t *req)
 
 // -----------------  LOC_HIST SUPPORT  -----------------------------
 
-void add_entry_to_loc_hist(time_t t, char *city, char *state)
+void add_entry_to_loc_hist(char *city, char *state)
 {
     // if city is empty string then return
     if (city[0] == '\0') {
@@ -276,6 +275,7 @@ void add_entry_to_loc_hist(time_t t, char *city, char *state)
     // get time_str
     struct tm *tm;
     char time_str[50];
+    time_t t = time(NULL);
     tm = localtime(&t);
     strftime(time_str, sizeof(time_str), "%b %d %H:%M %Z", tm);
 
@@ -329,32 +329,71 @@ void clear_loc_history(void)
 // -----------------  LOC_HIST2 SUPPORT  -----------------------------
 
 #define SYNC_INTVL_USECS (300 * 1000000000L)  // 5 minutes
-void add_entry_to_loc_hist2(time_t t, double latitude, double longitude)
+
+void add_entry_to_loc_hist2(double latitude, double longitude)
 {
-    int                     day;
+    int                     year, month, day, hour, minute, second;
     long                    t_now;
     struct loc_hist2_day_s *lh2d;
+
     static long             t_last_sync;
 
-    //printf("I %s: adding to loc_hist2, time=%ld lat/long=%0.4f %0.4f\n",
-    //       progname, t, latitude, longitude);
+    // get current data
+    get_current_ymd_hms(&year, &month, &day, &hour, &minute, &second);
     
-    day = loc_hist2->last_day;
-    // xxx check if day needs to advance
+    // if current ymd differ from last_day's date then advance last_day
+    lh2d = &loc_hist2->day[loc_hist2->last_day % MAX_LH2_DAY];
+    if (year != lh2d->year || month != lh2d->month || day != lh2d->day) {
+        loc_hist2->last_day++;
+        lh2d = &loc_hist2->day[loc_hist2->last_day % MAX_LH2_DAY];
+        lh2d->year    = year;
+        lh2d->month   = month;
+        lh2d->day     = day;
+        lh2d->max_loc = 0;
+    }
 
-    lh2d = &loc_hist2->day[day % MAX_LH2_DAY];
-
+    // add new entry to the last_day data
     if (lh2d->max_loc < MAX_LH2_LOC) {
-        lh2d->loc[lh2d->max_loc].t = t;
+        lh2d->loc[lh2d->max_loc].secs = 3600*hour + 60*minute + second;
         lh2d->loc[lh2d->max_loc].latitude = latitude;
         lh2d->loc[lh2d->max_loc].longitude = longitude;
         lh2d->max_loc++;
     }
 
+    // sync file periodically
     t_now = util_microsec_timer();
     if ((t_now - t_last_sync) > SYNC_INTVL_USECS) {
         printf("I %s: syncing %s\n", progname, LOC_HIST2_FILENAME);
         util_sync_file(loc_hist2, sizeof(loc_hist2_t));
         t_last_sync = t_now;
     }
+}    
+
+// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  cleanup
+
+#if 0 // xxx del
+int main() {
+    // 1. Get the current time as a Unix epoch timestamp
+    time_t now = time(NULL);
+
+    // 2. Convert the epoch time into a local time structure (struct tm)
+    struct tm *local = localtime(&now);
+
+    // 3. Reset the time fields to midnight (start of the day)
+    local->tm_hour = 0;
+    local->tm_min  = 0;
+    local->tm_sec  = 0;
+    
+    // Optional: Let mktime automatically determine if Daylight Saving Time is active
+    local->tm_isdst = -1; 
+
+    // 4. Convert the modified local structure back into a Unix timestamp
+    time_t start_of_day = mktime(local);
+
+    // Print the results
+    printf("Current epoch time:       %ld\n", (long)now);
+    printf("Start of day epoch time:  %ld\n", (long)start_of_day);
+
+    return 0;
 }
+#endif

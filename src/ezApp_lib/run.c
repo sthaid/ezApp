@@ -49,10 +49,8 @@ int run(char *name, bool is_svc)
         return 99;
     }
 
-    // if running an app then add lib/lib.c
-    if (!is_svc) {
-        p += sprintf(p, "%s", "lib/lib.c ");
-    }
+    // add lib/lib.c to list of C src files to be run by picoc
+    p += sprintf(p, "%s", "lib/lib.c ");
 
     // add progname and data_dir args, which will be passed to the
     // app or svc which will be run by picoc

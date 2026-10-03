@@ -121,10 +121,11 @@ void sdlx_display_present(void);
 // The sdlx_color_t is the 32 bit RGBA value.
 // These routines perform their function and return the 32 bit sdlx_color_t (RGBA) value.
 // Example: sdlx_create_color(255,0,0,255) is equivalent to the above '#define COLOR_RED'.
+// Wavelength range is 380 to 780 nanometers. xxx add defines
 sdlx_color_t sdlx_create_color(int r, int g, int b, int a);
 sdlx_color_t sdlx_scale_color(sdlx_color_t color, double intensity);
 sdlx_color_t sdlx_set_color_alpha(sdlx_color_t color, int alpha);
-sdlx_color_t sdlx_wavelength_to_color(int wavelength);
+sdlx_color_t sdlx_wavelength_to_color(double wavelength);
 
 // Video: Render Text, Basic API
 // -----------------------------

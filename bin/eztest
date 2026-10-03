@@ -68,9 +68,7 @@ cd ../..
 
 # get list of src files, relative to the 'files' dir
 SRCS=$(echo $PARENT_DIR/$APP_NAME/*.c)
-if [ "$PARENT_DIR" = apps ]; then
-  SRCS="$SRCS lib/lib.c"
-fi
+SRCS="$SRCS lib/lib.c"
 
 # debug prints
 #echo "PARENT_DIR  = $PARENT_DIR"

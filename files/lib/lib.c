@@ -11,37 +11,9 @@
 
 #include "lib/lib.h"
 
-// -----------------  ORIENTATION  --------------------------------
-
-// returns PORTRAIT or LANDSCAPE
-int get_device_orientation(void)
-{
-    double ax, ay, az;
-    int rc;
-    static int orient = PORTRAIT;
-    static bool error_printed;
-
-    rc = sdlx_sensor_read_gravity_accel(&ax, &ay, &az);
-    if (rc != 0) {
-        if (!error_printed) {
-            printf("E lib: get_device_orientation failed to read accelerometer\n");
-            error_printed = true;
-        }
-        return orient;
-    }
-    
-    if (ay > 7 && orient != PORTRAIT) {
-        printf("I lib: orientation is now PORTRAIT\n");
-        orient = PORTRAIT;
-    }
-
-    if (ax > 7 && orient != LANDSCAPE) {
-        printf("I lib: orientation is now LANDSCAPE\n");
-        orient = LANDSCAPE;
-    }
-
-    return orient;
-}
+// ===============================================================================
+// =================  ROUTINES FOR USE BY MINI-APPS ONLY  ========================
+// ===============================================================================
 
 // -----------------  BAR GRAPH  ----------------------------------
 
@@ -193,183 +165,6 @@ void bar_graph_increase_y_axis(int *max_y)
     }
 }
 
-// -----------------  DATE UTILS  ---------------------------------
-
-// in the following code:
-// - y = year, for example 2026
-// - m = month, 1-12
-// - d = day, 1-31
-
-// notes regarding struct tm field values
-// - tm_mday  1-31
-// - tm_mon   0-11
-// - tm_year  year minus 1900
-
-char *month_str_tbl[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-char *day_str_tbl[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-
-char *ymd_to_str(int y, int m, int d)
-{
-    static char ymd_str[20];
-    
-    sprintf(ymd_str, "%s %s %d, %d",
-            get_weekday_str(y, m, d), get_month_str(m), d, y);
-    return ymd_str;
-}
-
-char *get_month_str(int m)
-{
-    return month_str_tbl[m-1];
-}
-
-char *get_weekday_str(int y, int m, int d)
-{
-    struct tm tm;
-    time_t t;
-
-    memset(&tm, 0, sizeof(tm));
-    tm.tm_year = y - 1900;
-    tm.tm_mon  = m - 1;
-    tm.tm_mday = d;
-    tm.tm_isdst = -1;  // system will determine dst
-
-    t = mktime(&tm);
-    localtime_r(&t, &tm);
-    return day_str_tbl[tm.tm_wday];
-}
-
-bool is_weekend(int y, int m, int d)
-{
-    struct tm tm;
-    time_t t;
-
-    memset(&tm, 0, sizeof(tm));
-    tm.tm_year = y - 1900;
-    tm.tm_mon  = m - 1;
-    tm.tm_mday = d;
-    tm.tm_isdst = -1;  // system will determine dst
-
-    t = mktime(&tm);
-    localtime_r(&t, &tm);
-    return tm.tm_wday == 0 || tm.tm_wday == 6;
-}
-
-bool is_today(int y, int m, int d)
-{
-    struct tm tm;
-    time_t t;
-
-    t = time(NULL);
-    localtime_r(&t, &tm);
-
-    return (tm.tm_year+1900 == y) &&
-           (tm.tm_mon+1 == m) &&
-           (tm.tm_mday == d);
-}
-
-int days_in_month(int y, int m)
-{
-    if (m == 9 || m == 4 || m == 6 || m == 11) {
-        return 30;
-    } else if (m == 2) {
-        bool leap_year = (((y % 4) == 0) && !((y % 100) == 0)) || ((y % 400) == 0);
-        return leap_year ? 29 : 28;
-    } else {
-        return 31;
-    }
-}
-
-void get_current_ymd(int *y, int *m, int *d)
-{
-    time_t t;
-    struct tm tm;
-
-    t = time(NULL);
-    localtime_r(&t, &tm);
-    *y = tm.tm_year + 1900;
-    *m = tm.tm_mon + 1;
-    *d = tm.tm_mday;
-}
-
-void set_ymd_to_prior(int *y_arg, int *m_arg, int *d_arg)
-{
-    int y = *y_arg;
-    int m = *m_arg;
-    int d = *d_arg;
-
-    if (--d < 1) {
-        if (--m < 1) {
-            m = 12;
-            y--;
-        }
-        d = days_in_month(y, m);
-    }
-
-    *y_arg = y;
-    *m_arg = m;
-    *d_arg = d;
-}
-
-void set_ymd_to_next(int *y_arg, int *m_arg, int *d_arg)
-{
-    int y = *y_arg;
-    int m = *m_arg;
-    int d = *d_arg;
-
-    if (++d > days_in_month(y, m)) {
-        if (++m > 12) {
-            m = 1;
-            y++;
-        }
-        d = 1;
-    }
-
-    *y_arg = y;
-    *m_arg = m;
-    *d_arg = d;
-}
-
-// -----------------  STRING UTILS  -------------------------------
-
-void str_remove_trailing_newline(char *s)
-{
-    int len = strlen(s);
-
-    if (len > 0 && s[len-1] == '\n') {
-        s[len-1] = '\0';
-    }
-}
-
-void str_sanitize(char *s)
-{
-    int i;
-    char *p;
-
-    // remove trailing newline
-    str_remove_trailing_newline(s);
-
-    // remove comments
-    p = strchr(s, '#');
-    if (p) *p = '\0';
-
-    // remove leading spaces
-    i = 0;
-    while (s[i] == ' ' && s[i] != '\0') {
-        i++;
-    }
-    memmove(s, &s[i], strlen(&s[i]));
-
-    // remove trailing spaces
-    i = strlen(s) - 1;
-    while (i >= 0) {
-        if (s[i] == ' ')
-            s[i] = '\0';
-        else
-            break;
-        i--;
-    }
-}
-
 // -----------------  SHOW FILE  ----------------------------------
 
 #define README_FONT_SMALLEST  40
@@ -491,7 +286,237 @@ void reg_event_show_readme_file(void)
                   COLOR_LIGHT_BLUE, "?", EVID_SHOW_README_FILE);
 }
 
-// -----------------  SERVICE REQUEST INITIALIZER  ----------------
+// ===============================================================================
+// =================  ROUTINES FOR USE BY MINI-APPS OR MINI SVCS  ================
+// ===============================================================================
+
+// -----------------  GET DEVICE ORIENTATION  ---------------------
+
+// returns PORTRAIT or LANDSCAPE
+int get_device_orientation(void)
+{
+    double ax, ay, az;
+    int rc;
+    static int orient = PORTRAIT;
+    static bool error_printed;
+
+    rc = sdlx_sensor_read_gravity_accel(&ax, &ay, &az);
+    if (rc != 0) {
+        if (!error_printed) {
+            printf("E lib: get_device_orientation failed to read accelerometer\n");
+            error_printed = true;
+        }
+        return orient;
+    }
+    
+    if (ay > 7 && orient != PORTRAIT) {
+        printf("I lib: orientation is now PORTRAIT\n");
+        orient = PORTRAIT;
+    }
+
+    if (ax > 7 && orient != LANDSCAPE) {
+        printf("I lib: orientation is now LANDSCAPE\n");
+        orient = LANDSCAPE;
+    }
+
+    return orient;
+}
+
+// -----------------  DATE UTILS  ---------------------------------
+
+// in the following code:
+// - y = year, for example 2026
+// - m = month, 1-12
+// - d = day, 1-31
+
+// notes regarding struct tm field values
+// - tm_mday  1-31
+// - tm_mon   0-11
+// - tm_year  year minus 1900
+
+char *month_str_tbl[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+char *day_str_tbl[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+char *ymd_to_str(int y, int m, int d)
+{
+    static char ymd_str[20];
+    
+    sprintf(ymd_str, "%s %s %d, %d",
+            get_weekday_str(y, m, d), get_month_str(m), d, y);
+    return ymd_str;
+}
+
+char *get_month_str(int m)
+{
+    return month_str_tbl[m-1];
+}
+
+char *get_weekday_str(int y, int m, int d)
+{
+    struct tm tm;
+    time_t t;
+
+    memset(&tm, 0, sizeof(tm));
+    tm.tm_year = y - 1900;
+    tm.tm_mon  = m - 1;
+    tm.tm_mday = d;
+    tm.tm_isdst = -1;  // system will determine dst
+
+    t = mktime(&tm);
+    localtime_r(&t, &tm);
+    return day_str_tbl[tm.tm_wday];
+}
+
+bool is_weekend(int y, int m, int d)
+{
+    struct tm tm;
+    time_t t;
+
+    memset(&tm, 0, sizeof(tm));
+    tm.tm_year = y - 1900;
+    tm.tm_mon  = m - 1;
+    tm.tm_mday = d;
+    tm.tm_isdst = -1;  // system will determine dst
+
+    t = mktime(&tm);
+    localtime_r(&t, &tm);
+    return tm.tm_wday == 0 || tm.tm_wday == 6;
+}
+
+bool is_today(int y, int m, int d)
+{
+    struct tm tm;
+    time_t t;
+
+    t = time(NULL);
+    localtime_r(&t, &tm);
+
+    return (tm.tm_year+1900 == y) &&
+           (tm.tm_mon+1 == m) &&
+           (tm.tm_mday == d);
+}
+
+int days_in_month(int y, int m)
+{
+    if (m == 9 || m == 4 || m == 6 || m == 11) {
+        return 30;
+    } else if (m == 2) {
+        bool leap_year = (((y % 4) == 0) && !((y % 100) == 0)) || ((y % 400) == 0);
+        return leap_year ? 29 : 28;
+    } else {
+        return 31;
+    }
+}
+
+void get_current_ymd(int *y, int *m, int *d)
+{
+    time_t t;
+    struct tm tm;
+
+    t = time(NULL);
+    localtime_r(&t, &tm);
+    *y = tm.tm_year + 1900;
+    *m = tm.tm_mon + 1;
+    *d = tm.tm_mday;
+}
+
+void get_current_ymd_hms(int *y, int *m, int *d, int *hour, int *min, int *sec)
+{
+    time_t t;
+    struct tm tm;
+
+    t = time(NULL);
+    localtime_r(&t, &tm);
+
+    *y = tm.tm_year + 1900;
+    *m = tm.tm_mon + 1;
+    *d = tm.tm_mday;
+
+    *hour = tm.tm_hour;
+    *min = tm.tm_min;
+    *sec = tm.tm_sec;
+}
+
+void set_ymd_to_prior(int *y_arg, int *m_arg, int *d_arg)
+{
+    int y = *y_arg;
+    int m = *m_arg;
+    int d = *d_arg;
+
+    if (--d < 1) {
+        if (--m < 1) {
+            m = 12;
+            y--;
+        }
+        d = days_in_month(y, m);
+    }
+
+    *y_arg = y;
+    *m_arg = m;
+    *d_arg = d;
+}
+
+void set_ymd_to_next(int *y_arg, int *m_arg, int *d_arg)
+{
+    int y = *y_arg;
+    int m = *m_arg;
+    int d = *d_arg;
+
+    if (++d > days_in_month(y, m)) {
+        if (++m > 12) {
+            m = 1;
+            y++;
+        }
+        d = 1;
+    }
+
+    *y_arg = y;
+    *m_arg = m;
+    *d_arg = d;
+}
+
+// -----------------  STRING UTILS  -------------------------------
+
+void str_remove_trailing_newline(char *s)
+{
+    int len = strlen(s);
+
+    if (len > 0 && s[len-1] == '\n') {
+        s[len-1] = '\0';
+    }
+}
+
+void str_sanitize(char *s)
+{
+    int i;
+    char *p;
+
+    // remove trailing newline
+    str_remove_trailing_newline(s);
+
+    // remove comments
+    p = strchr(s, '#');
+    if (p) *p = '\0';
+
+    // remove leading spaces
+    i = 0;
+    while (s[i] == ' ' && s[i] != '\0') {
+        i++;
+    }
+    memmove(s, &s[i], strlen(&s[i]));
+
+    // remove trailing spaces
+    i = strlen(s) - 1;
+    while (i >= 0) {
+        if (s[i] == ' ')
+            s[i] = '\0';
+        else
+            break;
+        i--;
+    }
+}
+
+// -----------------  INIT MINI SVC REQUEST  ----------------------
 
 svc_req_t *svc_req_init(int req_id, char *data, int data_len)
 {

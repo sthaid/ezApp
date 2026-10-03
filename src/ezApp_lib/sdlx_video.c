@@ -423,51 +423,66 @@ sdlx_color_t sdlx_set_color_alpha(sdlx_color_t color, int alpha)
     return (color & 0x00ffffff) | ((alpha & 0xff) << 24);
 }
 
-// ported from http://www.noah.org/wiki/Wavelength_to_RGB_in_Python
-sdlx_color_t sdlx_wavelength_to_color(int wavelength_arg)
+// From Google AI.
+// Wavelength is in nanometers:
+// - range 380 - 780
+// - fadeout below 420 and above 700 nm
+sdlx_color_t sdlx_wavelength_to_color(double  wavelength)
 {
-    double wavelength = wavelength_arg;
-    double attenuation;
-    double gamma = 0.8;
-    double R,G,B;
+    double r = 0.0, g = 0.0, b = 0.0;
+    double factor = 0.0;
+    const double gamma = 0.80;
 
-    if (wavelength >= 380 && wavelength <= 440) {
-        double attenuation = 0.3 + 0.7 * (wavelength - 380) / (440 - 380);
-        R = pow((-(wavelength - 440) / (440 - 380)) * attenuation, gamma);
-        G = 0.0;
-        B = pow(1.0 * attenuation, gamma);
-    } else if (wavelength >= 440 && wavelength <= 490) {
-        R = 0.0;
-        G = pow((wavelength - 440) / (490 - 440), gamma);
-        B = 1.0;
-    } else if (wavelength >= 490 && wavelength <= 510) {
-        R = 0.0;
-        G = 1.0;
-        B = pow(-(wavelength - 510) / (510 - 490), gamma);
-    } else if (wavelength >= 510 && wavelength <= 580) {
-        R = pow((wavelength - 510) / (580 - 510), gamma);
-        G = 1.0;
-        B = 0.0;
-    } else if (wavelength >= 580 && wavelength <= 645) {
-        R = 1.0;
-        G = pow(-(wavelength - 645) / (645 - 580), gamma);
-        B = 0.0;
-    } else if (wavelength >= 645 && wavelength <= 750) {
-        attenuation = 0.3 + 0.7 * (750 - wavelength) / (750 - 645);
-        R = pow(1.0 * attenuation, gamma);
-        G = 0.0;
-        B = 0.0;
+    // Determine base structural RGB color segments based on wavelength
+    if ((wavelength >= 380.0) && (wavelength < 440.0)) {
+        r = -(wavelength - 440.0) / (440.0 - 380.0);
+        g = 0.0;
+        b = 1.0;
+    } else if ((wavelength >= 440.0) && (wavelength < 490.0)) {
+        r = 0.0;
+        g = (wavelength - 440.0) / (440.0 - 440.0); // Simplified: g fluctuates up
+        g = (wavelength - 440.0) / (490.0 - 440.0);
+        b = 1.0;
+    } else if ((wavelength >= 490.0) && (wavelength < 510.0)) {
+        r = 0.0;
+        g = 1.0;
+        b = -(wavelength - 510.0) / (510.0 - 490.0);
+    } else if ((wavelength >= 510.0) && (wavelength < 580.0)) {
+        r = (wavelength - 510.0) / (580.0 - 510.0);
+        g = 1.0;
+        b = 0.0;
+    } else if ((wavelength >= 580.0) && (wavelength < 645.0)) {
+        r = 1.0;
+        g = -(wavelength - 645.0) / (645.0 - 580.0);
+        b = 0.0;
+    } else if ((wavelength >= 645.0) && (wavelength <= 780.0)) {
+        r = 1.0;
+        g = 0.0;
+        b = 0.0;
     } else {
-        R = 0.0;
-        G = 0.0;
-        B = 0.0;
+        // Outside the visible spectrum
+        r = 0.0;
+        g = 0.0;
+        b = 0.0;
     }
 
-    if (R < 0) R = 0; else if (R > 1) R = 1;
-    if (G < 0) G = 0; else if (G > 1) G = 1;
-    if (B < 0) B = 0; else if (B > 1) B = 1;
+    // Fade intensity near the vision limits (380-420nm and 700-780nm)
+    if ((wavelength >= 380.0) && (wavelength < 420.0)) {
+        factor = 0.3 + 0.7 * (wavelength - 380.0) / (420.0 - 380.0);
+    } else if ((wavelength >= 420.0) && (wavelength <= 700.0)) {
+        factor = 1.0;
+    } else if ((wavelength > 700.0) && (wavelength <= 780.0)) {
+        factor = 0.3 + 0.7 * (780.0 - wavelength) / (780.0 - 700.0);
+    } else {
+        factor = 0.0;
+    }
 
-    return sdlx_create_color(R*255, G*255, B*255, 255);
+    // Apply factor, gamma correction, scale to 0-255, and pack into 32-bit int
+    unsigned char R = (r == 0.0) ? 0 : (unsigned char) round(255.0 * pow(r * factor, gamma));
+    unsigned char G = (g == 0.0) ? 0 : (unsigned char) round(255.0 * pow(g * factor, gamma));
+    unsigned char B = (b == 0.0) ? 0 : (unsigned char) round(255.0 * pow(b * factor, gamma));
+
+    return sdlx_create_color(R, G, B, 255);
 }
 
 static void set_render_draw_color(sdlx_color_t color)
