@@ -18,6 +18,8 @@
 // defines
 #define CREATE_IF_NEEDED true
 
+#define TEST // xxx del later
+
 // variables
 loc_hist_t  *loc_hist;
 loc_hist2_t *loc_hist2;
@@ -34,6 +36,11 @@ char *most_recent_loc_hist_city(void);
 void clear_loc_history(void);
 
 void add_entry_to_loc_hist2(double latitude, double longitude);
+
+#ifdef TEST
+void test_init_loc_hist2(void);
+void test_get_current_ymd_hms(int *year, int *month, int *day, int *hour, int *minute, int *second);
+#endif
 
 // -----------------  MAIN  -----------------------------------------
 
@@ -67,6 +74,10 @@ int main(int argc, char **argv)
         return 1;
     }
 
+#ifdef TEST
+    util_delete_file(data_dir, LOC_HIST2_FILENAME);
+#endif
+
     // map the loc_hist2 file
     loc_hist2 = util_map_file(data_dir, LOC_HIST2_FILENAME, sizeof(loc_hist2_t),
                              CREATE_IF_NEEDED, &created);
@@ -75,6 +86,10 @@ int main(int argc, char **argv)
         util_unmap_file(loc_hist, sizeof(loc_hist_t));
         return 1;
     }
+
+#ifdef TEST
+    test_init_loc_hist2();
+#endif
 
     // read parameters
     param_enabled = util_get_numeric_param(data_dir, "enabled", 1);
@@ -339,7 +354,11 @@ void add_entry_to_loc_hist2(double latitude, double longitude)
     static long             t_last_sync;
 
     // get current data
+#ifdef TEST
+    test_get_current_ymd_hms(&year, &month, &day, &hour, &minute, &second);
+#else
     get_current_ymd_hms(&year, &month, &day, &hour, &minute, &second);
+#endif
     
     // if current ymd differ from last_day's date then advance last_day
     lh2d = &loc_hist2->day[loc_hist2->last_day % MAX_LH2_DAY];
@@ -368,6 +387,59 @@ void add_entry_to_loc_hist2(double latitude, double longitude)
         t_last_sync = t_now;
     }
 }    
+
+#ifdef TEST
+
+#define HOUR 3600
+#define TEST_LATITUDE     42.4222
+#define TEST_LONGITUDE   -71.6226
+
+#define MILES_PER_DEGREE_LATITUDE       69.0
+#define MILES_PER_DEGREE_LONGITUDE(lat) (cosd(lat) * 69.0)
+
+void test_init_loc_hist2()
+{
+    double lat, lng;
+    int day, secs;
+
+    for (day = 0; day < 10; day++) {
+        lat = TEST_LATITUDE;
+        lng = TEST_LONGITUDE;
+
+        for (secs = 0; secs < 86400; secs += 10) {
+            if (secs < 6 * HOUR || secs > 20 * HOUR) {
+                lat = TEST_LATITUDE;
+                lng = TEST_LONGITUDE;
+            } else if (secs < 9.5 * HOUR) {
+                lat -= (1. / 1260) / MILES_PER_DEGREE_LATITUDE;
+            } else if (secs < 13.0 * HOUR) {
+                lng += (1. / 1260) / MILES_PER_DEGREE_LONGITUDE(TEST_LATITUDE);
+            } else if (secs < 16.5 * HOUR) {
+                lat += (1. / 1260) / MILES_PER_DEGREE_LATITUDE;
+            } else {  // secs must be less than 20*HOUR
+                lng -= (1. / 1260) / MILES_PER_DEGREE_LONGITUDE(TEST_LATITUDE);
+            }
+
+            add_entry_to_loc_hist2(lat, lng);
+        }
+    }
+}
+
+void test_get_current_ymd_hms(int *year, int *month, int *day, int *hour, int *minute, int *second)
+{
+    static long seconds;
+
+    *year    = 2026;
+    *month   = 9;
+    *day     = (seconds / 86400) + 1;
+    *hour    = (seconds / 3600) % 24;
+    *minute  = (seconds / 60) % 60;
+    *second  = seconds % 60;
+
+    seconds += 10;
+}
+
+#endif
 
 // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  cleanup
 

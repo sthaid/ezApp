@@ -14,9 +14,6 @@
 // defines
 //
 
-#define DEG2RAD              (M_PI / 180.0)
-#define RAD2DEG              (180.0 / M_PI)
-
 #define UPDATE_INTERVAL_SEC  0.01   // 10 ms
 
 #define BALL_RADIUS          50

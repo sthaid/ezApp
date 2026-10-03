@@ -66,4 +66,16 @@ void remove_from_list(node_t *remove_elem);
 bool is_list_empty(node_t *head);
 int num_list_elements(node_t *head);
 
+// trigonometry
+#define DEG2RAD 0.017453292519943
+#define RAD2DEG 57.29577951308232
+
+double sind(double angle);  // angle in degrees
+double cosd(double angle);
+double tand(double angle);
+double asind(double x);     // returns degrees
+double acosd(double x);
+double atand(double x);
+double atan2d(double y, double x);
+
 #endif

@@ -96,7 +96,6 @@ void display_init(void);
 void display_photos(void);
 void display_map(void);
 
-double cosd(double degrees);
 void set_selected(unsigned int e_idx, unsigned int n_idx);
 bool is_selected(unsigned int e_idx, unsigned int n_idx);
 void clear_selected(void);
@@ -529,11 +528,6 @@ void display_photos(void)
 }
 
 // -----------------  UTILS  -------------------------------------
-
-double cosd(double degrees)
-{
-    return cos(degrees * DEG2RAD);
-}
 
 unsigned long Slctd;
 

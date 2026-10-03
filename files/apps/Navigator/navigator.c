@@ -83,14 +83,6 @@ int main(int argc, char **argv)
 
 // --------------------------------------------------------
 
-#define DEG2RAD 0.0174533
-
-// xxx utils
-double cosd(double angle)
-{
-    return cos(angle * DEG2RAD);
-}
-
 // xxx
 // - what if no data at all, somehow display NO DATA
 
@@ -123,7 +115,7 @@ void view_mode_display(void)
 
     day = lh2->last_day;
     util_get_location(&map_ctr_lat, &map_ctr_long, NULL, NULL);
-    map_width_miles  = 10;
+    map_width_miles  = 2;
     map_height_miles = map_width_miles * ((double)MAP_H / MAP_W);
     printf("I %s: view mode starting, map %0.3f,%0.3f WxH %0.0f %0.0f miles\n",
            progname, map_ctr_lat, map_ctr_long, map_width_miles, map_height_miles);
@@ -183,6 +175,9 @@ void view_mode_display(void)
 // xxx test and cleanup
 #define HOUR 3600
 
+#define MIN_WVLEN  380.0  // purple
+#define MAX_WVLEN  650.0  // red
+
 void display_trail(struct loc_hist2_day_s *lh2d)
 {
     int          x, y, i, num_points=0;
@@ -204,13 +199,13 @@ void display_trail(struct loc_hist2_day_s *lh2d)
         if (x < MAP_XL || x > MAP_XR) continue;
 
         if (lh2d->loc[i].secs < (6 * HOUR)) {
-            wvlen = 380.;  // purple
-        } else if (lh2d->loc[i].secs > (21 * HOUR)) {
-            wvlen = 700.;  // red
+            wvlen = MIN_WVLEN;
+        } else if (lh2d->loc[i].secs > (20 * HOUR)) {
+            wvlen = MAX_WVLEN;
         } else {
-            wvlen = 380. + 
-                    (lh2d->loc[i].secs - (6.0 * HOUR)) / (15.0 * HOUR) *
-                    320.;
+            wvlen = MIN_WVLEN + 
+                    (lh2d->loc[i].secs - (6.0 * HOUR)) / (14.0 * HOUR) *
+                    (MAX_WVLEN - MIN_WVLEN);
         }
         color = sdlx_wavelength_to_color(wvlen);
 

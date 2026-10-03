@@ -11,8 +11,7 @@
 
 #include "svcs/Location/location.h"
 #include "svcs/Location/common.h"
-
-#define DEG2RAD (M_PI / 180)
+#include "lib/lib.h"
 
 typedef struct {
     double latitude;
@@ -104,7 +103,7 @@ void find_closest_loc_data(
     if (!actual_longitude) actual_longitude = &dummy_actual_longitude;
 
     // init
-    cos_req_lat = cos(req_latitude * DEG2RAD);
+    cos_req_lat = cosd(req_latitude);
     point5_div_cos_req_lat = 0.5 / cos_req_lat;
 
     // preset return values to invalid

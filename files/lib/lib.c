@@ -594,3 +594,42 @@ int num_list_elements(node_t *head)
     }
     return n;
 }
+
+// -----------------  TRIGONOMETRY  --------------------------------
+
+// xxx error cases,   xxx does picoc have exit call
+
+double sind(double angle)
+{
+    return sin(angle * DEG2RAD);
+}
+
+double cosd(double angle)
+{
+    return cos(angle * DEG2RAD);
+}
+
+double tand(double angle)
+{
+    return tan(angle * DEG2RAD);
+}
+
+double asind(double x)
+{
+    return asin(x) * RAD2DEG;
+}
+
+double acosd(double x)
+{
+    return acos(x) * RAD2DEG;
+}
+
+double atand(double x)
+{
+    return atan(x) * RAD2DEG;
+}
+
+double atan2d(double y, double x)
+{
+    return atan2(y,x) * RAD2DEG;
+}

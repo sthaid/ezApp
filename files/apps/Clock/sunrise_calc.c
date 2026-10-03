@@ -11,17 +11,9 @@
 #include <utils.h>
 
 #include "apps/Clock/common.h"
+#include "lib/lib.h"
 
 #define JD2000 2451545.0
-
-#define SIND(x)   (sin((x)*DEG2RAD))
-#define COSD(x)   (cos((x)*DEG2RAD))
-#define TAND(x)   (tan((x)*DEG2RAD))
-#define ACOSD(x)  (acos(x)*RAD2DEG)
-#define ASIND(x)  (asin(x)*RAD2DEG)
-
-#define RAD2DEG (180. / M_PI)
-#define DEG2RAD (M_PI / 180.)
 
 static void make_local_time_str(double jd, char *str, char *debug);
 static void jd2ymdh(double jd, int *year, int *month, int *day, double *hour);
@@ -75,7 +67,7 @@ void sunrise_sunset_calc(char *sunrise, char *sunset, char *midday, char *daytim
     while (M >= 360) M -= 360; 
 
     // equation of the center
-    C = 1.9148 * SIND(M) + 0.0200 * SIND(2*M) + 0.0003 * SIND(3*M);
+    C = 1.9148 * sind(M) + 0.0200 * sind(2*M) + 0.0003 * sind(3*M);
 
     // ecliptic longitude
     lambda = (M +  C + 180 + 102.9372);
@@ -86,18 +78,18 @@ void sunrise_sunset_calc(char *sunrise, char *sunset, char *midday, char *daytim
     while (lambda >= 360) lambda -= 360;
 
     // solar transit
-    jtransit = JD2000 + jstar + 0.0053 * SIND(M) - 0.0069 * SIND(2*lambda);
+    jtransit = JD2000 + jstar + 0.0053 * sind(M) - 0.0069 * sind(2*lambda);
 
     // declination of the sun
-    declination = ASIND(SIND(lambda) * SIND(23.44));
+    declination = asind(sind(lambda) * sind(23.44));
 
 #if 0
     // hour angle for sun center and no refraction correction
-    hour_angle = ACOSD(-TAND(latitude) * TAND(declination));
+    hour_angle = acosd(-tand(latitude) * tand(declination));
 #else
     // hour angle with correction for refraction and disc diameter
-    hour_angle = ACOSD( (SIND(-0.83) - SIND(latitude) * SIND(declination)) /
-                       (COSD(latitude) * COSD(declination)));
+    hour_angle = acosd( (sind(-0.83) - sind(latitude) * sind(declination)) /
+                       (cosd(latitude) * cosd(declination)));
 #endif
 
     // calculate sunrise and sunset julian date
