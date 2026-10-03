@@ -38,6 +38,7 @@ void clear_loc_history(void);
 void add_entry_to_loc_hist2(double latitude, double longitude);
 
 #ifdef TEST
+bool test_mode;
 void test_init_loc_hist2(void);
 void test_get_current_ymd_hms(int *year, int *month, int *day, int *hour, int *minute, int *second);
 #endif
@@ -74,10 +75,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-#ifdef TEST
-    util_delete_file(data_dir, LOC_HIST2_FILENAME);
-#endif
-
     // map the loc_hist2 file
     loc_hist2 = util_map_file(data_dir, LOC_HIST2_FILENAME, sizeof(loc_hist2_t),
                              CREATE_IF_NEEDED, &created);
@@ -88,7 +85,11 @@ int main(int argc, char **argv)
     }
 
 #ifdef TEST
-    test_init_loc_hist2();
+    if (created) {
+        printf("I %s: xxxxxxxxxxxxxxxxxx INIT TEST DATA xxxxxxxxxxxxxxxxxxxxxxxx\n", progname);
+        test_init_loc_hist2();
+        printf("I %s: xxxxxxxxxxxxxxxxxx INIT TEST DATA DONE  xxxxxxxxxxxxxxxxxx\n", progname);
+    }
 #endif
 
     // read parameters
@@ -355,7 +356,11 @@ void add_entry_to_loc_hist2(double latitude, double longitude)
 
     // get current data
 #ifdef TEST
-    test_get_current_ymd_hms(&year, &month, &day, &hour, &minute, &second);
+    if (test_mode) {
+        test_get_current_ymd_hms(&year, &month, &day, &hour, &minute, &second);
+    } else {
+        get_current_ymd_hms(&year, &month, &day, &hour, &minute, &second);
+    }
 #else
     get_current_ymd_hms(&year, &month, &day, &hour, &minute, &second);
 #endif
@@ -402,6 +407,8 @@ void test_init_loc_hist2()
     double lat, lng;
     int day, secs;
 
+    test_mode = true;
+
     for (day = 0; day < 10; day++) {
         lat = TEST_LATITUDE;
         lng = TEST_LONGITUDE;
@@ -423,6 +430,8 @@ void test_init_loc_hist2()
             add_entry_to_loc_hist2(lat, lng);
         }
     }
+
+    test_mode = false;
 }
 
 void test_get_current_ymd_hms(int *year, int *month, int *day, int *hour, int *minute, int *second)
@@ -439,33 +448,4 @@ void test_get_current_ymd_hms(int *year, int *month, int *day, int *hour, int *m
     seconds += 10;
 }
 
-#endif
-
-// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  cleanup
-
-#if 0 // xxx del
-int main() {
-    // 1. Get the current time as a Unix epoch timestamp
-    time_t now = time(NULL);
-
-    // 2. Convert the epoch time into a local time structure (struct tm)
-    struct tm *local = localtime(&now);
-
-    // 3. Reset the time fields to midnight (start of the day)
-    local->tm_hour = 0;
-    local->tm_min  = 0;
-    local->tm_sec  = 0;
-    
-    // Optional: Let mktime automatically determine if Daylight Saving Time is active
-    local->tm_isdst = -1; 
-
-    // 4. Convert the modified local structure back into a Unix timestamp
-    time_t start_of_day = mktime(local);
-
-    // Print the results
-    printf("Current epoch time:       %ld\n", (long)now);
-    printf("Start of day epoch time:  %ld\n", (long)start_of_day);
-
-    return 0;
-}
 #endif

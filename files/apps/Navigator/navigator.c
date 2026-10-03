@@ -145,9 +145,15 @@ void view_mode_display(void)
         case EVID_SHOW_README_FILE:
             show_file(data_dir, "README");
             break;
-        case EVID_PREV:
-            if (day > 0) day--;
-            break;
+        case EVID_PREV: {
+            int new_day = day - 1;
+            if ((new_day) >= 0 && (lh2->last_day - new_day < MAX_LH2_DAY)) {
+                struct loc_hist2_day_s *lh2d = &lh2->day[new_day % MAX_LH2_DAY];
+                if (lh2d->max_loc > 0) {
+                    day = new_day;
+                }
+            }
+            break; }
         case EVID_NEXT:
             if (day < lh2->last_day) day++;
             break;
@@ -214,8 +220,17 @@ void display_trail(struct loc_hist2_day_s *lh2d)
         num_points++;
     }
 
-    printf("num points %d\n", num_points);
-    sdlx_render_printf(0, MAP_YB, "num points %d\n", num_points);
+    printf("pts %d day %d\n", num_points, day);
+
+    sdlx_render_printf(0, MAP_YB + ROW2Y(0),
+                       "pts %d day %d\n", 
+                       num_points, day);
+
+    sdlx_render_printf(0, MAP_YB + ROW2Y(1),
+                       "%s %s %d", 
+                       get_weekday_str(lh2d->year, lh2d->month, lh2d->day),
+                       get_month_str(lh2d->month),
+                       lh2d->day);
 }
 
 // --------------------------------------------------------
@@ -224,39 +239,3 @@ void nav_mode_display(void)
 {
 }
 
-
-// ====================================================
-// ================= TEMP SAVE ========================
-// ====================================================
-
-
-#if 0
-void draw_map(void)
-{
-    struct tm *tm;
-    long idx;
-    char time_str[100];
-    struct loc_hist2_entry_s *loc;
-
-    if (lh2->tail == 0) {
-        printf("E %s: no data\n", progname);
-        return;
-    }
-
-    idx = lh2->tail;
-    while (true) {
-        if (--idx < 0) {
-            break;
-        }
-
-        loc = &lh2->loc[idx % MAX_LOC_HIST2];
-
-        tm = localtime(&loc->t);
-        strftime(time_str, sizeof(time_str), "%b %d %H:%M %Z", tm);
-
-        printf("I %s: %s %0.3f %0.3f\n",
-               progname, 
-               time_str, loc->latitude, loc->longitude);
-    }
-}
-#endif
