@@ -465,7 +465,8 @@ int sdlx_sensor_read_step_counter(unsigned long *step_count);
 // adjusting for the device roll & pitch.
 // The device magnetic heading is provided in range 0 to 359.999 degrees,
 // referenced to the top of the device.
-int sdlx_sensor_read_mag_heading(double *mag_heading);
+// xxx comment k_smooth
+int sdlx_sensor_read_mag_heading(double *mag_heading, double k_smooth);
 
 // Read gravity accelerometer sensor. Units are m/s^2.
 // - x-axis: left to right

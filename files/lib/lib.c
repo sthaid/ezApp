@@ -124,8 +124,6 @@ void bar_graph_decrease_y_axis(int *max_y)
 {
     int n = sizeof(max_y_values) / sizeof(int);
 
-    printf("decreasing\n");
-
     if (*max_y <= max_y_values[0]) {
         *max_y = max_y_values[0];
         return;
@@ -632,4 +630,109 @@ double atand(double x)
 double atan2d(double y, double x)
 {
     return atan2(y,x) * RAD2DEG;
+}
+
+// -----------------  GET MAGNETIC DECLINATION  -------------------
+
+#define MAG_DECL_JSON "mag_decl.json"
+#define KEY           "zNEw7"
+
+double get_mag_decl(void)
+{
+    double        latitude, longitude;
+    int           rc;
+    char          url[200], cmd[300];
+    char         *str;
+    void         *json;
+    int           len_ret;
+    json_value_t *value;
+    double        param_mag_decl_lat;
+    double        param_mag_decl_long;
+    double        param_mag_decl_degrees;
+    bool          okay_to_use;
+    double        mag_decl_degrees;
+
+    // get current latitude and longitude
+    util_get_location(&latitude, &longitude, NULL, NULL);
+    if (latitude == INVALID_NUMBER || longitude == INVALID_NUMBER) {
+        printf("E lib: failed to get lat/long\n");
+        return INVALID_NUMBER;
+    }
+
+    // if valid mag_decl_degrees is available from params then use it
+    // - read param_mag_decl_degrees, and check if the read succeeded
+    param_mag_decl_degrees = util_get_numeric_param(".", "mag_decl_degrees", INVALID_NUMBER);
+    if (param_mag_decl_degrees != INVALID_NUMBER) {
+        // read additional params and determine if param_mag_decl_degrees is okay to use
+        param_mag_decl_lat  = util_get_numeric_param(".", "mag_decl_lat",  INVALID_NUMBER);
+        param_mag_decl_long = util_get_numeric_param(".", "mag_decl_long", INVALID_NUMBER);
+        okay_to_use =  (fabs(param_mag_decl_lat - latitude) < 1.0) &&
+                       (fabs(param_mag_decl_long - longitude) < 1.0);
+
+        // if okay to use then return param_mag_decl_degrees
+        if (okay_to_use) {
+            printf("I lib: using saved mag_decl %0.1f\n", param_mag_decl_degrees);
+            return param_mag_decl_degrees;
+        }
+    }
+
+    // the following code acquires the mag_decl_degrees from www.ngdc.noaa.gov
+
+    // delete possibly existing mag_decl.json file
+    util_delete_file("tmp", MAG_DECL_JSON);
+
+    // execute curl cmd to get mag declination from NOAA, in json format
+    sprintf(url, 
+      "\"https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination?lat1=%0.4f&lon1=%0.4f&key=%s&resultFormat=json\"",
+      latitude, longitude, KEY);
+    sprintf(cmd, "curl --silent --max-time 30 --output %s/%s %s",
+            "tmp", MAG_DECL_JSON, url);
+    printf("I lib: running '%s'\n", cmd);
+    rc = system(cmd);
+    rc = WEXITSTATUS(rc);
+    if (rc != 0) {
+        printf("E lib: curl failed, rc=0x%x\n", rc);
+        return INVALID_NUMBER;
+    }
+
+    // extract mag_decl from json
+    // - read MAG_DECL_JSON file
+    str = util_read_file("tmp", MAG_DECL_JSON, &len_ret);
+    if (str == NULL) {
+        printf("E lib: parse_info, read file %s failed\n", MAG_DECL_JSON);
+        util_delete_file("tmp", MAG_DECL_JSON);
+        return INVALID_NUMBER;
+    }
+    // - init json parser
+    json = util_json_parse(str, NULL);
+    if (json == NULL) {
+        printf("E lib: json parse failed\n");
+        free(str);
+        util_delete_file("tmp", MAG_DECL_JSON);
+        return INVALID_NUMBER;
+    }
+    // - read the declination from the json
+    value = util_json_get_value(json, "result", "0", "declination", NULL);
+    if (value->type != JSON_TYPE_NUMBER) {
+        printf("E lib: declination value type=%d is not a number\n", value->type);
+        free(str);
+        util_json_free(json);
+        util_delete_file("tmp", MAG_DECL_JSON);
+        return INVALID_NUMBER;
+    }
+    // - set return mag_decl variable to the value obtained from the json
+    mag_decl_degrees = value->u.number;
+    // - cleanup
+    free(str);
+    util_json_free(json);
+    util_delete_file("tmp", MAG_DECL_JSON);
+
+    // save mag_decl info to params so that curl will not be needed on next call
+    util_set_numeric_param(".", "mag_decl_lat",     latitude);
+    util_set_numeric_param(".", "mag_decl_long",    longitude);
+    util_set_numeric_param(".", "mag_decl_degrees", mag_decl_degrees);
+
+    // return mag decl
+    printf("I lib: returning mag_decl_degrees %0.1f, obtained from noaa.gov\n", mag_decl_degrees);
+    return mag_decl_degrees;
 }

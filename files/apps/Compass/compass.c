@@ -19,7 +19,7 @@
 #define MAGNETIC_COMPASS 0
 #define TRUE_COMPASS     1
 
-#define DEG_TO_RAD  (M_PI / 180)
+#define K_SMOOTH 0.1
 
 // variables
 char *progname;
@@ -27,15 +27,12 @@ char *data_dir;
 
 int             view = MAGNETIC_COMPASS;
 double          mag_decl_degrees = INVALID_NUMBER;
-char            mag_decl_locname[31];
 sdlx_texture_t *compass;
 bool            show;
 
 // prototypes
 int init_compass_texture(void);
-void init_mag_decl(void);
 void cleanup(void);
-double smooth(double newval);
 char *abbreviation(double heading);
 void normalize(double *angle);
 
@@ -63,7 +60,7 @@ int main(int argc, char **argv)
     if (rc != 0) {
         return 1;
     }
-    init_mag_decl();
+    mag_decl_degrees = get_mag_decl();  //xxx what if this fails
 
     // runtime loop
     while (!end_program) {
@@ -71,9 +68,8 @@ int main(int argc, char **argv)
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
         // read the magnetic heading sensor
-#ifdef ANDROID
-        sdlx_sensor_read_mag_heading(&mag_heading);
-        mag_heading = smooth(mag_heading);
+#ifdef ANDROID  // xxx only run on android?
+        sdlx_sensor_read_mag_heading(&mag_heading, K_SMOOTH);
 #else
         mag_heading = 0;
 #endif
@@ -113,15 +109,6 @@ int main(int argc, char **argv)
             dest.h = 900;
             sdlx_render_texture_rotated(compass, NULL, &dest, -compass_heading, NULL, FLIP_NONE);
 
-#if 0
-            // if show is enabled then draw a reference point at true north
-            if (show && view == MAGNETIC_COMPASS && true_heading != INVALID_NUMBER) {
-                x = 500 + 345 * sin((true_heading + 180) * DEG_TO_RAD);
-                y = 600 + 345 * cos((true_heading + 180) * DEG_TO_RAD);
-                sdlx_render_point(x, y, COLOR_BLUE, MAX_POINT_SIZE);
-            }
-#endif
-
             // print the heading and the heading abbreviation below 
             // the area where the compass is displayed
             y = 1100 + 1.0 * sdlx_char_height(FONT_LARGE);
@@ -138,16 +125,12 @@ int main(int argc, char **argv)
                                    "%s", abbreviation(compass_heading));
             y += 1.0 * sdlx_char_height(FONT_LARGE);
 
-            // if show is enabled and mag_decl_degrees is available then print the mag_decl_degrees
+            // if show is enabled and mag_decl_degrees is available then display the mag_decl_degrees
             if (show && mag_decl_degrees != INVALID_NUMBER) {
                 y = sdlx_win_height - 2 * sdlx_char_height(FONT_SMALL);
                 sdlx_render_printf_ex(sdlx_win_width / 2, y,
                                        FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, 
                                        "decl = %0.1f", mag_decl_degrees);
-                y += 1.0 * sdlx_char_height(FONT_SMALL);
-                sdlx_render_printf_ex(sdlx_win_width / 2, y,
-                                       FONT_SMALL, COLOR_WHITE, FLAG_X_CTR, 
-                                       "%s", mag_decl_locname);
             }
         } else {
             sdlx_render_printf_ex(
@@ -228,180 +211,12 @@ int init_compass_texture(void)
     return 0;
 }
 
-#define MAG_DECL_JSON "mag_decl.json"
-#define KEY           "zNEw7"
-
-void init_mag_decl(void)
-{
-    double        latitude, longitude;
-    int           rc;
-    char          url[200], cmd[300];
-    char         *str, *end_ptr;
-    void         *json;
-    int           len_ret;
-    json_value_t *value;
-    double        param_mag_decl_lat;
-    double        param_mag_decl_long;
-    double        param_mag_decl_degrees;
-    bool          okay_to_use;
-
-    // preset mag_decl to invalid
-    mag_decl_degrees = INVALID_NUMBER;
-
-    // get current latitude and longitude
-    util_get_location(&latitude, &longitude, NULL, NULL);
-    if (latitude == INVALID_NUMBER || longitude == INVALID_NUMBER) {
-        printf("E %s: failed to get lat/long\n", progname);
-        return;
-    }
-
-    // if valid mag_decl_degrees is available from params then use it
-    // - read param_mag_decl_degrees, and check if the read succeeded
-    param_mag_decl_degrees = util_get_numeric_param(data_dir, "mag_decl_degrees", INVALID_NUMBER);
-    if (param_mag_decl_degrees != INVALID_NUMBER) {
-        // - read additional params and determine if param_mag_decl_degrees is okay to use
-        param_mag_decl_lat  = util_get_numeric_param(data_dir, "mag_decl_lat",  INVALID_NUMBER);
-        param_mag_decl_long = util_get_numeric_param(data_dir, "mag_decl_long", INVALID_NUMBER);
-        okay_to_use =  (fabs(param_mag_decl_lat - latitude) < 1.0) &&
-                       (fabs(param_mag_decl_long - longitude) < 1.0);
-
-        // - if okay to use then set global variables mag_decl_degrees and mag_decl_locname, and return
-        if (okay_to_use) {
-            // - set global mag_decl_degrees from param value
-            mag_decl_degrees = param_mag_decl_degrees;
-            // - set global mag_decl_locname from param value
-            str = util_get_str_param(data_dir, "mag_decl_locname", "");
-            strncpy(mag_decl_locname, str, sizeof(mag_decl_locname)-1);
-            free(str);
-            // - debug print and return
-            printf("I %s: using saved mag_decl %0.3f, loc %s\n", progname, mag_decl_degrees, mag_decl_locname);
-            return;
-        }
-    }
-
-    // the following code acquires the mag_decl_degrees from www.ngdc.noaa.gov
-
-    // delete existing mag_decl.json file
-    util_delete_file(data_dir, MAG_DECL_JSON);
-
-    // execute curl cmd to get mag declination from NOAA, in json format
-    sprintf(url, 
-      "\"https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination?lat1=%0.4f&lon1=%0.4f&key=%s&resultFormat=json\"",
-      latitude, longitude, KEY);
-    sprintf(cmd, "curl --silent --max-time 30 --output %s/%s %s",
-            data_dir, MAG_DECL_JSON, url);
-    printf("I %s: running '%s'\n", progname, cmd);
-    rc = system(cmd);
-    rc = WEXITSTATUS(rc);
-    if (rc != 0) {
-        printf("E %s: curl failed, rc=0x%x\n", progname, rc);
-        return;
-    }
-
-    // extract mag_decl from json
-    // - read MAG_DECL_JSON file
-    str = util_read_file(data_dir, MAG_DECL_JSON, &len_ret);
-    if (str == NULL) {
-        printf("E %s: parse_info, read %s, %s\n", progname, MAG_DECL_JSON, strerror(errno));
-        util_delete_file(data_dir, MAG_DECL_JSON);
-        return;
-    }
-    // - init json parser
-    json = util_json_parse(str, &end_ptr);
-    if (json == NULL) {
-        printf("E %s: json parse failed\n", progname);
-        free(str);
-        util_delete_file(data_dir, MAG_DECL_JSON);
-        return;
-    }
-    // - read the declination from the json
-    value = util_json_get_value(json, "result", "0", "declination", NULL);
-    if (value->type != JSON_TYPE_NUMBER) {
-        printf("E %s: declination value type=%d is not a number\n", progname, value->type);
-        free(str);
-        util_json_free(json);
-        util_delete_file(data_dir, MAG_DECL_JSON);
-        return;
-    }
-    // - set global mag_decl variable to the value obtained from the json
-    mag_decl_degrees = value->u.number;
-    // - cleanup
-    free(str);
-    util_json_free(json);
-    util_delete_file(data_dir, MAG_DECL_JSON);
-
-    // get name of nearest city/town, and save in global variable mag_decl_locname
-    char req_data[MAX_SVC_REQ_DATA];
-    memset(req_data, 0, sizeof(req_data));
-    *(double*)(&req_data[0]) = latitude;
-    *(double*)(&req_data[8]) = longitude;
-    svc_req_t *req = svc_req_init(SVC_LOCATION_REQ_GET_LOC_INFO, req_data, sizeof(req_data));
-    rc = svc_make_req("Location", req, 5);
-    if (rc == 0) {
-        char *newline, *city, *state;
-
-        // for safety, in case the response from the Location svc is malformed
-        req_data[MAX_SVC_REQ_DATA-5] = '\n';
-        req_data[MAX_SVC_REQ_DATA-4] = '\n';
-        req_data[MAX_SVC_REQ_DATA-3] = '\n';
-        req_data[MAX_SVC_REQ_DATA-2] = '\n';
-        req_data[MAX_SVC_REQ_DATA-1] = '\0';
-
-        // extract city and state from the response, and copy the city & state to mag_decl_locname
-        city = req->data;
-        newline = strchr(city, '\n'); *newline = '\0';
-        state = newline + 1;
-        newline = strchr(state, '\n'); *newline = '\0';
-
-        snprintf(mag_decl_locname, sizeof(mag_decl_locname), "%s %s", city, state);
-    } else {
-        snprintf(mag_decl_locname, sizeof(mag_decl_locname), "%0.4f %0.4f", latitude, longitude);
-    }
-
-    // save mag_decl info to params
-    util_set_numeric_param(data_dir, "mag_decl_lat",     latitude);
-    util_set_numeric_param(data_dir, "mag_decl_long",    longitude);
-    util_set_numeric_param(data_dir, "mag_decl_degrees", mag_decl_degrees);
-    util_set_str_param(data_dir,     "mag_decl_locname", mag_decl_locname);
-    printf("I %s: new mag decl info ...\n", progname);
-    printf("I %s:   mag_decl_degrees = %0.2f\n", progname, mag_decl_degrees);
-    printf("I %s:   mag_decl_lat     = %0.2f\n", progname, latitude);
-    printf("I %s:   mag_decl_long    = %0.2f\n", progname, longitude);
-    printf("I %s:   mag_decl_locname = %s\n", progname, mag_decl_locname);
-}
-
 void cleanup(void)
 {
     sdlx_destroy_texture(compass);
 }
 
 // -----------------  UTILS  ---------------------------------------------
-
-// this routine removes jitter from the mag_heading sensor reading
-double smooth(double newval)
-{
-    static double smoothed = INVALID_NUMBER;
-    double delta;
-
-    if (newval == INVALID_NUMBER) {
-        return INVALID_NUMBER;
-    }
-
-    if (smoothed == INVALID_NUMBER) {
-        smoothed = newval;
-        return smoothed;
-    }
-
-    delta = newval - smoothed;
-    if (delta < -180) delta += 360;
-    if (delta >  180) delta -= 360;
-
-    smoothed = smoothed + 0.1 * delta;
-    if (smoothed < 0) smoothed += 360;
-    if (smoothed >= 360) smoothed -= 360;
-
-    return smoothed;
-}
 
 // this routine returns the heading abbreviation
 char *abbreviation(double heading) 

@@ -78,4 +78,7 @@ double acosd(double x);
 double atand(double x);
 double atan2d(double y, double x);
 
+// get magnetic declination, returns value in degrees, or INVALID_NUBMER on failure
+double get_mag_decl(void);
+
 #endif

@@ -574,9 +574,10 @@ void Sdlx_sensor_read_mag_heading(struct ParseState *Parser, struct Value *Retur
         struct Value **Param, int NumArgs)
 {
     double * mag_heading = (double *)Param[0]->Val->Pointer;
+    double   k_smooth    = Param[1]->Val->FP;
 
     int retval;
-    retval = sdlx_sensor_read_mag_heading(mag_heading);
+    retval = sdlx_sensor_read_mag_heading(mag_heading, k_smooth);
     ReturnValue->Val->Integer = retval;
 }
 
@@ -774,7 +775,7 @@ struct LibraryFunction SdlFunctions[] = {
     { Sdlx_sensor_find,              "int sdlx_sensor_find(int type);" },
     { Sdlx_sensor_read_raw,          "int sdlx_sensor_read_raw(int id, float *data, int num_values);" },
     { Sdlx_sensor_read_step_counter, "int sdlx_sensor_read_step_counter(unsigned long *step_count);" },
-    { Sdlx_sensor_read_mag_heading,  "int sdlx_sensor_read_mag_heading(double *mag_heading);" },
+    { Sdlx_sensor_read_mag_heading,  "int sdlx_sensor_read_mag_heading(double *mag_heading, double k_smooth);" },
     { Sdlx_sensor_read_device_accel, "int sdlx_sensor_read_device_accel(double *ax, double *ay, double *az);" },
     { Sdlx_sensor_read_gravity_accel,"int sdlx_sensor_read_gravity_accel(double *ax, double *ay, double *az);" },
     { Sdlx_sensor_read_roll_pitch,   "int sdlx_sensor_read_roll_pitch(double *roll, double *pitch);" },
@@ -1736,7 +1737,8 @@ static void *profile_thread(void *cx_arg)
                 cx->max_count = cx->file[idx].count[line];
             }
         } else {
-            printf("ERROR %s: line %d out of range\n", __func__, line);
+            printf("ERROR %s: file '%s' line %d out of range\n", 
+                   __func__,  cx->file[idx].base_name, line);
         }
 
 do_continue:

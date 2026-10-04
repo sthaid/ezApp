@@ -307,17 +307,24 @@ int sdlx_sensor_read_roll_pitch(double *roll, double *pitch)
     return 0;
 }
 
-int sdlx_sensor_read_mag_heading(double *mag_heading)
+// xxx review this
+int sdlx_sensor_read_mag_heading(double *mag_heading, double k_smooth)
 {
     float  data[3];
     double mx, my, mz;
     double roll, pitch; 
     double mprimex, mprimey;
+    double mag_hdg;
     int    rc;
+    long   time_now;
+
+    static double smoothed = INVALID_NUMBER;
+    static long   time_of_last_call;
 
     // read magnetic_heading sensor data
     rc = sdlx_sensor_read_raw(id_magnetic_field, data, 3);
     if (rc != 0) {
+        smoothed = INVALID_NUMBER;
         *mag_heading = INVALID_NUMBER;
         return -1;
     }
@@ -329,6 +336,7 @@ int sdlx_sensor_read_mag_heading(double *mag_heading)
     // influence in the calculation of mag_headong
     rc = sdlx_sensor_read_roll_pitch(&roll, &pitch);
     if (rc != 0) {
+        smoothed = INVALID_NUMBER;
         *mag_heading = INVALID_NUMBER;
         return -1;
     }
@@ -341,16 +349,46 @@ int sdlx_sensor_read_mag_heading(double *mag_heading)
               mz * cos(roll) * sin(pitch);
     mprimey = my * cos(roll) + 
               mz * sin(roll);
-    *mag_heading = atan2(-mprimey, mprimex) * (180 / M_PI);
-    if (isnan(*mag_heading)) {
+    mag_hdg = atan2(-mprimey, mprimex) * (180 / M_PI);
+    if (isnan(mag_hdg)) {
+        smoothed = INVALID_NUMBER;
         *mag_heading = INVALID_NUMBER;
+        return -1;
     }
 
-    // adjust mag_heading to range 0-360 degrees,
-    // and return success
-    if (*mag_heading < 0) {
-        *mag_heading += 360;
+    // adjust mag_hdg to range 0-360 degrees,
+    if (mag_hdg < 0) {
+        mag_hdg += 360;
     }
+
+    // if no smoothing requested the return mag_hdg
+    if (k_smooth == 0) {  // xxx maybe this check is not needed
+        *mag_heading = mag_hdg;
+        return 0;
+    }
+
+    // if this routine has not been called recently, or prior smoothed value is not available 
+    // then init smoothed value and return mag_hdg
+    time_now = util_microsec_timer();
+    if ((time_now - time_of_last_call > 1000000) || (smoothed == INVALID_NUMBER)) {
+        INFO("initializing smoothed value to %0.3f\n", mag_hdg);
+        smoothed = mag_hdg;
+        *mag_heading = mag_hdg;
+        time_of_last_call = time_now;
+        return 0;
+    }
+    time_of_last_call = time_now;
+
+    // perform exponential smoothing of mag_hdg value
+    double delta = mag_hdg - smoothed;
+    if (delta < -180) delta += 360;
+    if (delta >  180) delta -= 360;
+    smoothed = smoothed + k_smooth * delta;
+    if (smoothed < 0) smoothed += 360;
+    if (smoothed >= 360) smoothed -= 360;
+
+    // return smoothed mag_hdg
+    *mag_heading = smoothed;
     return 0;
 }
 

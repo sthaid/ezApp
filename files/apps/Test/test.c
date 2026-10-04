@@ -1331,6 +1331,8 @@ static void page_9_init(void)
     add_to_raw_sensor_tbl(ASENSOR_TYPE_STEP_COUNTER,        "stepc");
 }
 
+#define K_SMOOTH 0.1
+
 static void page_9_draw(void)
 {
     int           rc;
@@ -1348,7 +1350,7 @@ static void page_9_draw(void)
         sdlx_render_printf(0, ROW2Y(row++), "stepc= %ld", step_count);
     }
 
-    rc = sdlx_sensor_read_mag_heading(&mag_heading);
+    rc = sdlx_sensor_read_mag_heading(&mag_heading, K_SMOOTH);
     if (rc == 0) {
         sdlx_render_printf(0, ROW2Y(row++), "magh =% 3.0f", mag_heading);
     }
