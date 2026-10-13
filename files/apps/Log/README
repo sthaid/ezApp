@@ -2,7 +2,7 @@ NAME: Log
 
 DESCRIPTION:
 
-Displays developer message log.
+Displays and saves message log.
 
 Portrait and Landscape display 
 orientation supported.
