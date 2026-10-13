@@ -1866,6 +1866,11 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                             ProgramFail(&MacroParser, "expression expected");
 
                         ExpressionStackPushValueNode(Parser, &StackTop, MacroResult);
+
+                        /* A call inside the macro restores the profiler to
+                           MacroParser. That parser dies with this block, so
+                           point the profiler back at the live caller. */
+                        profile_set_parser(Parser);
                     } else if (VariableValue->Typ == &Parser->pc->VoidType)
                         ProgramFail(Parser, "a void value isn't much use here");
                     else
@@ -2018,6 +2023,10 @@ void ExpressionParseMacroCall(struct ParseState *Parser,
         ExpressionAssign(Parser, ReturnValue, EvalValue, true, MacroName, 0, false);
         VariableStackFramePop(Parser);
         HeapPopStackFrame(Parser->pc);
+
+        /* Same as the object-like macro path: don't leave the profiler
+           aimed at MacroParser after it goes out of scope. */
+        profile_set_parser(Parser);
     }
 }
 

@@ -711,7 +711,7 @@ static sdlx_loc_t *render_text(int x, int y, int fontid, sdlx_color_t color, uns
         entry = TAILQ_LAST(&age_list_head, age_list);
         TAILQ_REMOVE(&age_list_head, entry, age_list_entry);
         TAILQ_REMOVE(&hash_list_head[hash_idx], entry, hash_list_entry);
-        SDL_DestroyTexture(entry->texture);
+        SDL_DestroyTexture(entry->texture);  // xxx crash1
         free(entry->key);
         free(entry);
         num_allocated--;

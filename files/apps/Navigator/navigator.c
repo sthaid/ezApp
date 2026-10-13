@@ -19,7 +19,7 @@
 //
 
 // xxx temp
-//#define PROFILE
+#define PROFILE   //xxx disable when done
 
 #define ONE_SEC 1000000
 
