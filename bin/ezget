@@ -3,10 +3,12 @@
 function usage()
 {
 cat << EOF
-This script copies files from the Android device to the files hierarchy.
-EzApp must be running on the Android device, and have Devel_Mode enabled.
+This script copies files from the Android device to a files hierarchy on
+the devel PC. EzApp must be running on the Android device, and have 
+Devel_Mode enabled.
   
-This script must be run from a directory in the files hierarchy.
+This script must be run from a directory in a files hierarchy. The files
+hierarchy is not required to be in the ezApp repo.
 
 Options:
   -h             : display help and exit
@@ -25,6 +27,10 @@ ezget
 # This will take some time if there are large files.
 cd files
 ezget
+
+# Copy a specific file from the Android files hierarchy to the devel PC.
+cd files
+ezget apps/Log/logs/261013_171312.log
 EOF
 } 
 
@@ -63,12 +69,6 @@ if [ "$dev" = "" -o "$password" = "" ]; then
     exit 1
 fi
 
-# no additional args are allowed by ezget
-if [ $# -ne 0 ]; then
-    echo "ERROR: Args are not allowed."
-    exit 1
-fi
-
 # determine the top of the files directory tree,
 # this works if CWD is one of the following directories, for example:
 # - /path_to_files/files
@@ -91,15 +91,25 @@ else
     exit 1
 fi
 
-# determine Android directory from which the files will be copied
-android_dir=$(realpath --relative-base $files_dir $PWD)
-if [ "$android_dir" = "" ]; then
-    echo "ERROR: failed to determine android_dir"
-    exit 1
+# init list of files/directories that will be transferred from Android to devel PC
+if [ "$*" != "" ]; then
+    for fn in $*; do
+        real=$(realpath -s -m --relative-base $files_dir "$fn")
+        android_files="$android_files $real"
+    done
+else
+    real=$(realpath -s --relative-base $files_dir $PWD)
+    android_files=$real
 fi
 
-# print message, and prompt to continue
-echo "INFO: transferring files from Android device $android_dir to devel PC $PWD"
+# print message detailing what is to be copied from Android
+echo "INFO: Get the following files from Android:"
+for fn in $android_files; do
+    echo "INFO: - $fn"
+done
+echo
+
+# prompt to continue
 read -p "Continue (y/n)? " yn
 if [ "$yn" != y ]; then
     echo "ABORT"
@@ -107,34 +117,32 @@ if [ "$yn" != y ]; then
 fi
 echo
 
-# create ezget.tar on Android device
-if [ "$android_dir" = "." ]; then
-    ezsh -d $dev -p $password -q "tar -cf ezget.tar apps svcs params"
-else 
-    ezsh -d $dev -p $password -q "tar -cf ezget.tar $android_dir"
-fi
+# create tar file on Android
+ezsh -d $dev -p $password -q "tar -cf ../cache/ezget.tar $android_files 2>&1"
 if [ $? -ne 0 ]; then 
-    echo "ERROR: failed to create ezget.tar on Android device"
+    echo "ERROR: failed to create ../cache/ezget.tar on Android device"
     exit 1
 fi
 
-# copy ezget.tar from Android device to /tmp
-ezsh -d $dev -p $password -q "get ezget.tar /tmp"
+# copy ../cache/ezget.tar from Android device to /tmp
+ezsh -d $dev -p $password -q "get ../cache/ezget.tar /tmp"
 if [ $? -ne 0 ]; then 
-    echo "ERROR: failed to copy ezget.tar from Android device to devel PC"
+    echo "ERROR: failed to copy ../cache/ezget.tar from Android device to devel PC"
     exit 1
 fi
 
-# extract ezget.tar on devel PC
+# extract /tmp/ezget.tar on devel PC
 cd $files_dir
-echo "INFO: extracting ezget.tar file on devel PC $files_dir"
-tar -xvf /tmp/ezget.tar
+echo "INFO: extracting /tmp/ezget.tar file on devel PC $files_dir"
+tar -xvf /tmp/ezget.tar --exclude "log_fifo" 2>&1
 if [ $? -ne 0 ]; then 
-    echo "ERROR: failed to extract ezget.tar on devel PC"
+    echo "ERROR: failed to extract /tmp/ezget.tar on devel PC"
     exit 1
 fi
 
 # cleanup
 rm -f /tmp/ezget.tar
-ezsh -d $dev -p $password -q "rm -f ezget.tar"
+ezsh -d $dev -p $password -q "rm -f ../cache/ezget.tar"
+
+# done okay
 exit 0

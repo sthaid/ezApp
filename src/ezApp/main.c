@@ -104,6 +104,8 @@ int MAIN(int argc, char **argv)
     return 0;
 }
 
+// xxx cleanup cache dir when starting
+//   rm -rf ../cache/*
 static int init(void)
 {
     int rc;

@@ -6,7 +6,8 @@ cat << EOF
 This script copies files to the Android device.
 EzApp must be running on the Android device, and have Devel_Mode enabled.
 
-This script must be run from a directory in the files hierarchy.
+This script must be run from a directory in a files hierarchy. The files
+hierarchy is not required to be in the ezApp repo.
 
 Options:
   -h             : display help and exit
@@ -38,8 +39,12 @@ EOF
 
 function okay_to_xfer()
 {
+    if [[ "$1" == *"log_fifo" ]]; then
+        return 1  # not okay
+    fi
+
     if [ "$force" = yes ]; then
-        return 0
+        return 0  # okay
     fi
 
     if [[ "$1" == *".png" || \
@@ -51,10 +56,12 @@ function okay_to_xfer()
           "$1" == *".mp3" || \
           "$1" == *".wav" || \
           "$1" == *".swp" || \
+          "$1" == *".log" || \
+          "$1" == *".tar" || \
           "$1" == *"params" || \
-          "$1" == *"FreeMonoBold.ttf" || \
-          "$1" == *"CREDITS" || \
-          "$1" == *"LICENSES" ]]; \
+          "$1" == *"files.tar.sig.save" || \
+          "$1" == *"log_fifo" || \
+          "$1" == *"tmp/"* ]];
     then
         return 1  # not okay
     else
@@ -170,9 +177,14 @@ if [ -z "$files" ]; then
     exit 1
 fi
 
-# print list of files to be transferred, and prompt to continue
-echo "INFO: will transfer these files from devel PC to Android device:"
-printf "%s\n" $files
+# print message detailing what is to be copied to Android
+echo "INFO: Put the following files to Android:"
+for fn in $files; do
+    echo "INFO: - $fn"
+done
+echo
+
+# prompt to continue
 read -p "Continue (y/n)? " yn
 if [ "$yn" != y ]; then
     echo "ABORT"
@@ -190,24 +202,25 @@ if [ $? -ne 0 ]; then
 fi
 
 # copy the tar file to Android device
-ezsh -d $dev -p $password -q "put /tmp/ezput.tar"
+ezsh -d $dev -p $password -q "put /tmp/ezput.tar ../cache/ezput.tar"
 if [ $? -ne 0 ]; then 
     echo "ERROR: failed to copy /tmp/ezput.tar to Android device"
     rm -f /tmp/ezput.tar
     exit 1
 fi
 
-# extract ezput.tar on the Android device
-echo "INFO: extracting ezput.tar file on the Android device"
-ezsh -d $dev -p $password -q "tar -xvf ezput.tar"
+# extract ../cache/ezput.tar on the Android device
+echo "INFO: extracting ../cache/ezput.tar file on the Android device"
+ezsh -d $dev -p $password -q "tar -xvf ../cache/ezput.tar"
 if [ $? -ne 0 ]; then 
-    echo "ERROR: failed to extract ezput.tar on Android device"
+    echo "ERROR: failed to extract ../cache/ezput.tar on Android device"
+    ezsh -d $dev -p $password -q "rm -f ../cache/ezput.tar"
     rm -f /tmp/ezput.tar
     exit 1
 fi
 
 # cleanup
-ezsh -d $dev -p $password -q "rm -f ezput.tar"
+ezsh -d $dev -p $password -q "rm -f ../cache/ezput.tar"
 rm -f /tmp/ezput.tar
 exit 0
 

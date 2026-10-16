@@ -23,6 +23,8 @@ of the -d and -p options.
 EOF
 }
 
+# xxx need to retest this, following reinstall
+
 # #############  MAIN  ################
 
 # directory where backups are saved
@@ -113,7 +115,7 @@ echo
 
 # copy the backup tar file to the Android device
 echo "Copying $backup_filename to android device"
-$EZSH "put $backup_filename"
+$EZSH "put $backup_filename ../cache"
 if [ $? -ne 0 ]; then
     echo "ERROR: ezsh put failed"
     exit 1
@@ -122,7 +124,7 @@ echo
 
 # extract the backup tar file on the Android device
 echo "Extracting $backup_filename on android device"
-$EZSH "tar -xvf $backup_filename"
+$EZSH "tar -xvf ../cache/$backup_filename"
 if [ $? -ne 0 ]; then
     echo "ERROR: ezsh tar -xvf failed"
     exit 1
@@ -131,7 +133,7 @@ echo
 
 # remove the backup tar file from the Android device
 echo "Removing $backup_filename from android device"
-$EZSH "rm $backup_filename"
+$EZSH "rm ../cache/$backup_filename"
 if [ $? -ne 0 ]; then
     echo "ERROR: ezsh rm failed"
     exit 1

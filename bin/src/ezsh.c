@@ -103,7 +103,7 @@ int get_str(FILE *fp, char *s, int s_len);
 int put_fmt(FILE *fp, char *fmt, ...);
 long file_size(char *path);
 void print_cmd_status(int status, char *cmdline);
-int copy(FILE *dest_fp, FILE *src_fp, long data_len);
+int copy(FILE *dest_fp, FILE *src_fp, long data_len, char *log_filename);
 
 // -----------------  MAIN  -------------------------------------------------
 
@@ -585,7 +585,7 @@ int run_android_cmd(char *cmdline)
     // send cmdline to Android
     rc = put_fmt(sockfp, "run\n%s\n", cmdline);
     if (rc != 0) {
-        printf("ERROR: failed to send cmd to Android, %s\n", strerror(errno));
+        printf("ERROR: failed to send cmd to Android\n");
         recon_needed = true;
         return -EINVAL;
     }
@@ -596,7 +596,7 @@ int run_android_cmd(char *cmdline)
     while (true) {
         rc = get_str(sockfp, s, sizeof(s));
         if (rc != 0) {
-            printf("ERROR: failed to receive response from Android, %s\n", strerror(errno));
+            printf("ERROR: failed to receive response from Android\n");
             recon_needed = true;
             return -EINVAL;
         }
@@ -621,7 +621,7 @@ int run_android_cmd(char *cmdline)
 }
 
 // copy file to android:
-// - src: path to src file on devel computer
+// - src: path to src file on devel PC
 // - dest: path to dest file or dest dir on android,
 //   . will be prepended with cwd
 //   . may be empty str
@@ -631,24 +631,29 @@ int run_android_put_cmd(char *src, char *dest)
     long  data_len;
     int   rc, status;
     FILE *filefp = NULL;
+    char *log_filename, log_filename_buff[200];
 
     // src is required
-    if (src[0] == '\0') {
+    if (src  == NULL || src[0] == '\0') {
         printf("ERROR: src arg required\n");
         return -EINVAL;
     }
 
+    // use basename(src) for log_filename
+    strcpy(log_filename_buff, src);
+    log_filename = basename(src);
+
     // get size of src file
     data_len = file_size(src);
     if (data_len == 0) {
-        printf("ERROR: failed to get file_size of %s, %s\n", src, strerror(errno));
+        printf("%s - ERROR: failed to get file_size, %s\n", log_filename, strerror(errno));
         return -EINVAL;
     }
 
     // open src file for reading
     filefp = fopen(src, "r");
     if (filefp == NULL) {
-        printf("ERROR: failed to open %s for reading, %s\n", src, strerror(errno));
+        printf("%s - ERROR: failed open for reading, %s\n", log_filename, strerror(errno));
         return -EINVAL;
     }
 
@@ -670,18 +675,18 @@ int run_android_put_cmd(char *src, char *dest)
                  "data_len %ld\n",
                  dest_path, src_filename, data_len);
     if (rc != 0) {
-        printf("ERROR: failed to send cmd to Android, %s\n", strerror(errno));
+        printf("%s - ERROR: failed to send cmd to Android\n", log_filename);
         fclose(filefp);
         recon_needed = true;
         return -EINVAL;
     }
 
     // copy the file data to Android
-    rc = copy(sockfp, filefp, data_len);
+    rc = copy(sockfp, filefp, data_len, log_filename);
     fclose(filefp);
     filefp = NULL;
     if (rc != 0) {
-        printf("ERROR: failed to copy file data to Android, %s\n", strerror(errno));
+        printf("%s - ERROR: failed to copy file data to Android\n", log_filename);
         recon_needed = true;
         return -EINVAL;
     }
@@ -689,12 +694,12 @@ int run_android_put_cmd(char *src, char *dest)
     // get response from Android
     rc = get_str(sockfp, s, sizeof(s));
     if (rc != 0) {
-        printf("ERROR: failed to receive status from Android, %s\n", strerror(errno));
+        printf("%s - ERROR: failed to receive status from Android\n", log_filename);
         recon_needed = true;
         return -EINVAL;
     }
     if (strncmp(s, "CMD_COMPLETE ", 13) != 0) {
-        printf("ERROR: failed to receive status from Android, %s\n", strerror(errno));
+        printf("%s - ERROR: failed to receive status from Android\n", log_filename);
         recon_needed = true;
         return -EINVAL;
     }
@@ -710,7 +715,7 @@ int run_android_put_cmd(char *src, char *dest)
 
 // copy file from android:
 // - src: path to src file on android
-// - dest: path to dest file or dest dir on develsys,
+// - dest: path to dest file or dest dir on devel pc,
 //   . if empty str then will be replaced with "."
 int run_android_get_cmd(char *src, char *dest)
 {
@@ -719,12 +724,17 @@ int run_android_get_cmd(char *src, char *dest)
     int   status, rc;
     long  data_len;
     FILE *filefp;
+    char *log_filename, log_filename_buff[200];
 
     // src is required
-    if (src[0] == '\0') {
+    if (src == NULL || src[0] == '\0') {
         printf("ERROR: src arg required\n");
         return -EINVAL;
     }
+
+    // use basename(src) for log_filename
+    strcpy(log_filename_buff, src);
+    log_filename = basename(src);
 
     // construct src_path by prepending src with cwd
     if (src[0] == '/') {
@@ -761,7 +771,7 @@ int run_android_get_cmd(char *src, char *dest)
     // open dest path for writing
     filefp = fopen(dest_path, "w");
     if (filefp == NULL) {
-        printf("ERROR: failed to open %s for writing, %s\n", dest_path, strerror(errno));
+        printf("%s - ERROR: failed open for writing, %s\n", log_filename, strerror(errno));
         return -EINVAL;
     }
 
@@ -771,8 +781,9 @@ int run_android_get_cmd(char *src, char *dest)
                  "get %s\n",
                  src_path);
     if (rc != 0) {
-        printf("ERROR: failed to send cmd to Android, %s\n", strerror(errno));
+        printf("%s - ERROR: failed to send cmd to Android\n", log_filename);
         fclose(filefp);
+        unlink(dest_path);
         recon_needed = true;
         return -EINVAL;
     }
@@ -781,37 +792,47 @@ int run_android_get_cmd(char *src, char *dest)
     s[0] = '\0';
     rc = get_str(sockfp, s, sizeof(s));
     if (rc != 0) {
-        printf("ERROR: failed to recv data_len from Android, %s\n", strerror(errno));
+        printf("%s - ERROR: failed to recv data_len from Android\n", log_filename);
         fclose(filefp);
+        unlink(dest_path);
         recon_needed = true;
         return -EINVAL;
     }
     if (sscanf(s, "data_len %ld", &data_len) != 1) {
-        printf("ERROR: failed to recv data_len from Android\n");
+        printf("%s - ERROR: failed to recv data_len from Android\n", log_filename);
         fclose(filefp);
+        unlink(dest_path);
+        recon_needed = true;
+        return -EINVAL;
+    }
+    if (data_len == 0) {
+        printf("%s - ERROR: Android file does not exist\n", log_filename);
+        fclose(filefp);
+        unlink(dest_path);
         recon_needed = true;
         return -EINVAL;
     }
 
     // copy the file data provided from Android to the dest_path file on devel PC
-    rc = copy(filefp, sockfp, data_len);
+    rc = copy(filefp, sockfp, data_len, log_filename);
     fclose(filefp);
     filefp = NULL;
     if (rc != 0) {
-        printf("ERROR: failed to copy file data to Android, %s\n", strerror(errno));
+        printf("%s - ERROR: failed to copy file data from Android\n", log_filename);
         recon_needed = true;
+        unlink(dest_path);
         return -EINVAL;
     }
 
     // get response from Android
     rc = get_str(sockfp, s, sizeof(s));
     if (rc != 0) {
-        printf("ERROR: failed to recv status from Android, %s\n", strerror(errno));
+        printf("%s - ERROR: failed to recv status from Android\n", log_filename);
         recon_needed = true;
         return -EINVAL;
     }
     if (strncmp(s, "CMD_COMPLETE ", 13) != 0) {
-        printf("ERROR: failed to recv status from Android, %s\n", strerror(errno));
+        printf("%s - ERROR: failed to recv status from Android\n", log_filename);
         recon_needed = true;
         return -EINVAL;
     }
@@ -1113,7 +1134,7 @@ void print_cmd_status(int status, char *cmdline)
     }
 }
 
-int copy(FILE *dest_fp, FILE *src_fp, long total_len)
+int copy(FILE *dest_fp, FILE *src_fp, long total_len, char *log_filename)
 {
     char *buff;
     long xfer_len, rc, total_xfered, len_remaining;
@@ -1132,16 +1153,16 @@ int copy(FILE *dest_fp, FILE *src_fp, long total_len)
 
         rc = fread(buff, 1, xfer_len, src_fp);
         if (rc != xfer_len) {
-            printf("ERROR: fread failed, xfer_len=%ld rc=%ld, %s\n", 
-                  xfer_len, rc, strerror(errno));
+            printf("%s - ERROR: failed read, xfer_len=%ld rc=%ld, %s\n", 
+                  log_filename, xfer_len, rc, strerror(errno));
             free(buff);
             return -EINVAL;
         }
 
         rc = fwrite(buff, 1, xfer_len, dest_fp);
         if (rc != xfer_len) {
-            printf("ERROR: write failed, xfer_len=%ld rc=%ld, %s\n", 
-                  xfer_len, rc, strerror(errno));
+            printf("%s - ERROR: failed write, xfer_len=%ld rc=%ld, %s\n", 
+                  log_filename, xfer_len, rc, strerror(errno));
             free(buff);
             return -EINVAL;
         }
@@ -1149,7 +1170,8 @@ int copy(FILE *dest_fp, FILE *src_fp, long total_len)
         total_xfered += xfer_len;
         len_remaining -= xfer_len;
 
-        printf("\r%0.3f GB / %0.3f GB (%0.0f%%)",
+        printf("\r%s - %0.3f GB / %0.3f GB (%0.0f%%)",
+               log_filename,
                (double)total_xfered / GB,
                (double)total_len / GB,
                (double)total_xfered / total_len * 100);
