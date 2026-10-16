@@ -1,0 +1,49 @@
+ezApp Camera take_photo crash — prompts and responses
+Conversation date: Friday, Oct 16, 2026
+
+========================================================================
+Prompt 1
+========================================================================
+When I use the Camera miniApp to take_photo, occasionally  ezApp crashes.  Android crash log is available here:  apps/Log/logs/261015_183456.log.  Please try to determine the root cause.
+
+------------------------------------------------------------------------
+Response
+------------------------------------------------------------------------
+I'll start from the crash log and the Camera miniApp's photo path to see what is failing.
+
+The crash is a binder-thread SIGSEGV while the camera result is being applied. I'll read the photo-capture and activity-resume path next to see what the app does at that moment.
+
+The photo save succeeded. The process is killed a moment later by an Android framework crash on a binder thread, while the activity is coming back from the camera.
+
+`take_photo` launched the system camera and returned normally. The log shows `REQUEST_IMAGE_CAPTURE` with result `-1` (`RESULT_OK`), then `tmp/photo.jpg` renamed to `apps/Camera/photos/000188.jpg`, the JPEG decoded as 4000×3000, and the metadata written (magic `0x12345678`, photo 188). Those messages are from the app thread. The fatal signal is on a different thread, `binder:8304_7`.
+
+That thread is inside `ActivityThread$ApplicationThread.onTransact`, reading the resume transaction WindowManager sends when ezApp is foregrounded again:
+
+`ClientTransaction` → `WindowStateInsetsControlChangeItem` → `InsetsSourceControl.Array` → `InsetsSourceControl` → `SurfaceControl.readFromParcel` → `Parcel.readStrongBinder` → `Parcel.unflattenBinder` → `RefBase.forceIncStrong`
+
+`forceIncStrong` is taking a strong reference on a local binder (`BINDER_TYPE_BINDER`, register `x10` = `0x73622a85`). The object pointer in `x0` is `0xb400339501bdc68b`. With the top-byte tag ignored, that address is `0x339501bdc693`, which is not mapped (`SEGV_MAPERR`). Every real pointer in this tombstone — stack, heap, and code — is in the `0x0000007...` range, so this cookie was never a live object in this process.
+
+This transaction is the insets update that arrives because `take_photo` covers the SDL activity with the camera and then uncovers it. The activity hides the system bars with `WindowInsetsController`, so that resume includes an `InsetsSourceControl` whose leash is a `SurfaceControl`. Unparceling that leash is what dereferences the bad cookie. It is intermittent because the leash binder is only invalid for some of those surface and insets transitions.
+
+The signal is fatal for the whole process. The JPEG and metadata lines that appear after `Fatal signal 11` are the app thread still running until the process is torn down. The new process at 18:34:44 is the restart.
+
+========================================================================
+Prompt 2
+========================================================================
+Please provide a code change to fix this.
+
+------------------------------------------------------------------------
+Response
+------------------------------------------------------------------------
+The crash is in the framework resume path, so I’ll look for an app-side change that avoids the bad insets `SurfaceControl` instead of touching the photo save itself.
+
+The photo path finishes; the process dies when immersive mode hides the system bars again while Android is still delivering the resume insets transaction. I'll keep the bars visible across that handoff and restore immersive mode only after it has settled.
+
+The camera capture now drops immersive mode before the system camera opens, and puts it back only after the resume insets transaction has been delivered.
+
+That transaction is what killed the process. `take_photo` left the activity in immersive mode, so when the camera returned, Android sent a `WindowStateInsetsControlChangeItem` whose leash `SurfaceControl` was already dead. SDL then hid the system bars again as the surface was recreated, and the binder thread crashed in `RefBase::forceIncStrong` while reading that leash. The JPEG itself had already been saved.
+
+`take_photo` now shows the system bars, waits 300 ms so WindowManager can release those leashes, and only then starts the camera. Fullscreen requests and the sticky re-hide are ignored until the capture result, resume, and window focus have all arrived. One second after the last of those, immersive mode is restored.
+
+The system bars will be visible for about a second after you leave the camera. Take a photo a few times on the device that produced `261015_183456.log`; the process should stay up, and logcat should show `showing system bars before camera capture` followed later by `restoring immersive mode after camera capture`.
+

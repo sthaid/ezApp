@@ -285,6 +285,17 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     private static final int         RESULT_NO_CAMERA                  = 2;
     private static final int         RESULT_FAILED_TO_CREATE_PHOTO_JPG = 3;
     private static final int         RESULT_NOT_SET                    = 99;
+    // EZAPP_TFC   (Take_Photo_Crash)
+    // Let WindowManager drop the inset-animation leashes before the camera
+    // activity stops this one.
+    private static final long        CAMERA_LAUNCH_DELAY_MS = 300;
+    // The resume ClientTransaction carries WindowStateInsetsControlChangeItem.
+    // Hiding the bars again before that transaction is unparceled SIGSEGVs in
+    // RefBase::forceIncStrong on Android 16 (the leash SurfaceControl is stale).
+    private static final long        RESTORE_IMMERSIVE_DELAY_MS = 1000;
+    // Touched only on the UI thread.
+    private boolean mDeferSystemBarHide;
+    private Intent mPendingCameraIntent;
 
     public static SDLGenericMotionListener_API14 getMotionListener() {
         if (mMotionListener == null) {
@@ -779,6 +790,86 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         return 0;
     }
 
+    // EZAPP_TFC: show the system bars before the camera activity covers us, and do
+    // not hide them again until the resume insets transaction has been applied.
+    private void showSystemBars() {
+        Window window = getWindow();
+        if (window == null || Build.VERSION.SDK_INT < 30) {
+            return;
+        }
+        WindowInsetsController controller = window.getInsetsController();
+        if (controller != null) {
+            controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_DEFAULT);
+            controller.show(WindowInsets.Type.systemBars());
+        }
+    }
+
+    private void hideSystemBars() {
+        Window window = getWindow();
+        if (window == null || Build.VERSION.SDK_INT < 30) {
+            return;
+        }
+        WindowInsetsController controller = window.getInsetsController();
+        if (controller != null) {
+            controller.hide(WindowInsets.Type.systemBars());
+            controller.setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        }
+    }
+
+    private void deferSystemBarHideForCamera() {
+        mDeferSystemBarHide = true;
+        View decor = getWindow().getDecorView();
+        decor.removeCallbacks(rehideSystemUi);
+        decor.removeCallbacks(mRestoreImmersiveRunnable);
+        decor.removeCallbacks(mLaunchCameraRunnable);
+        Log.i(EZAPP_TAG, "showing system bars before camera capture");
+        showSystemBars();
+    }
+
+    private void scheduleRestoreImmersiveMode() {
+        if (!mDeferSystemBarHide) {
+            return;
+        }
+        View decor = getWindow().getDecorView();
+        decor.removeCallbacks(mRestoreImmersiveRunnable);
+        decor.postDelayed(mRestoreImmersiveRunnable, RESTORE_IMMERSIVE_DELAY_MS);
+    }
+
+    private final Runnable mRestoreImmersiveRunnable = new Runnable() {
+        @Override
+        public void run() {
+            mDeferSystemBarHide = false;
+            if (mFullscreenModeActive) {
+                Log.i(EZAPP_TAG, "restoring immersive mode after camera capture");
+                hideSystemBars();
+            }
+        }
+    };
+
+    private final Runnable mLaunchCameraRunnable = new Runnable() {
+        @Override
+        public void run() {
+            Intent intent = mPendingCameraIntent;
+            mPendingCameraIntent = null;
+            if (intent == null || isFinishing()) {
+                mezApp_image_capture_result = RESULT_FAILED;
+                mDeferSystemBarHide = false;
+                return;
+            }
+            try {
+                startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
+            } catch (ActivityNotFoundException e) {
+                Log.e(EZAPP_TAG, "no camera", e);
+                mezApp_image_capture_result = RESULT_NO_CAMERA;
+                mDeferSystemBarHide = false;
+                if (mFullscreenModeActive) {
+                    hideSystemBars();
+                }
+            }
+        }
+    };
+
     // EZAPP take picture
     public double take_photo() {
         // preset result to RESULT_NOT_SET
@@ -839,9 +930,12 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
             takePictureIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 
-            // take the picture;
-            // when completed the mezApp_image_capture_result will be set to RESULT_OK
-            mSingleton.startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            // EZAPP_TFC: Drop the inset-animation leashes while this activity is still
+            // resumed, then launch the camera. Hiding the bars again as we
+            // resume crashes on Android 16; see deferSystemBarHideForCamera.
+            deferSystemBarHideForCamera();
+            mPendingCameraIntent = takePictureIntent;
+            getWindow().getDecorView().postDelayed(mLaunchCameraRunnable, CAMERA_LAUNCH_DELAY_MS);
         }  // end of 'public void run()'
     });
 
@@ -903,6 +997,10 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         if (!mHasMultiWindow) {
             resumeNativeThread();
         }
+
+        // EZAPP_TFC: re-hide the bars only after the camera-resume insets
+        // transaction has been applied.
+        scheduleRestoreImmersiveMode();
     }
 
     @Override
@@ -992,6 +1090,10 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
            SDLActivity.handleNativeState();
            nativeFocusChanged(true);
 
+           // EZAPP_TFC: window focus is the point at which the resume insets
+           // transaction has been delivered. Restart the restore delay from here.
+           scheduleRestoreImmersiveMode();
+
         } else {
            nativeFocusChanged(false);
            if (!mHasMultiWindow) {
@@ -1040,6 +1142,12 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     @Override
     protected void onDestroy() {
         Log.v(TAG, "onDestroy()");
+
+        // EZAPP_TFC: drop pending camera-capture bar changes
+        View decor = getWindow().getDecorView();
+        decor.removeCallbacks(mLaunchCameraRunnable);
+        decor.removeCallbacks(mRestoreImmersiveRunnable);
+        decor.removeCallbacks(rehideSystemUi);
 
         // EZAPP onDestroy: stop loc_fgsvc
         if (mezApp_loc_fgsvc_isbound) {
@@ -1194,6 +1302,10 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
                 Log.e(EZAPP_TAG, "REQUEST_IMAGE_CAPTURE failed, resoltCode = " + resultCode);
                 mezApp_image_capture_result = RESULT_FAILED;
             }
+
+            // EZAPP_TFC: Resume and window focus reset this same delay, so the bars are
+            // not hidden until the insets transaction has been delivered.
+            scheduleRestoreImmersiveMode();
         }
 
         if (mFileDialogState != null && mFileDialogState.requestCode == requestCode) {
@@ -1388,6 +1500,17 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
                     Window window = ((Activity) context).getWindow();
                     if (window != null) {
                         if ((msg.obj instanceof Integer) && ((Integer) msg.obj != 0)) {
+                            // EZAPP_TFC: SDL reapplies fullscreen as soon as the surface
+                            // is recreated, which is the same moment Android delivers
+                            // the resume insets transaction. Hiding the bars then
+                            // crashes; apply it from mRestoreImmersiveRunnable instead.
+                            if (context instanceof SDLActivity
+                                    && ((SDLActivity) context).mDeferSystemBarHide) {
+                                Log.i(EZAPP_TAG, "deferring system bar hide during camera capture");
+                                SDLActivity.mFullscreenModeActive = true;
+                                break;
+                            }
+
                             if (Build.VERSION.SDK_INT >= 30 /* Android 11 (R) */) {
                                 // The legacy setSystemUiVisibility() flags are ignored on
                                 // Android 15+ (API 35+), where edge-to-edge is enforced for
@@ -2288,6 +2411,11 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     private final Runnable rehideSystemUi = new Runnable() {
         @Override
         public void run() {
+            // EZAPP_TFC
+            if (mDeferSystemBarHide) {
+                return;
+            }
+
             if (Build.VERSION.SDK_INT >= 30 /* Android 11 (R) */) {
                 final WindowInsetsController controller =
                         SDLActivity.this.getWindow().getInsetsController();
@@ -2308,6 +2436,11 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     };
 
     public void onSystemUiVisibilityChange(int visibility) {
+        // EZAPP_TFC
+        if (mDeferSystemBarHide) {
+            return;
+        }
+
         if (SDLActivity.mFullscreenModeActive && ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0 || (visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0)) {
 
             Handler handler = getWindow().getDecorView().getHandler();
