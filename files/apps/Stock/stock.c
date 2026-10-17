@@ -191,11 +191,11 @@ void load_params(void)
 {
     char *saved;
 
-    saved = util_get_str_param(data_dir, "ticker", "AAPL");
+    saved = util_get_str_param(data_dir, "ticker", "PENG");
     copy_str(ticker, saved, sizeof(ticker));
     free(saved);
     if (!sanitize_ticker(ticker)) {
-        copy_str(ticker, "AAPL", sizeof(ticker));
+        copy_str(ticker, "PENG", sizeof(ticker));
     }
 
     duration = (int)util_get_numeric_param(data_dir, "duration", DUR_1D);
@@ -937,7 +937,7 @@ void enter_ticker(void)
     char *input;
     char tmp[100];
 
-    input = sdlx_get_input_str("Ticker Symbol", false, ticker);
+    input = sdlx_get_input_str("Ticker Symbol", false, NULL);
     if (input[0] == '\0') {
         sdlx_show_toast("Canceled");
         return;
