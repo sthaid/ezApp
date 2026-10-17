@@ -2,6 +2,8 @@
 xxx UNDER CONSTRUCTION xxx           
 ==========================
 
+xxx add Path miniApp
+
 ezApp for Android Smartphones
 =============================
 
@@ -12,7 +14,7 @@ a C language interpreter.
 
 Users can develop their own miniApps
 and miniSvcs. To develop miniApps and
-miniSvcs a PC is required.
+miniSvcs a devel PC is required.
 
 When ezApp is first run on your Android
 device, the following permissions will
@@ -43,35 +45,37 @@ along with their C language source code.
 Each miniApp contains a README which
 can be viewed by tapping the '?'.
 
-- Altitude: View current altitude, and
-            history.
-- Calc:     Hex / Decimal calculator,
-            32 or 64 bit selectable.
-- Clock:    Analog clock, also displays
-            sunrise and sunset times.
-- ColrOrgn: Record or play audio, and
-            display color organ.
-- Camera:   Take photos. View photos 
-            by location or gallery.
-- Compass:  View magnetic or true
-            heading.
-- FlshLite: Toggle device flashlight.
-- Location: View current location and
-            location history.
-- Log:      View messages from ezApp
-            and miniApp printf.
-- Memo:     Record an audio memo.
-- Morse:    Practice morse code.
-- Piano:    Beginner Piano simulator.
-            Includes several melodies.
-- Steps:    View Steps and Miles for
-            specified day, month, or
-            year.
-- Tilt:     Level, supports horizontal
-            and vertical orientations,
-            and calibration.
-- Weather:  Views and speaks the weather
-            forecast, from weather.gov.
+- Altitude:  View current altitude, and
+             history.
+- Calc:      Hex / Decimal calculator,
+             32 or 64 bit selectable.
+- Clock:     Analog clock, also displays
+             sunrise and sunset times.
+- ColrOrgn:  Record or play audio, and
+             display color organ.
+- Camera:    Take photos. View photos 
+             by location or gallery.
+- Compass:   View magnetic or true
+             heading.
+- FlshLite:  Toggle device flashlight.
+- Location:  View current location and
+             location history.
+- Log:       View messages from ezApp
+             and miniApp printf.
+- Memo:      Record an audio memo.
+- Morse:     Practice morse code.
+- Piano:     Beginner Piano simulator.
+             Includes several melodies.
+- ScrnSaver: Animated screen savers.
+             Tap < and > to switch.
+- Steps:     View Steps and Miles for
+             specified day, month, or
+             year.
+- Tilt:      Level, supports horizontal
+             and vertical orientations,
+             and calibration.
+- Weather:   Views and speaks the weather
+             forecast, from weather.gov.
 
 Games:
 - Backgammon: Board game.

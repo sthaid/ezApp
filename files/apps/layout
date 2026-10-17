@@ -1,6 +1,6 @@
 # Max 20 pages
 
-# -------- Page 0 --------
+# -------- Page 1 --------
 Compass     Clock       Steps
 Location    Altitude    Weather
 Calc        Tilt        Memo
@@ -8,8 +8,19 @@ ColrOrgn    Piano       Morse
 Camera      Navigator   FlshLite
 -           Log         Settings
 
-# -------- Page 1 --------
-Test        Example1    Example2
+# -------- Page 2 --------
 Reversi     Paddle      TicTacToe
 Checkers    Backgammon  Blackjack
+ScrnSaver   -           -
+-           -           -
+-           -           -
+-           Log         Settings
+
+# -------- Page 3 --------
+Test        Example1    Example2
+-           -           -
+-           -           -
+-           -           -
+-           -           -
+-           Log         Settings
 
