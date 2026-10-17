@@ -154,60 +154,28 @@ bool timer_expired(void)
 // "5" -> 5 minutes. "5.30" or "5.3" -> minutes and seconds. "0.45" -> 45 seconds.
 bool parse_interval(char *s, long *interval_sec)
 {
-    int  i;
-    int  digit;
-    long minutes;
-    long seconds;
-    bool saw_digit;
-
-    i = 0;
-    while (s[i] == ' ') {
-        i++;
-    }
+    int  minutes;
+    int  seconds;
+    int  n;
+    char extra;
 
     minutes = 0;
-    saw_digit = false;
-    while (s[i] >= '0' && s[i] <= '9') {
-        digit = s[i] - '0';
-        if (minutes > (MAX_MINUTES / 10)) {
-            return false;
-        }
-        minutes = minutes * 10 + digit;
-        saw_digit = true;
-        i++;
-    }
-    if (!saw_digit) {
-        return false;
-    }
-    if (minutes > MAX_MINUTES) {
-        return false;
-    }
-
     seconds = 0;
-    if (s[i] == '.') {
-        i++;
-        saw_digit = false;
-        while (s[i] >= '0' && s[i] <= '9') {
-            digit = s[i] - '0';
-            if (seconds > 5) {
-                return false;
-            }
-            seconds = seconds * 10 + digit;
-            saw_digit = true;
-            i++;
-        }
-        if (!saw_digit) {
+    n = sscanf(s, "%d.%d %c", &minutes, &seconds, &extra);
+    if (n != 2) {
+        if (n > 2) {
             return false;
         }
-        if (seconds > 59) {
+        n = sscanf(s, "%d %c", &minutes, &extra);
+        if (n != 1) {
             return false;
         }
+        seconds = 0;
     }
-
-    while (s[i] == ' ') {
-        i++;
+    if (minutes < 0 || minutes > MAX_MINUTES) {
+        return false;
     }
-    if (s[i] != '\0') {
+    if (seconds < 0 || seconds > 59) {
         return false;
     }
     if (minutes == MAX_MINUTES && seconds > 0) {
@@ -217,7 +185,7 @@ bool parse_interval(char *s, long *interval_sec)
         return false;
     }
 
-    *interval_sec = minutes * 60 + seconds;
+    *interval_sec = (long)minutes * 60 + seconds;
     return true;
 }
 
