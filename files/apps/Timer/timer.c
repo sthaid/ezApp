@@ -316,7 +316,7 @@ void start_from_input(void)
     long  interval;
 
     input = sdlx_get_input_str(
-        "Minutes or minutes.seconds\n(seconds optional)\nExample: 5 or 5.30",
+        "Minutes or min.sec\n(seconds optional)\nExample: 5 or 5.30",
         true, NULL);
     if (input[0] == '\0') {
         sdlx_show_toast("Canceled");

@@ -1,6 +1,6 @@
-=================
-PROMPT 1
-=================
+===============================
+Prompt 
+===============================
 
 Create a Timer miniApp. And place at in layout page 2.
 
@@ -24,6 +24,22 @@ While the alarm is playing, continue to display the timer countdown value,
 using negative number.
 
 The resolution of the timer shall be minutes:seconds.
- 
+  
 Controls to start, pause, and cancel the timer shall be provided.
 
+===============================
+Prompt 
+===============================
+
+Change the call to sdlx_get_input_str so the Android numeric keypad is used. 
+For the delimeter between minutes and seconds use '.' instead of ':', 
+because the Android numeric keybd supports '.' but does not support ':'. 
+
+Update prompt messages and README doc as needed.
+
+===============================
+Prompt
+===============================
+
+Why is parse_interval so complex.
+Perhaps this routine can be simplified by using sscanf instead.
