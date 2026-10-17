@@ -71,9 +71,14 @@ can be viewed by tapping the '?'.
 - Steps:     View Steps and Miles for
              specified day, month, or
              year.
+- StopWatch: Start, stop, and lap
+             timer.
 - Tilt:      Level, supports horizontal
              and vertical orientations,
              and calibration.
+- Timer:     Countdown timer. Plays
+             Morse code H when the
+             time expires.
 - Weather:   Views and speaks the weather
              forecast, from weather.gov.
 

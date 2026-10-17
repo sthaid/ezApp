@@ -11,7 +11,7 @@ Camera      Navigator   FlshLite
 # -------- Page 2 --------
 Reversi     Paddle      TicTacToe
 Checkers    Backgammon  Blackjack
-ScrnSaver   -           -
+ScrnSaver   StopWatch   Timer
 -           -           -
 -           -           -
 -           Log         Settings

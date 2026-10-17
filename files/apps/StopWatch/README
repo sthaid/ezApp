@@ -1,0 +1,29 @@
+NAME: StopWatch
+
+DESCRIPTION:
+
+Start, stop, and reset a timer.
+Record lap times while it runs.
+
+START begins the timer.
+STOP pauses it.
+RESUME continues from the
+paused time.
+
+LAP, while running, saves the
+current lap. The list shows
+the lap time and the total.
+The newest lap is at the top.
+The shortest lap is green.
+Drag the list to scroll.
+
+RESET, while stopped, clears
+the time and the laps.
+
+The large digits are the total.
+The LAP line is the time since
+the previous lap.
+
+NOTES:
+
+Developed with AI assistance.

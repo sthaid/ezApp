@@ -1,0 +1,40 @@
+NAME: Timer
+
+DESCRIPTION:
+
+Countdown timer. The display
+is minutes:seconds.
+
+START asks for the interval.
+Enter minutes, or minutes and
+seconds. Seconds are optional.
+
+  5     is 5 minutes
+  5:30  is 5 minutes 30 seconds
+  0:45  is 45 seconds
+
+PAUSE freezes the countdown.
+RESUME continues it.
+CANCEL clears the timer.
+
+When the time is up, the
+display counts negative
+(-0:01, -1:05) and Morse
+code H plays until CANCEL.
+
+If you leave while it is
+running, the countdown
+continues when you return.
+If it expired while you were
+away, the alarm starts.
+
+If you leave while it is
+paused, the remaining time
+is kept.
+
+If you leave while the alarm
+is playing, the alarm stops.
+
+NOTES:
+
+Developed with AI assistance.
