@@ -9,14 +9,13 @@ static bool app_running = false;
 // build dependency between ezApp_lib and picoc
 extern int picoc_ezApp(char *args);
 
+static void remove_trailing_newline(char *s);
+
 int run(char *name, bool is_svc)
 {
-    char           dir_path[100];
-    int            rc;
-    DIR           *dir;
-    struct dirent *dirent;
-    char          *p;
-    char           picoc_args[1000];
+    char  dir_path[100], cmd[200], s[200], picoc_args[10000], *p;
+    int   rc;
+    FILE *fp;
 
     // construct path to the directory of the app or svc being run
     if (!is_svc) {
@@ -25,22 +24,23 @@ int run(char *name, bool is_svc)
         sprintf(dir_path, "svcs/%s", name);
     }
 
-    // construct list of *.c files in the dir
+    // construct list of *.c files in dir_path
+    // /bin/ls -1 is used to provide the same order of .c files as 
+    // when picoc is being run by eztest
+    p = picoc_args;
     picoc_args[0] = '\0';
-    dir = opendir(dir_path);
-    if (dir == NULL) {
-        ERROR("%s: failed to opendir %s, %s\n", name, dir_path, strerror(errno));
+    sprintf(cmd, "/bin/ls -1 %s/*.c", dir_path);
+    fp = popen(cmd, "r");
+    if (fp == NULL) {
+        ERROR("%s: failed to list *.c in %s\n", name, dir_path);
+        sdlx_show_toast("NO SOURCE CODE");
         return 99;
     }
-    p = picoc_args;
-    while ((dirent = readdir(dir)) != NULL) {
-        char *fn = dirent->d_name;
-        int len = strlen(fn);
-        if (len > 2 && strcmp(fn+len-2, ".c") == 0) {
-            p += sprintf(p, "%s/%s ", dir_path, fn);
-        }
+    while (fgets(s, sizeof(s), fp) != NULL) {
+        remove_trailing_newline(s);
+        p += sprintf(p, "%s ", s);
     }
-    closedir(dir);
+    pclose(fp);
 
     // error if no source code found in dir_path
     if (picoc_args[0] == '\0') {
@@ -75,3 +75,13 @@ bool is_app_running(void)
 {
     return app_running;
 }
+
+static void remove_trailing_newline(char *s)
+{
+    int len = strlen(s);
+
+    if (len > 0 && s[len-1] == '\n') {
+        s[len-1] = '\0';
+    }
+}
+
