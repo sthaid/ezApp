@@ -1,0 +1,17 @@
+=================
+PROMPT 1
+=================
+
+I want to add a Backgammon Game next; but have some questions first.
+What gaming algorithm is best suited for backgammon?
+
+=================
+PROMPT 2
+=================
+
+Go ahead and implement it, using the 'bottom line' described above.
+The display orientation should be Landscape.
+Do not support the doubling cube.
+First version should support Easy and Medium difficulty.
+Plan to add support for Hard difficulty later.
+

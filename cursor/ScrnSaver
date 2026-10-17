@@ -1,0 +1,9 @@
+=================
+PROMPT 1
+=================
+
+Please develop a screen saver miniApp.
+The graphics should be visually appealing.
+Provide control area controls '<' and '>' to choose between multiple screen savers.
+Design the code so that a new screen saver can be easily plugged in.
+Provide baseline of 3 screen savers.

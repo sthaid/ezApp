@@ -1,0 +1,19 @@
+=================
+PROMPT 1
+=================
+
+Develop an American Checkers minApp. This miniApp will support the human playing
+against the computer. Game controls should include:
+- New Game You First
+- New Game CPU First
+- Difficulty, choose between 3 levels.
+
+Use minimax plus alpha-beta.
+
+Do not base this on the TicTacToe or Reversi miniApps. Those games are
+different than Checkers so I think a fresh start is best.
+
+Use PORTRAIT orientation.
+
+Put this miniApp in the files/apps/Checkers directory.
+
