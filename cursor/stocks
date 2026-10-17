@@ -1,0 +1,14 @@
+=================
+PROMPT
+=================
+
+Please develop a miniApp that displays current stock price and stock
+price history graph for a given stock ticker symbol. 
+
+The name of this new miniApp is Stock. Place it on layout page 2.
+
+Allow the user to input the desired ticker symbol. 
+
+Allow the user to choose the graph duration of either:
+1D, 5D, 1M, 6M, 1Y, 5Y, or YTD.
+
