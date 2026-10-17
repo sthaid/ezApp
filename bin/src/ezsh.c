@@ -88,7 +88,7 @@ void *sig_hndlr_thread(void *cx);
 
 int run_cmd(char *cmdline);
 
-int run_android_cmd(char *cmdline);
+int run_android_cmd(char *cmdline, bool quiet);
 int run_android_put_cmd(char *src, char *dest);
 int run_android_get_cmd(char *src, char *dest);
 
@@ -568,7 +568,7 @@ int run_cmd(char *cmdline)
 
     // it wasn't a special cmd, run the cmd on Android
     sprintf(cd_plus_cmdline, "cd %s; %s", cwd, cmdline);
-    status = run_android_cmd(cd_plus_cmdline);
+    status = run_android_cmd(cd_plus_cmdline, false);
     return status;
 }
 
@@ -577,7 +577,7 @@ int run_cmd(char *cmdline)
 // This routine is used to run all commands on Android, except for the
 // get and put cmds. The get and put cmds are used to transfer files to/from
 // the Android device, and they have unique requirements.
-int run_android_cmd(char *cmdline)
+int run_android_cmd(char *cmdline, bool quiet)
 {
     int  rc, status;
     char s[500], *p;
@@ -614,7 +614,9 @@ int run_android_cmd(char *cmdline)
     }
 
     // print response status from Android
-    print_cmd_status(status, cmdline);
+    if (!quiet) {
+        print_cmd_status(status, cmdline);
+    }
 
     // return status
     return status;
@@ -873,7 +875,7 @@ int run_special_cmd(char *cmdline)
     } else if (strcmp(cmd, "get") == 0) {
         return run_android_get_cmd(arg1, arg2);
     } else if (strcmp(cmd, "quiesced") == 0) {
-        return run_android_cmd(cmd);
+        return run_android_cmd(cmd, false);
 
     } else if (strcmp(cmd, "help") == 0) {
         return display_help();
@@ -942,9 +944,11 @@ int special_cmd_cd(char *path)
     char cmd[300];
     int  status;
     sprintf(cmd, "if [ ! -d %s ]; then exit 1; else exit 0; fi", new_cwd);
-    status = run_android_cmd(cmd);
+    status = run_android_cmd(cmd, true);
     if (status == 0) {
         strcpy(cwd, new_cwd);
+    } else {
+        printf("ERROR: %s does not exist\n", new_cwd);
     }
 
     // return status
