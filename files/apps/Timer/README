@@ -10,8 +10,8 @@ Enter minutes, or minutes and
 seconds. Seconds are optional.
 
   5     is 5 minutes
-  5:30  is 5 minutes 30 seconds
-  0:45  is 45 seconds
+  5.30  is 5 minutes 30 seconds
+  0.45  is 45 seconds
 
 PAUSE freezes the countdown.
 RESUME continues it.

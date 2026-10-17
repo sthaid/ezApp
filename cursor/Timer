@@ -1,0 +1,29 @@
+=================
+PROMPT 1
+=================
+
+Create a Timer miniApp. And place at in layout page 2.
+
+When starting the timer the interval is entered, in minutes and seconds; 
+with seconds being optional.
+
+The timer is expired when the start time plus interval exceeds the current 
+wall time.  When the timer has expired, play alarm, audio morse code H,
+repeatedly.
+
+When the Timer miniApp is being terminated and the timer has not expired, 
+save the timer state and expiration time using params. When the Timer miniApp 
+is restarted, read the params, and if the timer state is running then either 
+continue the countdown or play the audio morse H alarm, based on the 
+expiration wall time.
+
+When the Timer miniApp app is being terminated and the timer has expired, 
+then cancel the alarm and set params to indicate the timer is not running.
+
+While the alarm is playing, continue to display the timer countdown value,
+using negative number.
+
+The resolution of the timer shall be minutes:seconds.
+ 
+Controls to start, pause, and cancel the timer shall be provided.
+
