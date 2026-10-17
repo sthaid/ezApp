@@ -87,41 +87,31 @@ EOF
 
 function do_connect()
 {
-    top=$(git rev-parse --show-toplevel)
-    if [ $? -ne 0 ]; then
-        echo "ERROR: failed to get top repo directory"
-        exit 1
-    fi
-
     cmd="adb connect $1"
     if ! $cmd | grep "^connected"; then
         echo "ERROR: failed to connect to $1"
         exit 1
     fi
 
-    echo "$cmd" > $top/bin/adb_connect_last
+    echo "$cmd" > $adb_connect_last
 
     adb devices
 }
 
 function do_reconnect()
 {
-    top=$(git rev-parse --show-toplevel)
-    if [ $? -ne 0 ]; then
-        echo "ERROR: failed to get top repo directory"
-        exit 1
-    fi
-
-    if [ -f $top/bin/adb_connect_last ]; then
-        source $top/bin/adb_connect_last
+    if [ -f $adb_connect_last ]; then
+        source $adb_connect_last
         adb devices
     else
-        echo "ERROR: file $top/bin/adb_connect_last does not exist"
+        echo "ERROR: file $adb_connect_last does not exist"
         exit 1        
     fi
 }
 
 # ######## MAIN ########
+
+adb_connect_last=~/.adb_connect_last
 
 case $1 in
 "-h")
