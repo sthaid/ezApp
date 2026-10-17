@@ -71,6 +71,7 @@ can be viewed by tapping the '?'.
 - Steps:     View Steps and Miles for
              specified day, month, or
              year.
+- Stock:     Stock ticker price & graphs.
 - StopWatch: Start, stop, and lap
              timer.
 - Tilt:      Level, supports horizontal

@@ -1,0 +1,38 @@
+NAME: Stock
+
+DESCRIPTION:
+
+Current price and a price history
+graph for a stock ticker.
+
+Tap Ticker, or the symbol, and enter
+a symbol such as AAPL or MSFT.
+Index symbols such as ^GSPC work too.
+
+Choose the graph duration:
+- 1D   one day
+- 5D   five days
+- 1M   one month
+- 6M   six months
+- 1Y   one year
+- 5Y   five years
+- YTD  year to date
+
+The change under the price is from
+the prior close. Green is up and
+red is down.
+
+On the longer graphs, the percent
+at the right is the change across
+that duration.
+
+Tap R to refresh. A quote already
+downloaded is reused for one minute.
+
+NOTES:
+
+Prices are downloaded from
+Yahoo Finance. A network
+connection is required.
+
+Downloading can take a few seconds.
