@@ -1,0 +1,31 @@
+NAME: ScrnSaver
+
+DESCRIPTION:
+
+Animated screen savers.
+
+The control bar has < and > to
+move between savers. X leaves
+the app. The last saver is
+remembered.
+
+- Stars:  flight through a field
+          of stars
+- Aurora: northern lights over
+          a lake
+- Mandala: spinning geometric
+          figures
+
+The saver name is shown briefly
+after each change. Tap ? for
+this page.
+
+NOTES:
+
+To add a saver, create a C file
+with one draw function and
+register it in savers.c. The
+comment at the top of savers.c
+lists the steps.
+
+Developed with AI assistance.
