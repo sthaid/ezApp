@@ -23,10 +23,11 @@
 
 #define ONE_SEC 1000000
 
-#define MODE_VIEW 0
-#define MODE_NAV  1
-
 #define K_SMOOTH 0.1
+
+#define EVID_NEXT 1
+#define EVID_PREV 2
+#define EVID_MAP_LOCK_NORTH 3
 
 //
 // variables
@@ -37,15 +38,17 @@ char         *data_dir;
 
 bool         end_program = false;
 double       mag_decl;
-int          mode;
 loc_hist2_t *lh2;
+
+sdlx_texture_t *compass_texture;
     
 //
 // prototypes
 //
 
-void view_mode_display(void);
-void nav_mode_display(void);
+void display(void);
+char *heading_abbreviation(double heading);
+void display_compass(double true_heading);
 
 // -----------------  MAIN  ------------------------------------------
 
@@ -81,11 +84,7 @@ int main(int argc, char **argv)
     profile_start();
 #endif
     while (!end_program) {
-        if (mode == MODE_VIEW) {
-            view_mode_display();
-        } else {
-            nav_mode_display();
-        }
+        display();
     }
 #ifdef PROFILE
     profile_stop(1);
@@ -93,14 +92,15 @@ int main(int argc, char **argv)
 
     // cleanup and end program
     util_unmap_file(lh2, sizeof(loc_hist2_t));
+    if (compass_texture) {
+        sdlx_destroy_texture(compass_texture);
+    }
     printf("I %s: terminating\n", progname);
     return 0;
 }
 
-// -----------------  VIEW MODE  --------------------------
+// -----------------  xxxxxxxxx  --------------------------
 
-#define EVID_NEXT 1
-#define EVID_PREV 2
 
 // xxx defines may need work
 #define MAP_XL     -250
@@ -116,6 +116,8 @@ int main(int argc, char **argv)
 #define MILES_PER_DEGREE_LATITUDE       69.0
 #define MILES_PER_DEGREE_LONGITUDE(lat) (cosd(lat) * 69.0)   // xxx profile problem is here
 
+#define METERS_TO_MILES 0.00062137
+
 // xxx can these be local vars
 double map_ctr_lat, map_ctr_long;
 double map_wh_miles;
@@ -124,7 +126,7 @@ int    day, num_points;
 void draw_loc_points(struct loc_hist2_day_s *lh2d);
 
 // xxx comments needed
-void view_mode_display(void)
+void display(void)
 {
     sdlx_event_t event;
     sdlx_texture_t *t;
@@ -132,7 +134,12 @@ void view_mode_display(void)
     double mag_heading, true_heading;
     struct loc_hist2_day_s *lh2d;
     long t_now, t_last;
+    double angle;
+    bool map_lock_north;
+    char str[100];
+    sdlx_loc_t *loc;
 
+    map_lock_north = false;  // xxx or from params
     day = lh2->last_day;
     util_get_location(&map_ctr_lat, &map_ctr_long, NULL, NULL);
     map_wh_miles = 3;
@@ -141,7 +148,7 @@ void view_mode_display(void)
     printf("I %s: view mode starting, map %0.3f,%0.3f wh %0.0f miles\n",
            progname, map_ctr_lat, map_ctr_long, map_wh_miles);
 
-    do {
+    while (!end_program) {
         // print time since last update
         t_now = util_microsec_timer();
         //printf("I %s: interval %ld ms\n", progname, (t_now - t_last) / 1000);
@@ -173,12 +180,13 @@ void view_mode_display(void)
         //printf("I %s: mag_heading %0.0f mag_decl %0.0f true_heading %0.0f\n",
         //       progname, mag_heading, mag_decl, true_heading);
 
-        // display the texture containint the loc points, rotated by true_heading
+        // display the texture containing the loc points, rotated by true_heading
         dest.x = -250;
         dest.y = 0;
         dest.w = 1500;
         dest.h = 1500;
-        sdlx_render_texture_rotated(t, NULL, &dest, -true_heading, NULL, FLIP_NONE);
+        angle = (map_lock_north ? 0 : true_heading);
+        sdlx_render_texture_rotated(t, NULL, &dest, -angle, NULL, FLIP_NONE);
 
         // the rotated texture will spill over the display area below the map,
         // so clear the display area below the map
@@ -186,10 +194,20 @@ void view_mode_display(void)
 
         // add annotations to map
         // - display true heading at top center of map
+        if (map_lock_north) {
+            sprintf(str, "MAP LOCK NORTH");
+        } else {
+            sprintf(str, "%s - %d", heading_abbreviation(true_heading), (int)true_heading);
+        }
+        loc = sdlx_render_printf_ex(500, 100, FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_XY_CTR, "%s", str);
+        sdlx_register_event(loc, EVID_MAP_LOCK_NORTH);
+
         // - display map width at bottom of map
-        sdlx_render_printf_ex(500, 100, FONT_NORMAL, COLOR_WHITE, FLAG_XY_CTR, "%0.0f", true_heading);
         sdlx_render_printf_ex(500, MAP_YB-sdlx_char_height(FONT_SMALL), FONT_SMALL, COLOR_WHITE, FLAG_X_CTR,
                               "<-- %0.1f miles -->", map_wh_miles * 1000 / 1500);
+
+        // - display compass
+        display_compass(true_heading);
 
         // draw map border  xxx use defines
         sdlx_render_rect(0, 0, 1000, 1500, 5, COLOR_GREEN);
@@ -204,6 +222,12 @@ void view_mode_display(void)
                         get_weekday_str(lh2d->year, lh2d->month, lh2d->day),
                         get_month_str(lh2d->month),
                         lh2d->day);
+        if (lh2d->max_loc > 0) {
+            sdlx_render_printf(0, MAP_YB + ROW2Y(2),
+                "d=%0.4f t=%0.4f",
+                lh2d->loc[lh2d->max_loc-1].distance * METERS_TO_MILES,
+                lh2d->loc[lh2d->max_loc-1].total_distance * METERS_TO_MILES);
+        }
         
         // register events
         sdlx_register_event(NULL, EVID_PINCH);
@@ -237,8 +261,8 @@ void view_mode_display(void)
             if (day < lh2->last_day) day++;
             break;
         case EVID_MOTION: {
-            double xrel = event.u.motion.xrel * cosd(true_heading) - event.u.motion.yrel * sind(true_heading);
-            double yrel = event.u.motion.xrel * sind(true_heading) + event.u.motion.yrel * cosd(true_heading);
+            double xrel = event.u.motion.xrel * cosd(angle) - event.u.motion.yrel * sind(angle);
+            double yrel = event.u.motion.xrel * sind(angle) + event.u.motion.yrel * cosd(angle);
             map_ctr_lat  += yrel * 
                             (map_wh_miles / MAP_H) / 
                             MILES_PER_DEGREE_LATITUDE;
@@ -251,11 +275,14 @@ void view_mode_display(void)
             if (event.u.pinch.scale == 0) break;
             map_wh_miles /= event.u.pinch.scale;
             break;
+        case EVID_MAP_LOCK_NORTH:
+            map_lock_north = !map_lock_north;
+            break;
         case EVID_QUIT:
             end_program = true;
             break;
         }
-    } while (!end_program && mode == MODE_VIEW);
+    }
 
     sdlx_destroy_texture(t);
 }
@@ -302,9 +329,52 @@ void draw_loc_points(struct loc_hist2_day_s *lh2d)
     }
 }
 
-// --------------------------------------------------------
 
-void nav_mode_display(void)
+
+char *heading_abbreviation(double heading)
 {
+    if (heading >= 337.5 || heading < 22.5) {
+        return "N";
+    } else if (heading >= 22.5 && heading < 67.5) {
+        return "NE";
+    } else if (heading >= 67.5 && heading < 112.5) {
+        return "E";
+    } else if (heading >= 112.5 && heading < 157.5) {
+        return "SE";
+    } else if (heading >= 157.5 && heading < 202.5) {
+        return "S";
+    } else if (heading >= 202.5 && heading < 247.5) {
+        return "SW";
+    } else if (heading >= 247.5 && heading < 292.5) {
+        return "W";
+    } else if (heading >= 292.5 && heading < 337.5) {
+        return "NW";
+    } else {
+        return "Invalid";
+    }
 }
 
+void display_compass(double true_heading)
+{
+    sdlx_loc_t dest;
+
+    if (compass_texture == NULL) {
+        compass_texture = sdlx_create_texture(100, 100);
+        sdlx_set_render_target(compass_texture);
+        sdlx_render_fill_circle(50, 50, 50, COLOR_WHITE);
+        sdlx_render_point(50, 10, COLOR_RED, MAX_POINT_SIZE);  // xxx use triangle
+        sdlx_set_render_target(NULL);
+    }
+
+    dest.x = 900;
+    dest.y = 200;
+    dest.w = 100;
+    dest.h = 100;
+
+    sdlx_render_texture_rotated(compass_texture, 
+                                NULL,           // copy entire src textrue
+                                &dest,          // dest rect
+                                -true_heading,   // rotation angle
+                                NULL,           // rotate about dest rect center
+                                FLIP_NONE);
+}

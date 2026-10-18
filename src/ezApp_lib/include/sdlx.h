@@ -261,6 +261,7 @@ void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int
 //    sdlx_destroy_texture(circle);
 
 // Create a texture size width w and height h.
+// xxx explain initial color is transparanet black
 sdlx_texture_t *sdlx_create_texture(int w, int h);
 // Destroy a texture. Texture arg may be NULL.
 void sdlx_destroy_texture(sdlx_texture_t *t);

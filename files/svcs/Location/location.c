@@ -18,8 +18,6 @@
 // defines
 #define CREATE_IF_NEEDED true
 
-#define TEST // xxx del later
-
 // variables
 loc_hist_t  *loc_hist;
 loc_hist2_t *loc_hist2;
@@ -36,12 +34,6 @@ char *most_recent_loc_hist_city(void);
 void clear_loc_history(void);
 
 void add_entry_to_loc_hist2(double latitude, double longitude);
-
-#ifdef TEST
-bool test_mode;
-void test_init_loc_hist2(void);
-void test_get_current_ymd_hms(int *year, int *month, int *day, int *hour, int *minute, int *second);
-#endif
 
 // -----------------  MAIN  -----------------------------------------
 
@@ -83,14 +75,6 @@ int main(int argc, char **argv)
         util_unmap_file(loc_hist, sizeof(loc_hist_t));
         return 1;
     }
-
-#ifdef TEST
-    if (created) {
-        printf("I %s: xxxxxxxxxxxxxxxxxx INIT TEST DATA xxxxxxxxxxxxxxxxxxxxxxxx\n", progname);
-        test_init_loc_hist2();
-        printf("I %s: xxxxxxxxxxxxxxxxxx INIT TEST DATA DONE  xxxxxxxxxxxxxxxxxx\n", progname);
-    }
-#endif
 
     // read parameters
     param_enabled = util_get_numeric_param(data_dir, "enabled", 1);
@@ -159,8 +143,7 @@ void periodic_processing(void)
         add_entry_to_loc_hist(city, state);
     }
 
-    // update loc_hist2 file ...
-    // xxx comment
+    // append this fix, including meters traveled since the previous one xxx
     add_entry_to_loc_hist2(latitude, longitude);
 }
 
@@ -355,32 +338,48 @@ void add_entry_to_loc_hist2(double latitude, double longitude)
     static long             t_last_sync;
 
     // get current data
-#ifdef TEST
-    if (test_mode) {
-        test_get_current_ymd_hms(&year, &month, &day, &hour, &minute, &second);
-    } else {
-        get_current_ymd_hms(&year, &month, &day, &hour, &minute, &second);
-    }
-#else
     get_current_ymd_hms(&year, &month, &day, &hour, &minute, &second);
-#endif
     
     // if current ymd differ from last_day's date then advance last_day
     lh2d = &loc_hist2->day[loc_hist2->last_day % MAX_LH2_DAY];
     if (year != lh2d->year || month != lh2d->month || day != lh2d->day) {
         loc_hist2->last_day++;
         lh2d = &loc_hist2->day[loc_hist2->last_day % MAX_LH2_DAY];
+
+        memset(lh2d, 0, sizeof(struct loc_hist2_day_s));
+
         lh2d->year    = year;
         lh2d->month   = month;
         lh2d->day     = day;
         lh2d->max_loc = 0;
+
+        printf("I %s: resetting gps interval\n", progname);
+        gps_interval_distance_reset();
     }
 
     // add new entry to the last_day data
+    // time keeps moving forward across midnight: day index * 86400
+    // plus seconds into the day
     if (lh2d->max_loc < MAX_LH2_LOC) {
+        double tsec = (double)loc_hist2->last_day * 86400.0 +
+                      (3600 * hour + 60 * minute + second);
+        double distance;
+
+        memset(&lh2d->loc[lh2d->max_loc], 0, sizeof(lh2d->loc[0]));
         lh2d->loc[lh2d->max_loc].secs = 3600*hour + 60*minute + second;
         lh2d->loc[lh2d->max_loc].latitude = latitude;
         lh2d->loc[lh2d->max_loc].longitude = longitude;
+
+        distance = gps_interval_distance(latitude, longitude, tsec);
+
+        lh2d->loc[lh2d->max_loc].distance = distance;
+        if (lh2d->max_loc > 0) {
+            lh2d->loc[lh2d->max_loc].total_distance = 
+                lh2d->loc[lh2d->max_loc-1].total_distance + distance;
+        }
+        printf("I %s: meters=%0.3f  tot=%0.3f\n", 
+               progname, distance, lh2d->loc[lh2d->max_loc].total_distance);
+
         lh2d->max_loc++;
     }
 
@@ -393,59 +392,3 @@ void add_entry_to_loc_hist2(double latitude, double longitude)
     }
 }    
 
-#ifdef TEST
-
-#define HOUR 3600
-#define TEST_LATITUDE     42.4222
-#define TEST_LONGITUDE   -71.6226
-
-#define MILES_PER_DEGREE_LATITUDE       69.0
-#define MILES_PER_DEGREE_LONGITUDE(lat) (cosd(lat) * 69.0)
-
-void test_init_loc_hist2()
-{
-    double lat, lng;
-    int day, secs;
-
-    test_mode = true;
-
-    for (day = 0; day < 10; day++) {
-        lat = TEST_LATITUDE;
-        lng = TEST_LONGITUDE;
-
-        for (secs = 0; secs < 86400; secs += 10) {
-            if (secs < 6 * HOUR || secs > 20 * HOUR) {
-                lat = TEST_LATITUDE;
-                lng = TEST_LONGITUDE;
-            } else if (secs < 9.5 * HOUR) {
-                lat -= (1. / 1260) / MILES_PER_DEGREE_LATITUDE;
-            } else if (secs < 13.0 * HOUR) {
-                lng += (1. / 1260) / MILES_PER_DEGREE_LONGITUDE(TEST_LATITUDE);
-            } else if (secs < 16.5 * HOUR) {
-                lat += (1. / 1260) / MILES_PER_DEGREE_LATITUDE;
-            } else {  // secs must be less than 20*HOUR
-                lng -= (1. / 1260) / MILES_PER_DEGREE_LONGITUDE(TEST_LATITUDE);
-            }
-
-            add_entry_to_loc_hist2(lat, lng);
-        }
-    }
-
-    test_mode = false;
-}
-
-void test_get_current_ymd_hms(int *year, int *month, int *day, int *hour, int *minute, int *second)
-{
-    static long seconds;
-
-    *year    = 2026;
-    *month   = 9;
-    *day     = (seconds / 86400) + 1;
-    *hour    = (seconds / 3600) % 24;
-    *minute  = (seconds / 60) % 60;
-    *second  = seconds % 60;
-
-    seconds += 10;
-}
-
-#endif

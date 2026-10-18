@@ -46,8 +46,19 @@ typedef struct {
             long   secs;  // seconds into the day, range 0-86399
             double latitude;
             double longitude;
+            double distance;    // meters since the previous fix
+            double total_distance;
+            double reserved[3];
         } loc[MAX_LH2_LOC];
     } day[MAX_LH2_DAY];
 } loc_hist2_t;
+
+// Meters traveled since the previous call. latitude and longitude are
+// degrees. time_sec is the time of this fix, in seconds, from a clock
+// that moves forward. Returns 0 for the first fix, a repeated fix, and
+// any fix that is not distinguishable from GPS noise. One track is
+// remembered across calls.
+double gps_interval_distance(double latitude, double longitude, double time_sec);
+void gps_interval_distance_reset(void);
 
 #endif
