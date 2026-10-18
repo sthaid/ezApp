@@ -64,6 +64,8 @@ can be viewed by tapping the '?'.
              and miniApp printf.
 - Memo:      Record an audio memo.
 - Morse:     Practice morse code.
+- Path:      Display path, and provide
+             range and bearing.
 - Piano:     Beginner Piano simulator.
              Includes several melodies.
 - ScrnSaver: Animated screen savers.
