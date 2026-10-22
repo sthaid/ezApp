@@ -146,17 +146,16 @@ met all the prerequisites (y/n)? " yn
 
 function determine_running_on()
 {
-    if echo "$WSL_DISTRO_NAME" | grep -qi "ubuntu"; then
-        running_on=ubuntu_wsl
-    elif [ -f /etc/os-release ]; then
-        . /etc/os-release
-        if [ "$ID" = "ubuntu" ]; then
-            running_on=ubuntu_linux
-        fi
-    fi
-    if [ "$running_on" = "" ]; then
-        echo "ERROR: not running ubuntu_linux or ubuntu_wsl"
+    . /etc/os-release
+    if [ "$ID" != ubuntu ]; then
+        echo "ERROR: not running on ubuntu"
         exit 1
+    fi
+
+    if [ "$WSL_DISTRO_NAME" != "" ]; then
+        running_on=ubuntu_wsl
+    else
+        running_on=ubuntu_linux
     fi
 }
 
