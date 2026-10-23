@@ -1013,10 +1013,12 @@ void sdlx_render_point(int x, int y, sdlx_color_t color, int point_size)
 {
     sdlx_point_t point = {x,y};
 
-    sdlx_render_points(&point, 1, color, point_size);
+    sdlx_render_points(&point, 1, NULL, color, NULL, point_size);
 }
 
-void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int point_size)
+void sdlx_render_points(sdlx_point_t *points, int count, 
+                        sdlx_color_t *color_tbl, sdlx_color_t color_arg,
+                        int *point_size_tbl, int point_size_arg)
 {
     static struct point_extend_s {
         int max;
@@ -1152,23 +1154,32 @@ void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int
     if (count <= 0) {
         return;
     }
-    if (point_size < 0) {
-        point_size = 0;
-    }
-    if (point_size > MAX_POINT_SIZE) {
-        point_size = MAX_POINT_SIZE;
-    }
 
     #define MAX_SDL_POINTS 1000
-    int i, j, x, y;
+    int i, j, x, y, point_size;
+    sdlx_color_t color, current_color=COLOR_BLACK;
     SDL_FPoint sdlx_points[MAX_SDL_POINTS];
     int sdlx_points_count = 0;
-    struct point_extend_s * pe = &point_extend[point_size];
-    struct point_extend_offset_s * peo = pe->offset;
-
-    set_render_draw_color(color);
+    struct point_extend_s * pe;
+    struct point_extend_offset_s *peo;
 
     for (i = 0; i < count; i++) {
+        point_size = (point_size_tbl ? point_size_tbl[i] : point_size_arg);
+        if (point_size < 0) point_size = 0;
+        if (point_size > MAX_POINT_SIZE) point_size = MAX_POINT_SIZE;
+        pe = &point_extend[point_size];
+        peo = pe->offset;
+
+        color = (color_tbl ? color_tbl[i] : color_arg);
+        if (color != current_color || i == 0) {
+            if (sdlx_points_count > 0) {
+                SDL_RenderPoints(renderer, sdlx_points, sdlx_points_count);
+                sdlx_points_count = 0;
+            }
+            set_render_draw_color(color);
+            current_color = color;
+        }
+
         for (j = 0; j < pe->max; j++) {
             x = nearbyint(points[i].x + peo[j].x);
             y = nearbyint(points[i].y + peo[j].y);

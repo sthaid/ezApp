@@ -671,11 +671,13 @@ static void page_4_draw(void)
 
     // draw 10 points of the same size, y = 1100
     sdlx_point_t points[10];
+    sdlx_color_t colors[10];
     for (int i = 0; i < 10; i++) {
         points[i].x = i*100+50;
         points[i].y = 1100;
+        colors[i] = sdlx_wavelength_to_color(400 + 30*i);
     }
-    sdlx_render_points(points, 10, COLOR_PURPLE, 5);
+    sdlx_render_points(points, 10, colors, 0, NULL, 5);
 
     // draw filled circle, y_ctr = 1200 + radius = 1200 + 250 = 1450
     sdlx_render_fill_circle(sdlx_win_width/2, 1450, 250, COLOR_PURPLE);

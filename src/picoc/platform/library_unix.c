@@ -285,12 +285,14 @@ void Sdlx_render_point(struct ParseState *Parser, struct Value *ReturnValue,
 void Sdlx_render_points(struct ParseState *Parser, struct Value *ReturnValue,
         struct Value **Param, int NumArgs)
 {
-    sdlx_point_t * points     = (sdlx_point_t *)Param[0]->Val->Pointer;
-    int            count      = (int)Param[1]->Val->Integer;
-    sdlx_color_t   color      = (sdlx_color_t)Param[2]->Val->UnsignedInteger;
-    int            point_size = (int)Param[3]->Val->Integer;
+    sdlx_point_t * points         = (sdlx_point_t *)Param[0]->Val->Pointer;
+    int            count          = (int)Param[1]->Val->Integer;
+    sdlx_color_t * color_tbl      = Param[2]->Val->Pointer;
+    sdlx_color_t   color          = (sdlx_color_t)Param[3]->Val->UnsignedInteger;
+    int          * point_size_tbl = Param[4]->Val->Pointer;
+    int            point_size     = (int)Param[5]->Val->Integer;
 
-    sdlx_render_points(points, count, color, point_size);
+    sdlx_render_points(points, count, color_tbl, color, point_size_tbl, point_size);
 }
 
 //
@@ -741,7 +743,7 @@ struct LibraryFunction SdlFunctions[] = {
     { Sdlx_render_circle,            "void sdlx_render_circle(int x_ctr, int y_ctr, int radius, int line_width, sdlx_color_t color);" },
     { Sdlx_render_fill_circle,       "void sdlx_render_fill_circle(int x_ctr, int y_ctr, int radius, sdlx_color_t color);" },
     { Sdlx_render_point,             "void sdlx_render_point(int x, int y, sdlx_color_t color, int point_size);" },
-    { Sdlx_render_points,            "void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int point_size);" },
+    { Sdlx_render_points,            "void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t *color_tbl, sdlx_color_t color, int *point_size_tbl, int point_size);" },
 
     // video - textures
     { Sdlx_create_texture,           "sdlx_texture_t *sdlx_create_texture(int w, int h);" },

@@ -217,7 +217,7 @@ int sdlx_char_height(int fontid);
 // - For sdlx_render_circle and sdlx_render_fill_circle, x_ctr,y_ctr are the 
 //   center of the circle.
 // - The point_size arg to sdlx_render_point and sdlx_render_points, ranges from
-//   0 (smallest) to MAX_POINT_SIZE (largest).
+//   0 (smallest) to MAX_POINT_SIZE (largest).  xxx render_points needs comment update
 void sdlx_render_rect(int x, int y, int w, int h, int line_width, sdlx_color_t color);
 void sdlx_render_fill_rect(int x, int y, int w, int h, sdlx_color_t color);
 void sdlx_render_line(int x1, int y1, int x2, int y2, sdlx_color_t color);
@@ -225,7 +225,9 @@ void sdlx_render_lines(sdlx_point_t *points, int count, sdlx_color_t color);
 void sdlx_render_circle(int x_ctr, int y_ctr, int radius, int line_width, sdlx_color_t color);
 void sdlx_render_fill_circle(int x_ctr, int y_ctr, int radius, sdlx_color_t color);
 void sdlx_render_point(int x, int y, sdlx_color_t color, int point_size);
-void sdlx_render_points(sdlx_point_t *points, int count, sdlx_color_t color, int point_size);
+void sdlx_render_points(sdlx_point_t *points, int count,
+                        sdlx_color_t *color_tbl, sdlx_color_t color_arg,
+                        int *point_size_tbl, int point_size_arg);
 
 // Video: Textures
 // ---------------

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
 
 #include <sdlx.h>
 #include <utils.h>
@@ -199,7 +200,10 @@ void display(void)
         // so clear the display area below the map
         sdlx_render_fill_rect(0, MAP_YB+1, 1000, 2000-MAP_YB+1, COLOR_BLACK);
 
-        // add annotations to map
+        //
+        // display map annotations
+        //
+
         // - display true heading at top center of map
         if (map_lock_north) {
             sprintf(str, "NORTH LOCK");
@@ -213,24 +217,33 @@ void display(void)
         sdlx_render_printf_ex(sdlx_win_width/2, MAP_YB-sdlx_char_height(FONT_SMALL), FONT_SMALL, COLOR_WHITE, FLAG_X_CTR,
                               "<-- %0.1f miles -->", map_wh_miles * 1000 / 1500);
 
-        // - display compass
+        // - display compass on the map
         display_compass(true_heading);
 
-        // draw map border
+        // draw border around the map display area
         sdlx_render_rect(0, 0, sdlx_win_width, MAP_WH, 5, COLOR_GREEN);
 
-        // display info in the control/status area that is just below the map
-        // xxx needs work
-        sdlx_render_printf(0, MAP_YB + ROW2Y(1),
+        //
+        // display the control & status area
+        //
+
+        // - map date
+        sdlx_render_printf(0, MAP_YB,
                         "%s %s %d", 
                         get_weekday_str(lh2d->year, lh2d->month, lh2d->day),
                         get_month_str(lh2d->month),
                         lh2d->day);
-        if (lh2d->max_loc > 0) {
-            sdlx_render_printf(0, MAP_YB + ROW2Y(2),
-                "d=%0.4f t=%0.4f",
-                lh2d->loc[lh2d->max_loc-1].distance * METERS_TO_MILES,
-                lh2d->loc[lh2d->max_loc-1].total_distance * METERS_TO_MILES);
+
+        // - distance
+        double total_distance = (lh2d->max_loc == 0 
+                                 ? 0
+                                 : lh2d->loc[lh2d->max_loc-1].total_distance * METERS_TO_MILES);
+        if (total_distance < 1) {
+            sdlx_render_printf(0, MAP_YB + ROW2Y(1), "%.3f miles", total_distance);
+        } else if (total_distance < 10) {
+            sdlx_render_printf(0, MAP_YB + ROW2Y(1), "%.1f miles", total_distance);
+        } else {
+            sdlx_render_printf(0, MAP_YB + ROW2Y(1), "%.0f miles", total_distance);
         }
         
         // register events
@@ -292,37 +305,70 @@ void display(void)
     sdlx_destroy_texture(map_texture);
 }
 
+#define WVLEN_RED 650
+#define WVLEN_PURPLE  380
+
+int track_start_secs = 7 * 3600;
+int track_end_secs   = 18 * 3600;
+
+// xxx when change day, re-init map ctr
+
 void display_loc_points(struct loc_hist2_day_s *lh2d)
 {
-    int          x, y, i;
-    sdlx_color_t color;
+    int          i, x, y, n;
     double       k_lat, k_lng, wvlen;
+    sdlx_point_t points[10000];
+    sdlx_color_t colors[10000];
+
+    static int color_tbl_start_secs;
+    static int color_tbl_end_secs;
+    static sdlx_color_t color_tbl[1450];  // 1440 plus 10 added for safety, indexed by minutes
+
+    if (color_tbl_start_secs != track_start_secs || color_tbl_end_secs != track_end_secs) {
+        printf("I %s: init color tbl\n", progname);
+        memset(color_tbl, 0xff, sizeof(color_tbl));
+        // xxx maybe loop the whole day here?
+        for (i = track_start_secs/60; i <= track_end_secs/60; i++) {
+            // xxx check for i overflow
+            wvlen = WVLEN_RED + 
+                    ((double)(i - track_start_secs/60) / (track_end_secs/60 - track_start_secs/60)) * 
+                    (WVLEN_PURPLE - WVLEN_RED);
+            color_tbl[i] = sdlx_wavelength_to_color(wvlen);
+        }
+        color_tbl_start_secs = track_start_secs;
+        color_tbl_end_secs   = track_end_secs;
+        printf("I %s: init color tbl done\n", progname);
+    }
+
 
     k_lat = MILES_PER_DEGREE_LATITUDE / map_wh_miles * MAP_WH;
     k_lng = MILES_PER_DEGREE_LONGITUDE(map_ctr_lat) / map_wh_miles * MAP_WH;
 
-    // xxx optimize
-    // - make a points array,  but then can't control color
+    n = 0;
     for (i = 0; i < lh2d->max_loc; i++) {
-        y = MAP_XY_CTR - (lh2d->loc[i].latitude - map_ctr_lat) * k_lat;
-        if (y < 0 || y > MAP_WH) continue;
+        int secs = lh2d->loc[i].secs;
+
+        if (secs < track_start_secs) {
+            continue;
+        }
+        if (secs > track_end_secs) {
+            break;
+        }
 
         x = MAP_XY_CTR + (lh2d->loc[i].longitude - map_ctr_long) * k_lng;
         if (x < 0 || x > MAP_WH) continue;
 
-        if (lh2d->loc[i].secs < 21600) {   // 6 hours
-            wvlen = 650;   // red
-        } else if (lh2d->loc[i].secs > 72000) {   // 20 hours
-            wvlen = 380;   // purple
-        } else {
-            wvlen = 650 +  // span red to purple
-                    (lh2d->loc[i].secs - 21600) / 50400.0 *
-                    -270;
-        }
-        color = sdlx_wavelength_to_color(wvlen);
+        y = MAP_XY_CTR - (lh2d->loc[i].latitude - map_ctr_lat) * k_lat;
+        if (y < 0 || y > MAP_WH) continue;
 
-        sdlx_render_point(x, y, color, MAX_POINT_SIZE);
+        points[n].x = x;
+        points[n].y = y;
+        colors[n] = color_tbl[secs/60];
+
+        n++;
     }
+
+    sdlx_render_points(points, n, colors, 0, NULL, MAX_POINT_SIZE);
 }
 
 // -----------------  DISPLAY COMPASS  ---------------------------------
