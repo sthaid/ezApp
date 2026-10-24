@@ -76,6 +76,7 @@ bool         map_lock_north   = DFLT_MAP_LOCK_NORTH;
 
 void display(void);
 void display_loc_points(struct loc_hist2_day_s *lh2d);
+void display_map_mark(double latitude, double longitude, double map_rotate_angle);
 
 void display_compass_init(void);
 void display_compass_cleanup(void);
@@ -166,7 +167,7 @@ void display(void)
     double                  mag_heading, true_heading, map_heading;
     double                  map_rotate_angle;
     double                  map_width_miles;
-    struct loc_hist2_day_s *lh2d;
+    struct loc_hist2_day_s *lh2d, *temp_lh2d;
     char                    str[100];
     int                     day;
 
@@ -269,6 +270,16 @@ void display(void)
         // - display compass on the map
         display_compass(true_heading);
 
+        // - display mark on map at current location
+        // xxxxxxxxxxx
+        //   yyy or get from util call
+        temp_lh2d = &lh2->day[lh2->last_day % MAX_LH2_DAY];
+        if (temp_lh2d->max_loc > 0) {
+            double lat = temp_lh2d->loc[temp_lh2d->max_loc-1].latitude;
+            double lng = temp_lh2d->loc[temp_lh2d->max_loc-1].longitude;
+            display_map_mark(lat, lng, map_rotate_angle);
+        }
+
         // - draw border around the map display area
         sdlx_render_rect(0, 0, sdlx_win_width, MAP_WH, 5, COLOR_GREEN);
 
@@ -331,7 +342,6 @@ void display(void)
             break;
         case EVID_PREV: {
             int new_day = day - 1;
-            struct loc_hist2_day_s *temp_lh2d;
 
             if ((new_day) >= 0 && (lh2->last_day - new_day < MAX_LH2_DAY)) {  //yyy verify this works
                 temp_lh2d = &lh2->day[new_day % MAX_LH2_DAY];
@@ -443,6 +453,39 @@ void display_loc_points(struct loc_hist2_day_s *lh2d)
     }
 
     sdlx_render_points(points, n, colors, 0, NULL, MAX_POINT_SIZE);
+}
+
+// yyy comments
+void display_map_mark(double latitude, double longitude, double map_rotate_angle)
+{
+    double k_lat, k_lng, x, y, x1, y1;
+    int length = 50;
+
+    k_lat = MILES_PER_DEGREE_LATITUDE / map_wh_miles * MAP_WH;
+    k_lng = MILES_PER_DEGREE_LONGITUDE(map_ctr_lat) / map_wh_miles * MAP_WH;
+
+    x = MAP_XY_CTR + (longitude - map_ctr_long) * k_lng;
+    if (x < 0 || x > MAP_WH) return;
+
+    y = MAP_XY_CTR - (latitude - map_ctr_lat) * k_lat;
+    if (y < 0 || y > MAP_WH) return;
+
+    x -= 750;
+    y -= 750;
+    x1 = x * cosd(-map_rotate_angle) - y * sind(-map_rotate_angle);
+    y1 = x * sind(-map_rotate_angle) + y * cosd(-map_rotate_angle);
+    x = x1 + 750;
+    y = y1 + 750;
+
+    x -= 250;
+
+    sdlx_render_line(x-length, y-1, x+length, y-1, COLOR_WHITE);
+    sdlx_render_line(x-length, y, x+length, y, COLOR_WHITE);
+    sdlx_render_line(x-length, y+1, x+length, y+1, COLOR_WHITE);
+
+    sdlx_render_line(x-1, y-length, x-1, y+length, COLOR_WHITE);
+    sdlx_render_line(x, y-length, x, y+length, COLOR_WHITE);
+    sdlx_render_line(x+1, y-length, x+1, y+length, COLOR_WHITE);
 }
 
 // -----------------  DISPLAY COMPASS  ---------------------------------
