@@ -9,7 +9,13 @@
 #     pause1 pause2 pause4  : delay for 250, 500, 1000 ms
 # - an implicit pause2 is appended to the end of each line of items
 
-TITLE ttls 5  # Twinkle Twinkle Little Star
+TITLE hpty 4  # Happy Birthday To You
+G G A G C5 B
+G G A G D5 C5
+G G G5 E5 C5 B A
+F5 F5 E5 C5 D5 C5
+
+TITLE ttls 5  # Twinkle Twinkle Little Star, Alphabet Song, Bah Bah Black Sheep
 C C G G A A G
 F F E E D D C
 G G F F E E D
