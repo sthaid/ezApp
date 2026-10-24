@@ -131,7 +131,7 @@ public class ezApp_utils {
         };
 
         LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setInterval(10*1000);  // 10 second update interval
+        locationRequest.setInterval(30*1000);  // 30 second update interval
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
 

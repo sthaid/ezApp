@@ -15,7 +15,7 @@ long util_microsec_timer(void)
 {
     struct timespec ts;
 
-    clock_gettime(CLOCK_MONOTONIC,&ts);
+    clock_gettime(CLOCK_BOOTTIME,&ts);
     return  ((long)ts.tv_sec * 1000000) + ((long)ts.tv_nsec / 1000);
 }
 

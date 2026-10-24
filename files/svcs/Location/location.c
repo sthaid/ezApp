@@ -33,7 +33,7 @@ void add_entry_to_loc_hist(char *city, char *state);
 char *most_recent_loc_hist_city(void);
 void clear_loc_history(void);
 
-void add_entry_to_loc_hist2(double latitude, double longitude);
+void add_entry_to_loc_hist2(double latitude, double longitude, double distance_meters);
 
 // -----------------  MAIN  -----------------------------------------
 
@@ -82,8 +82,8 @@ int main(int argc, char **argv)
 
     // service runtime loop
     while (!end_program) {
-        // wait for req or 10 sec timeout
-        rc = svc_wait_for_req(progname, &req, 10);
+        // wait for req or 30 sec timeout
+        rc = svc_wait_for_req(progname, &req, 30);
 
         // if req was received then
         //   process the req
@@ -111,9 +111,10 @@ void periodic_processing(void)
 {
     char   city[MAX_NAME];
     char   state[MAX_NAME];
-    double latitude, longitude;
+    double latitude, longitude, timestamp_sec, distance_meters;
+    bool   is_outlier;
 
-#if 0
+#if 1  //xxx temp
     // print interval since last call
     static time_t t_last_call;
     time_t t_now = time(NULL);
@@ -134,6 +135,14 @@ void periodic_processing(void)
         return;
     }
 
+    // xxx
+    timestamp_sec = util_microsec_timer() / 1000000.0;
+    is_outlier = filter_fused_location(latitude, longitude, timestamp_sec, &distance_meters);
+    if (is_outlier) {
+        printf("E %s: discarding outlier %0.3f %0.3f\n", progname, latitude, longitude);
+        return;
+    }
+
     // update loc_hist file ...
     // - find location in database that is closest to current lat/long;
     // - if city is different than most recent entry in loc_file
@@ -144,7 +153,7 @@ void periodic_processing(void)
     }
 
     // append this fix, including meters traveled since the previous one xxx
-    add_entry_to_loc_hist2(latitude, longitude);
+    add_entry_to_loc_hist2(latitude, longitude, distance_meters);
 }
 
 // -----------------  PROCESS REQ  ----------------------------------
@@ -329,7 +338,7 @@ void clear_loc_history(void)
 
 #define SYNC_INTVL_USECS (300 * 1000000000L)  // 5 minutes
 
-void add_entry_to_loc_hist2(double latitude, double longitude)
+void add_entry_to_loc_hist2(double latitude, double longitude, double distance_meters)
 {
     int                     year, month, day, hour, minute, second;
     long                    t_now;
@@ -352,33 +361,26 @@ void add_entry_to_loc_hist2(double latitude, double longitude)
         lh2d->month   = month;
         lh2d->day     = day;
         lh2d->max_loc = 0;
-
-        printf("I %s: resetting gps interval\n", progname);
-        gps_interval_distance_reset();
     }
 
     // add new entry to the last_day data
-    // time keeps moving forward across midnight: day index * 86400
-    // plus seconds into the day
     if (lh2d->max_loc < MAX_LH2_LOC) {
-        double tsec = (double)loc_hist2->last_day * 86400.0 +
-                      (3600 * hour + 60 * minute + second);
-        double distance;
-
         memset(&lh2d->loc[lh2d->max_loc], 0, sizeof(lh2d->loc[0]));
         lh2d->loc[lh2d->max_loc].secs = 3600*hour + 60*minute + second;
         lh2d->loc[lh2d->max_loc].latitude = latitude;
         lh2d->loc[lh2d->max_loc].longitude = longitude;
 
-        distance = gps_interval_distance(latitude, longitude, tsec);
+        lh2d->loc[lh2d->max_loc].distance = distance_meters;
 
-        lh2d->loc[lh2d->max_loc].distance = distance;
-        if (lh2d->max_loc > 0) {
+        if (lh2d->max_loc == 0) {
+            lh2d->loc[lh2d->max_loc].total_distance = distance_meters;
+        } else {
             lh2d->loc[lh2d->max_loc].total_distance = 
-                lh2d->loc[lh2d->max_loc-1].total_distance + distance;
+                lh2d->loc[lh2d->max_loc-1].total_distance + distance_meters;
         }
+
         printf("I %s: meters=%0.3f  tot=%0.3f\n", 
-               progname, distance, lh2d->loc[lh2d->max_loc].total_distance);
+               progname, distance_meters, lh2d->loc[lh2d->max_loc].total_distance);
 
         lh2d->max_loc++;
     }
