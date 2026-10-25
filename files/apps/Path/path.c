@@ -50,8 +50,10 @@
 #define WVLEN_RED     650
 #define WVLEN_PURPLE  380
 
-#define DFLT_TRACK_START_SECS  (14.5 * 3600) // yyy (7 * 3600)
-#define DFLT_TRACK_END_SECS    (16.0 * 3600) // yyy (18 * 3600)
+//#define DFLT_TRACK_START_SECS  (14.5 * 3600) // yyy (7 * 3600)
+//#define DFLT_TRACK_END_SECS    (16.0 * 3600) // yyy (18 * 3600)
+#define DFLT_TRACK_START_SECS  (7 * 3600)
+#define DFLT_TRACK_END_SECS    (18 * 3600)
 #define DFLT_MAP_WH_MILES      4.5
 #define DFLT_MAP_LOCK_NORTH    true
     
@@ -84,7 +86,8 @@ bool         map_lock_north   = DFLT_MAP_LOCK_NORTH;
 //
 
 void display(void);
-int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_secs, int *last_map_loc_secs);
+int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_secs, int *last_map_loc_secs,
+                       double *distance_meters);
 void display_map_mark(double latitude, double longitude, double map_rotate_angle);
 
 void display_compass_init(void);
@@ -180,6 +183,7 @@ void display(void)
     double                  mag_heading, true_heading, map_heading;
     double                  map_rotate_angle;
     double                  map_width_miles;
+    double                  distance_meters;
     struct loc_hist2_day_s *lh2d, *temp_lh2d;
     char                    str[100];
     int                     day, last_map_loc_secs;
@@ -190,7 +194,7 @@ void display(void)
     end_secs = track_end_secs;
 
     // init
-    day = lh2->last_day - 2; // yyy temp test
+    day = lh2->last_day;
     map_texture = sdlx_create_texture(MAP_WH,MAP_WH);
     map_init();
 
@@ -199,7 +203,7 @@ void display(void)
         // draw location points to the map_texture
         //
 
-        print_time_since_last_call();
+        //print_time_since_last_call();
         lh2d = &lh2->day[day % MAX_LH2_DAY];
         sdlx_set_render_target(map_texture);
         sdlx_clear_texture(map_texture, COLOR_BLACK);
@@ -217,7 +221,7 @@ void display(void)
             } else {
                 printf("E %s: invalid state %d\n", progname, state);
             }
-            int n = display_loc_points(lh2d, track_start_secs, end_secs, &last_map_loc_secs);
+            int n = display_loc_points(lh2d, track_start_secs, end_secs, &last_map_loc_secs, &distance_meters);
             // yyy not sure about if this is good
             if (n != 0 || state != STATE_PLAY) {
                 break;
@@ -356,6 +360,12 @@ void display(void)
                            state_str(state));
 
 
+        // distance
+        sdlx_render_printf(0, MAP_YB+ROW2Y(3), 
+                           "%0.3f miles", 
+                           distance_meters * METERS_TO_MILES);
+
+
 #if 0
         // distance  yyy compensate for start time
         double total_distance = (lh2d->max_loc == 0 
@@ -374,9 +384,9 @@ void display(void)
         // register additional events
         //
 
-        reg_event_str(COL2X(0), MAP_YB+ROW2Y(3), COLOR_LIGHT_BLUE, "PLAY", EVID_PLAY);
-        reg_event_str(COL2X(6), MAP_YB+ROW2Y(3), COLOR_LIGHT_BLUE, "START", EVID_START_SECS);
-        reg_event_str(COL2X(12), MAP_YB+ROW2Y(3), COLOR_LIGHT_BLUE, "END", EVID_END_SECS);
+        reg_event_str(COL2X(0),  MAP_YB+ROW2Y(4), COLOR_LIGHT_BLUE, "PLAY", EVID_PLAY);
+        reg_event_str(COL2X(6),  MAP_YB+ROW2Y(4), COLOR_LIGHT_BLUE, "START", EVID_START_SECS);
+        reg_event_str(COL2X(12), MAP_YB+ROW2Y(4), COLOR_LIGHT_BLUE, "END", EVID_END_SECS);
 
         sdlx_register_event(NULL, EVID_PINCH);
         sdlx_register_event(NULL, EVID_MOTION);
@@ -485,7 +495,8 @@ void display(void)
 }
 
 // xxx yyy use lon for abbreviation
-int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_secs, int *last_map_loc_secs) 
+int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_secs, int *last_map_loc_secs,
+                       double *distance_meters) 
 {
     int          i, x, y, n, secs=0;
     double       k_lat, k_lng;
@@ -493,6 +504,8 @@ int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_sec
     sdlx_color_t colors[10000];
     int          start_minute, end_minute, span_minute, span_wvlen;
     long         time_execution_usec;
+
+    *distance_meters = 0;
 
     start_minute = start_secs/60;
     end_minute   = end_secs/60;
@@ -533,6 +546,8 @@ int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_sec
                     span_wvlen;
         colors[n] = sdlx_wavelength_to_color(wvlen);
 
+        *distance_meters += lh2d->loc[i].distance;
+
         n++;
     }
 
@@ -540,7 +555,7 @@ int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_sec
 
     sdlx_render_points(points, n, colors, 0, NULL, MAX_POINT_SIZE);
 
-    printf("duration = %ld ms\n", (util_microsec_timer() - time_execution_usec) / 1000);
+    //printf("duration = %ld ms\n", (util_microsec_timer() - time_execution_usec) / 1000);
 
     return n;
 }
