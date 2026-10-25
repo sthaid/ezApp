@@ -528,6 +528,8 @@ int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_sec
         }
         secs = tmp_secs;  // yyy optimize
 
+        *distance_meters += lh2d->loc[i].distance;
+
         x = MAP_XY_CTR + (lh2d->loc[i].longitude - map_ctr_long) * k_lng;
         if (x < 0 || x > MAP_WH) {
             continue;
@@ -545,8 +547,6 @@ int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_sec
                     ((secs/60.0 - start_minute) / span_minute) * 
                     span_wvlen;
         colors[n] = sdlx_wavelength_to_color(wvlen);
-
-        *distance_meters += lh2d->loc[i].distance;
 
         n++;
     }
