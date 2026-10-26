@@ -190,6 +190,13 @@ int util_fft_test(long *duration_usec);
 // The util_rms routine computes the RMS magnitude of the supplied data.
 double util_rms_float(float *x, int n);
 
+// --------------------
+// MISC
+// --------------------
+
+// xxx comment
+char *util_double_to_str(double value, int width, int precision, char *str, int sizeof_str);
+
 // ----------------------
 // CALL ANDROID JAVA CODE
 // ----------------------

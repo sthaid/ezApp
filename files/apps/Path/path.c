@@ -15,7 +15,9 @@
 // - go back to 30 sec interval
 // - throw away outliers
 
-// yyy make loc_hist2 secs an int
+// xxx make loc_hist2 secs an int
+
+// xxx on devel pc, when zoom in the current loc moves
 
 //
 // defines
@@ -27,8 +29,8 @@
 
 #define K_COMPASS_SHOOTH 0.1
 
-#define EVID_NEXT           1
-#define EVID_PREV           2
+#define EVID_NEXT_DAY       1
+#define EVID_PREV_DAY       2
 #define EVID_MAP_LOCK_NORTH 3
 #define EVID_PLAY           4
 #define EVID_START_SECS     5
@@ -50,16 +52,13 @@
 #define WVLEN_RED     650
 #define WVLEN_PURPLE  380
 
-//#define DFLT_TRACK_START_SECS  (14.5 * 3600) // yyy (7 * 3600)
-//#define DFLT_TRACK_END_SECS    (16.0 * 3600) // yyy (18 * 3600)
 #define DFLT_TRACK_START_SECS  (7 * 3600)
 #define DFLT_TRACK_END_SECS    (18 * 3600)
-#define DFLT_MAP_WH_MILES      4.5
+#define DFLT_MAP_HEIGHT_MILES  7.5
 #define DFLT_MAP_LOCK_NORTH    true
     
 #define STATE_MONITOR   0
 #define STATE_PLAY      1
-#define STATE_PLAY_DONE 2
 
 //
 // variables
@@ -72,23 +71,23 @@ bool         end_program = false;
 double       mag_decl;
 loc_hist2_t *lh2;
 
-double       map_ctr_lat;
-double       map_ctr_long;
-
-// xxx use params for these
-int          track_start_secs = DFLT_TRACK_START_SECS;
-int          track_end_secs   = DFLT_TRACK_END_SECS;
-double       map_wh_miles     = DFLT_MAP_WH_MILES;
-bool         map_lock_north   = DFLT_MAP_LOCK_NORTH;
+double       map_ctr_lat;       // params ...
+double       map_ctr_lon;
+int          track_start_secs;
+int          track_end_secs;
+double       map_height_miles;
+bool         map_lock_north;
 
 //
 // prototypes
 //
 
+void get_params(void);
+
 void display(void);
 int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_secs, int *last_map_loc_secs,
                        double *distance_meters);
-void display_map_mark(double latitude, double longitude, double map_rotate_angle);
+void display_map_mark(double lat, double lon, double map_rotate_angle);
 
 void display_compass_init(void);
 void display_compass_cleanup(void);
@@ -116,17 +115,17 @@ int main(int argc, char **argv)
     data_dir = argv[1];
     printf("I %s: starting, data_dir=%s\n", progname, data_dir);
 
-    // get mag decl
-    // yyy this will change on a long trip, perhaps get it again every so often
+    // get parasm
+    get_params();
+
+    // get mag decl yyy this will change on a long trip, perhaps get it again every so often
     mag_decl = get_mag_decl();
     if (mag_decl == INVALID_NUMBER) {
         printf("E %s: failed to get mag_decl, terminating\n", progname);
         return 1;
     }
 
-    // map location history file v2
-    // - create_if_needed = false
-    // - created (return flag) = NULL
+    // map location history file
     lh2 = util_map_file("svcs/Location", LOC_HIST2_FILENAME, sizeof(loc_hist2_t), false, NULL);
     if (lh2 == NULL) {
         printf("E: %s failed to map %s\n", progname, LOC_HIST2_FILENAME);
@@ -161,18 +160,21 @@ int main(int argc, char **argv)
     return 0;
 }
 
-// -----------------  DISPLAY HANDLER  --------------------
-
-// yyy needed?
-void map_init(void)
+void get_params(void)
 {
-    util_get_location(&map_ctr_lat, &map_ctr_long, NULL, NULL);
+    double lat, lon;
 
-    track_start_secs = DFLT_TRACK_START_SECS;
-    track_end_secs   = DFLT_TRACK_END_SECS;
-    map_wh_miles     = DFLT_MAP_WH_MILES;
-    map_lock_north   = DFLT_MAP_LOCK_NORTH;
+    util_get_location(&lat, &lon, NULL, NULL);
+
+    map_ctr_lat      = util_get_numeric_param(data_dir, "map_ctr_lat",      lat);
+    map_ctr_lon      = util_get_numeric_param(data_dir, "map_ctr_lon",      lon);
+    track_start_secs = util_get_numeric_param(data_dir, "track_start_secs", DFLT_TRACK_START_SECS);
+    track_end_secs   = util_get_numeric_param(data_dir, "track_end_secs",   DFLT_TRACK_END_SECS);
+    map_height_miles = util_get_numeric_param(data_dir, "map_height_miles", DFLT_MAP_HEIGHT_MILES);
+    map_lock_north   = util_get_numeric_param(data_dir, "map_lock_north",   DFLT_MAP_LOCK_NORTH);
 }
+
+// -----------------  DISPLAY HANDLER  --------------------
 
 // yyy move all variable declarations to top
 void display(void)
@@ -182,11 +184,12 @@ void display(void)
     sdlx_loc_t              dest, *loc;
     double                  mag_heading, true_heading, map_heading;
     double                  map_rotate_angle;
-    double                  map_width_miles;
     double                  distance_meters;
     struct loc_hist2_day_s *lh2d, *temp_lh2d;
     char                    str[100];
     int                     day, last_map_loc_secs;
+    int                     precision;
+    double                  width_miles;
 
     // yyy review this init section
     int state, end_secs;
@@ -194,9 +197,8 @@ void display(void)
     end_secs = track_end_secs;
 
     // init
-    day = lh2->last_day;
+    day = lh2->last_day - 2; //yyy temp
     map_texture = sdlx_create_texture(MAP_WH,MAP_WH);
-    map_init();
 
     while (!end_program) {
         //
@@ -212,12 +214,10 @@ void display(void)
                 end_secs = track_end_secs;
             } else if (state == STATE_PLAY) {
                 if (end_secs + 60 >= track_end_secs) {
-                    state = STATE_PLAY_DONE;
+                    state = STATE_MONITOR;
                 } else {
                     end_secs += 60;
                 }
-            } else if (state == STATE_PLAY_DONE) {
-                ; // do nothing
             } else {
                 printf("E %s: invalid state %d\n", progname, state);
             }
@@ -298,25 +298,15 @@ void display(void)
                               "%s", str);
 
         // display map width scale 
-        // xxx yyy like to have a better way, perhaps use a routine to sprint the number
-        map_width_miles = map_wh_miles * ((double)sdlx_win_width / MAP_WH);
-        if (map_width_miles < 0.1) {
-            sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1),
-                                FONT_SMALL, COLOR_WHITE, FLAG_X_CTR,
-                                "map width %.3f miles", map_width_miles);
-        } else if (map_width_miles < 1) {
-            sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1),
-                                FONT_SMALL, COLOR_WHITE, FLAG_X_CTR,
-                                "map width %.2f miles", map_width_miles);
-        } else if (map_width_miles < 10) {
-            sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1),
-                                FONT_SMALL, COLOR_WHITE, FLAG_X_CTR,
-                                "map width %.1f miles", map_width_miles);
-        } else {
-            sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1),
-                                FONT_SMALL, COLOR_WHITE, FLAG_X_CTR,
-                                "map width %.0f miles", map_width_miles);
-        }
+        width_miles = map_height_miles * ((double)sdlx_win_width / MAP_WH);
+        precision = (width_miles < 0.1 ? 6 :
+                    (width_miles < 1   ? 2 :
+                    (width_miles < 10  ? 1 :
+                                         0)));
+        util_double_to_str(width_miles, 0, precision, str, sizeof(str));
+        sdlx_render_printf_ex(sdlx_win_width/2, ROW2Y(1),
+                            FONT_SMALL, COLOR_WHITE, FLAG_X_CTR,
+                            "map width %s miles", str);
 
         // display compass on the map
         display_compass(true_heading);
@@ -326,8 +316,8 @@ void display(void)
         temp_lh2d = &lh2->day[lh2->last_day % MAX_LH2_DAY];
         if (temp_lh2d->max_loc > 0) {
             double lat = temp_lh2d->loc[temp_lh2d->max_loc-1].latitude;
-            double lng = temp_lh2d->loc[temp_lh2d->max_loc-1].longitude;
-            display_map_mark(lat, lng, map_rotate_angle);
+            double lon = temp_lh2d->loc[temp_lh2d->max_loc-1].longitude;
+            display_map_mark(lat, lon, map_rotate_angle);
         }
 
         // draw border around the map display area
@@ -365,21 +355,6 @@ void display(void)
                            "%0.3f miles", 
                            distance_meters * METERS_TO_MILES);
 
-
-#if 0
-        // distance  yyy compensate for start time
-        double total_distance = (lh2d->max_loc == 0 
-                                 ? 0
-                                 : lh2d->loc[lh2d->max_loc-1].total_distance * METERS_TO_MILES);
-        if (total_distance < 1) {
-            sdlx_render_printf(0, MAP_YB + ROW2Y(1), "%.3f miles", total_distance);
-        } else if (total_distance < 10) {
-            sdlx_render_printf(0, MAP_YB + ROW2Y(1), "%.1f miles", total_distance);
-        } else {
-            sdlx_render_printf(0, MAP_YB + ROW2Y(1), "%.0f miles", total_distance);
-        }
-#endif
-        
         //
         // register additional events
         //
@@ -391,7 +366,7 @@ void display(void)
         sdlx_register_event(NULL, EVID_PINCH);
         sdlx_register_event(NULL, EVID_MOTION);
         reg_event_show_readme_file();
-        sdlx_register_control_events(EVID_PREV, "<", EVID_NEXT, ">", EVID_QUIT, "X");
+        sdlx_register_control_events(EVID_PREV_DAY, "<", EVID_NEXT_DAY, ">", EVID_QUIT, "X");
 
         //
         // present the display
@@ -415,21 +390,19 @@ void display(void)
         case EVID_SHOW_README_FILE:
             show_file(data_dir, "README");
             break;
-        case EVID_PREV: {  // xxx yyy rename to PREV_DAY
+        case EVID_PREV_DAY: {
             int new_day = day - 1;
 
             if ((new_day) >= 0 && (lh2->last_day - new_day < MAX_LH2_DAY)) {  //yyy verify this works
                 temp_lh2d = &lh2->day[new_day % MAX_LH2_DAY];
                 if (temp_lh2d->max_loc > 0) {
                     day = new_day;
-                    map_init();
                 }
             }
             break; }
-        case EVID_NEXT:
+        case EVID_NEXT_DAY:
             if (day < lh2->last_day) {
                 day++;
-                map_init();
             }
             break;
         case EVID_MOTION: {
@@ -438,20 +411,24 @@ void display(void)
             double yrel = event.u.motion.xrel * sind(map_rotate_angle) + 
                           event.u.motion.yrel * cosd(map_rotate_angle);
             map_ctr_lat  += yrel * 
-                            (map_wh_miles / MAP_WH) / 
+                            (map_height_miles / MAP_WH) / 
                             MILES_PER_DEGREE_LATITUDE;
-            map_ctr_long -= xrel * 
-                            (map_wh_miles / MAP_WH) / 
-                            MILES_PER_DEGREE_LONGITUDE(map_ctr_lat);
+            map_ctr_lon -= xrel * 
+                           (map_height_miles / MAP_WH) / 
+                           MILES_PER_DEGREE_LONGITUDE(map_ctr_lat);
+            util_set_numeric_param(data_dir, "map_ctr_lat",  map_ctr_lat);
+            util_set_numeric_param(data_dir, "map_ctr_lon", map_ctr_lon);
             break; }
         case EVID_PINCH:
             if (event.u.pinch.scale == 0) break;
-            map_wh_miles /= event.u.pinch.scale;
-            if (map_wh_miles < 0.0015) map_wh_miles = 0.0015;   // yyy test the range
-            if (map_wh_miles > 4500) map_wh_miles = 4500;
+            map_height_miles /= event.u.pinch.scale;
+            if (map_height_miles < 0.0015) map_height_miles = 0.0015;
+            if (map_height_miles > 4500) map_height_miles = 4500;
+            util_set_numeric_param(data_dir, "map_height_miles", map_height_miles);
             break;
         case EVID_MAP_LOCK_NORTH:
             map_lock_north = !map_lock_north;
+            util_set_numeric_param(data_dir, "map_lock_north", map_lock_north);
             break;
         case EVID_PLAY:
             state = STATE_PLAY;
@@ -459,30 +436,32 @@ void display(void)
             break;
         case EVID_START_SECS: {
             char *s, dflt[50];
-            int hours = track_start_secs/3600;
-            int minutes = (track_start_secs - hours * 3600) / 60;
-            int cnt;
+            int cnt, hours, minutes;
+            get_current_hms(&hours, &minutes, NULL);
             sprintf(dflt, "%02d.%02d", hours, minutes);
             s = sdlx_get_input_str("Start hh.mm", true, dflt);
             cnt = sscanf(s, "%d.%d", &hours, &minutes);
             if (cnt == 1 && hours >= 0 && hours < 24) {
                 track_start_secs = hours*3600;
+                util_set_numeric_param(data_dir, "track_start_secs", track_start_secs);
             } else if (cnt == 2 && hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
                 track_start_secs = hours*3600 + minutes*60;
+                util_set_numeric_param(data_dir, "track_start_secs", track_start_secs);
             } 
             break; }
         case EVID_END_SECS: {
             char *s, dflt[50];
-            int hours = track_end_secs/3600;
-            int minutes = (track_end_secs - hours * 3600) / 60;
-            int cnt;
+            int cnt, hours, minutes;
+            get_current_hms(&hours, &minutes, NULL);
             sprintf(dflt, "%02d.%02d", hours, minutes);
             s = sdlx_get_input_str("End hh.mm", true, dflt);
             cnt = sscanf(s, "%d.%d", &hours, &minutes);
             if (cnt == 1 && hours >= 0 && hours < 24) {
                 track_end_secs = hours*3600;
+                util_set_numeric_param(data_dir, "track_end_secs", track_end_secs);
             } else if (cnt == 2 && hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
                 track_end_secs = hours*3600 + minutes*60;
+                util_set_numeric_param(data_dir, "track_end_secs", track_end_secs);
             } 
             break; }
         case EVID_QUIT:
@@ -494,12 +473,11 @@ void display(void)
     sdlx_destroy_texture(map_texture);
 }
 
-// xxx yyy use lon for abbreviation
 int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_secs, int *last_map_loc_secs,
                        double *distance_meters) 
 {
     int          i, x, y, n, secs=0;
-    double       k_lat, k_lng;
+    double       k_lat, k_lon;
     sdlx_point_t points[10000];  // xxx use define from location.h
     sdlx_color_t colors[10000];
     int          start_minute, end_minute, span_minute, span_wvlen;
@@ -514,8 +492,8 @@ int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_sec
 
     time_execution_usec = util_microsec_timer();
 
-    k_lat = MILES_PER_DEGREE_LATITUDE / map_wh_miles * MAP_WH;
-    k_lng = MILES_PER_DEGREE_LONGITUDE(map_ctr_lat) / map_wh_miles * MAP_WH;
+    k_lat = MILES_PER_DEGREE_LATITUDE / map_height_miles * MAP_WH;
+    k_lon = MILES_PER_DEGREE_LONGITUDE(map_ctr_lat) / map_height_miles * MAP_WH;
 
     n = 0;
     for (i = 0; i < lh2d->max_loc; i++) {
@@ -526,11 +504,11 @@ int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_sec
         if (tmp_secs >= end_secs) {
             break;
         }
-        secs = tmp_secs;  // yyy optimize
+        secs = tmp_secs;  // xxx yyy optimize
 
         *distance_meters += lh2d->loc[i].distance;
 
-        x = MAP_XY_CTR + (lh2d->loc[i].longitude - map_ctr_long) * k_lng;
+        x = MAP_XY_CTR + (lh2d->loc[i].longitude - map_ctr_lon) * k_lon;
         if (x < 0 || x > MAP_WH) {
             continue;
         }
@@ -561,18 +539,18 @@ int display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_sec
 }
 
 // yyy comments
-void display_map_mark(double latitude, double longitude, double map_rotate_angle)
+void display_map_mark(double lat, double lon, double map_rotate_angle)
 {
-    double k_lat, k_lng, x, y, x1, y1;
+    double k_lat, k_lon, x, y, x1, y1;
     int length = 50;
 
-    k_lat = MILES_PER_DEGREE_LATITUDE / map_wh_miles * MAP_WH;
-    k_lng = MILES_PER_DEGREE_LONGITUDE(map_ctr_lat) / map_wh_miles * MAP_WH;
+    k_lat = MILES_PER_DEGREE_LATITUDE / map_height_miles * MAP_WH;
+    k_lon = MILES_PER_DEGREE_LONGITUDE(map_ctr_lat) / map_height_miles * MAP_WH;
 
-    x = MAP_XY_CTR + (longitude - map_ctr_long) * k_lng;
+    x = MAP_XY_CTR + (lon - map_ctr_lon) * k_lon;
     if (x < 0 || x > MAP_WH) return;
 
-    y = MAP_XY_CTR - (latitude - map_ctr_lat) * k_lat;
+    y = MAP_XY_CTR - (lat - map_ctr_lat) * k_lat;
     if (y < 0 || y > MAP_WH) return;
 
     x -= 750;
@@ -713,6 +691,5 @@ char *state_str(int state)
 {
     if (state == STATE_MONITOR) return "MONITOR";
     if (state == STATE_PLAY) return "PLAY";
-    if (state == STATE_PLAY_DONE) return "PLAY_DONE";
     return "????";
 }

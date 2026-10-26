@@ -1061,3 +1061,11 @@ double util_rms_float(float *x, int n)
     }
     return sqrt(sum / n);
 }
+
+// ----------------- MISC --------------------
+
+char *util_double_to_str(double value, int width, int precision, char *str, int sizeof_str)
+{
+    snprintf(str, sizeof_str, "%*.*f", width, precision, value);
+    return str;
+}

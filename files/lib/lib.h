@@ -42,6 +42,7 @@ bool is_weekend(int y, int m, int d);
 bool is_today(int y, int m, int d);
 int days_in_month(int y, int m);
 void get_current_ymd(int *y, int *m, int *d);
+void get_current_hms(int *hour, int *min, int *sec);
 void get_current_ymd_hms(int *y, int *m, int *d, int *hour, int *min, int *sec);
 void set_ymd_to_prior(int *y, int *m, int *d);
 void set_ymd_to_next(int *y, int *m, int *d);

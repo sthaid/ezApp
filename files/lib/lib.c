@@ -406,6 +406,7 @@ int days_in_month(int y, int m)
     }
 }
 
+// args are optional
 void get_current_ymd(int *y, int *m, int *d)
 {
     time_t t;
@@ -413,11 +414,26 @@ void get_current_ymd(int *y, int *m, int *d)
 
     t = time(NULL);
     localtime_r(&t, &tm);
-    *y = tm.tm_year + 1900;
-    *m = tm.tm_mon + 1;
-    *d = tm.tm_mday;
+    if (y) *y = tm.tm_year + 1900;
+    if (m) *m = tm.tm_mon + 1;
+    if (d) *d = tm.tm_mday;
 }
 
+// args are optional
+void get_current_hms(int *hour, int *min, int *sec)
+{
+    time_t t;
+    struct tm tm;
+
+    t = time(NULL);
+    localtime_r(&t, &tm);
+
+    if (hour) *hour = tm.tm_hour;
+    if (min)  *min = tm.tm_min;
+    if (sec)  *sec = tm.tm_sec;
+}
+
+// args are optional
 void get_current_ymd_hms(int *y, int *m, int *d, int *hour, int *min, int *sec)
 {
     time_t t;
@@ -426,13 +442,13 @@ void get_current_ymd_hms(int *y, int *m, int *d, int *hour, int *min, int *sec)
     t = time(NULL);
     localtime_r(&t, &tm);
 
-    *y = tm.tm_year + 1900;
-    *m = tm.tm_mon + 1;
-    *d = tm.tm_mday;
+    if (y) *y = tm.tm_year + 1900;
+    if (m) *m = tm.tm_mon + 1;
+    if (d) *d = tm.tm_mday;
 
-    *hour = tm.tm_hour;
-    *min = tm.tm_min;
-    *sec = tm.tm_sec;
+    if (hour) *hour = tm.tm_hour;
+    if (min)  *min = tm.tm_min;
+    if (sec)  *sec = tm.tm_sec;
 }
 
 void set_ymd_to_prior(int *y_arg, int *m_arg, int *d_arg)

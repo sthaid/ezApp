@@ -1463,6 +1463,24 @@ void Util_decode_jpeg_to_raw(struct ParseState *Parser, struct Value *ReturnValu
     ReturnValue->Val->Integer = rc;
 }
 
+//
+// utils misc
+//
+
+void Util_double_to_str(struct ParseState *Parser, struct Value *ReturnValue,
+        struct Value **Param, int NumArgs)
+{
+    double value      = Param[0]->Val->FP;
+    int    width      = Param[1]->Val->Integer;
+    int    precision  = Param[2]->Val->Integer;
+    char  *str        = Param[3]->Val->Pointer;
+    int    sizeof_str = Param[4]->Val->Integer;
+    char  *s;
+
+    s = util_double_to_str(value, width, precision, str, sizeof_str);
+    ReturnValue->Val->Pointer = s; 
+}
+
 // - - - - - - UTILS REGISTRATION - - - - - - -
 
 void UtilsSetupFunction(Picoc *pc)
@@ -1511,6 +1529,8 @@ struct LibraryFunction UtilsFunctions[] = {
     { Util_fft_inverse_complex_to_real, "void util_fft_inverse_complex_to_real(int n_fft, complex_t *cpx_input, float *output, bool scale_by_n_fft);" },
     { Util_fft_test,            "int util_fft_test(long *duration_usec);" },
     { Util_rms_float,           "double util_rms_float(float *x, int n);" },
+    // misc
+    { Util_double_to_str,       "char *util_double_to_str(double value, int width, int precision, char *str, int sizeof_str);" },
     // call java: location
     { Util_get_location,        "void util_get_location(double *latitude, double *longitude, double *altitude_ft, bool *alt_is_wgs84);" },
     // call java: text to speech
