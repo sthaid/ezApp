@@ -17,7 +17,7 @@
 
 // defines
 #define CREATE_IF_NEEDED true
-#define INTERVAL_SECS 30
+#define INTERVAL_SECS    10
 
 // variables
 loc_hist_t  *loc_hist;
