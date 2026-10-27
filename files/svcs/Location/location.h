@@ -43,12 +43,12 @@ typedef struct {
         int day;
         int max_loc;
         struct {
-            long   secs;            // seconds into the day, range 0-86399
+            int    secs;            // seconds into the day, range 0-86399
+            int    pad;
             double latitude;
             double longitude;
             double distance;        // meters
-            double total_distance;  // meters
-            double reserved[3];
+            double reserved[4];
         } loc[MAX_LH2_LOC];
     } day[MAX_LH2_DAY];
 } loc_hist2_t;

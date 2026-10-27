@@ -17,6 +17,7 @@
 
 // defines
 #define CREATE_IF_NEEDED true
+#define INTERVAL_SECS 30
 
 // variables
 loc_hist_t  *loc_hist;
@@ -82,8 +83,8 @@ int main(int argc, char **argv)
 
     // service runtime loop
     while (!end_program) {
-        // wait for req or 30 sec timeout
-        rc = svc_wait_for_req(progname, &req, 30);
+        // wait for req or timeout at INTERVAL_SECS
+        rc = svc_wait_for_req(progname, &req, INTERVAL_SECS);
 
         // if req was received then
         //   process the req
@@ -372,15 +373,7 @@ void add_entry_to_loc_hist2(double latitude, double longitude, double distance_m
 
         lh2d->loc[lh2d->max_loc].distance = distance_meters;
 
-        if (lh2d->max_loc == 0) {
-            lh2d->loc[lh2d->max_loc].total_distance = distance_meters;
-        } else {
-            lh2d->loc[lh2d->max_loc].total_distance = 
-                lh2d->loc[lh2d->max_loc-1].total_distance + distance_meters;
-        }
-
-        printf("I %s: meters=%0.3f  tot=%0.3f\n", 
-               progname, distance_meters, lh2d->loc[lh2d->max_loc].total_distance);
+        printf("I %s: distance_meters=%0.3f\n", progname, distance_meters);
 
         lh2d->max_loc++;
     }
