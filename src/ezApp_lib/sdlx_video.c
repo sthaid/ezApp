@@ -586,6 +586,7 @@ typedef struct ht_entry_s {
     SDL_Texture            *texture;
     int                     surface_w;
     int                     surface_h;
+    int                     hash_idx;
     TAILQ_ENTRY(ht_entry_s) age_list_entry;
     TAILQ_ENTRY(ht_entry_s) hash_list_entry;
 } ht_entry_t;
@@ -710,8 +711,8 @@ static sdlx_loc_t *render_text(int x, int y, int fontid, sdlx_color_t color, uns
     if (num_allocated >= MAX_HASH_ENTRY) {
         entry = TAILQ_LAST(&age_list_head, age_list);
         TAILQ_REMOVE(&age_list_head, entry, age_list_entry);
-        TAILQ_REMOVE(&hash_list_head[hash_idx], entry, hash_list_entry);
-        SDL_DestroyTexture(entry->texture);  // xxx crash1
+        TAILQ_REMOVE(&hash_list_head[entry->hash_idx], entry, hash_list_entry);
+        SDL_DestroyTexture(entry->texture);
         free(entry->key);
         free(entry);
         num_allocated--;
@@ -752,6 +753,7 @@ static sdlx_loc_t *render_text(int x, int y, int fontid, sdlx_color_t color, uns
     entry->texture = texture;
     entry->surface_w = surface->w;
     entry->surface_h = surface->h;
+    entry->hash_idx = hash_idx;
     TAILQ_INSERT_HEAD(&age_list_head, entry, age_list_entry);
     TAILQ_INSERT_HEAD(&hash_list_head[hash_idx], entry, hash_list_entry);
     num_allocated++;

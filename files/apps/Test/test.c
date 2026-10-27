@@ -98,6 +98,9 @@ static void page_16_exit(void);
 
 static void page_17_draw(void);
 
+static void page_18_init(void);
+static void page_18_draw(void);
+
 // -----------------  MAIN  ------------------------------------------
 
 int main(int argc, char **argv)
@@ -173,6 +176,7 @@ char *page_title[] = {     // Page
         "Pinch",           //  15
         "Profile",         //  16
         "Spectrum",        //  17
+        "Print",           //  18
             };
 static int pagenum = 0;
 
@@ -198,6 +202,7 @@ static void page_hndlr()
     case 14: page_14_init(); break;
     case 15: page_15_init(); break;
     case 16: page_16_init(); break;
+    case 18: page_18_init(); break;
     }
 
     while (true) {
@@ -239,6 +244,7 @@ static void page_hndlr()
         case 15: page_15_draw(); break;
         case 16: page_16_draw(); break;
         case 17: page_17_draw(); break;
+        case 18: page_18_draw(); break;
         default:
             printf("E %s: invalid pagenum %d\n", progname, pagenum);
             end_program = true;
@@ -1954,5 +1960,25 @@ static void page_17_draw(void)
         }
             
         y++;
+    }
+}
+
+// -----------------  PAGE 18: PRINT  -------------------------
+
+static long num;
+
+static void page_18_init(void)
+{
+    num = 0;
+}
+
+static void page_18_draw(void)
+{
+    for (int i = 0; i < 1000; i++) {
+        num++;
+        sdlx_render_printf_ex(0, ROW2Y(3), 
+                              FONT_NORMAL, COLOR_BLACK, FLAG_BG_BLACK,
+                              "          ");
+        sdlx_render_printf(0, ROW2Y(3), "%ld", num);
     }
 }
