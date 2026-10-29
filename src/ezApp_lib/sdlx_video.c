@@ -575,30 +575,32 @@ int sdlx_char_height(int fontid)
 
 // - - - - - - - - - render text - - - - - - - - - - - - - 
 
-#define MAX_HASH_LIST   293  // using a prime number is recomended
-#define MAX_HASH_ENTRY  200
+#define MAX_HASH_LIST   2003  // using a prime number is recomended
+#define MAX_HASH_ENTRY  1000
 
 static TAILQ_HEAD(age_list, ht_entry_s)   age_list_head;
 static TAILQ_HEAD(hash_list, ht_entry_s)  hash_list_head[MAX_HASH_LIST];
 
 typedef struct ht_entry_s {
     char                   *key;
-    SDL_Texture            *texture;
-    int                     surface_w;
-    int                     surface_h;
+    SDL_Surface            *surface;
     int                     hash_idx;
     TAILQ_ENTRY(ht_entry_s) age_list_entry;
     TAILQ_ENTRY(ht_entry_s) hash_list_entry;
 } ht_entry_t;
 
-static void render_text_texture(SDL_Texture *t, SDL_FRect *pos, unsigned int flags)
+static void render_text_surface(SDL_Surface *surface, SDL_FRect *pos, unsigned int flags)
 {
     #define SWAP_FLOAT(a,b) \
         do { float tmp = (a); (a) = (b); (b) = tmp; } while (0)
 
+    SDL_Texture *texture;
+
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+
     if (flags & FLAG_ROT_CTR_90) {
         SDL_RenderTextureRotated(renderer,
-                                 t, 
+                                 texture, 
                                  NULL,      // source, NULL means the entire texture
                                  pos,       // dest rectangle
                                  90,        // rotation angle
@@ -609,7 +611,7 @@ static void render_text_texture(SDL_Texture *t, SDL_FRect *pos, unsigned int fla
         SWAP_FLOAT(pos->w, pos->h);
     } else if (flags & FLAG_ROT_CTR_180) {
         SDL_RenderTextureRotated(renderer,
-                                 t, 
+                                 texture, 
                                  NULL,      // source, NULL means the entire texture
                                  pos,       // dest rectangle
                                  180,       // rotation angle
@@ -617,7 +619,7 @@ static void render_text_texture(SDL_Texture *t, SDL_FRect *pos, unsigned int fla
                                  SDL_FLIP_NONE);
     } else if (flags & FLAG_ROT_CTR_270) {
         SDL_RenderTextureRotated(renderer,
-                                 t, 
+                                 texture, 
                                  NULL,      // source, NULL means the entire texture
                                  pos,       // dest rectangle
                                  270,       // rotation angle
@@ -627,8 +629,10 @@ static void render_text_texture(SDL_Texture *t, SDL_FRect *pos, unsigned int fla
         pos->y = pos->y + pos->h/2 - pos->w/2;
         SWAP_FLOAT(pos->w, pos->h);
     } else {
-        SDL_RenderTexture(renderer, t, NULL, pos);
+        SDL_RenderTexture(renderer, texture, NULL, pos);
     }
+
+    SDL_DestroyTexture(texture);
 }
 
 static unsigned int calc_hash_idx(char *key)
@@ -650,7 +654,6 @@ static sdlx_loc_t *render_text(int x, int y, int fontid, sdlx_color_t color, uns
     bool         found;
     int          hash_idx, ptsize;
     SDL_Surface *surface = NULL;
-    SDL_Texture *texture = NULL;
 
     static sdlx_loc_t loc;
     static int        num_allocated = 0;
@@ -689,14 +692,16 @@ static sdlx_loc_t *render_text(int x, int y, int fontid, sdlx_color_t color, uns
 
     // matching entry found, render it, and return
     if (found) {
+        // render the text it the position requested
         pos.x = x;
         pos.y = y;
-        pos.w = entry->surface_w;
-        pos.h = entry->surface_h;
+        pos.w = entry->surface->w;
+        pos.h = entry->surface->h;
         if (flags & FLAG_X_CTR) pos.x -= pos.w / 2;
         if (flags & FLAG_Y_CTR) pos.y -= pos.h / 2;
-        render_text_texture(entry->texture, &pos, flags);
+        render_text_surface(entry->surface, &pos, flags);
 
+        // move the entry to the head of the age_list
         TAILQ_REMOVE(&age_list_head, entry, age_list_entry);
         TAILQ_INSERT_HEAD(&age_list_head, entry, age_list_entry);
 
@@ -705,14 +710,14 @@ static sdlx_loc_t *render_text(int x, int y, int fontid, sdlx_color_t color, uns
 
     // hash table entry not found ...
 
-    // if number of textures allocated is max then
-    //   discard the least recently used texture
+    // if number of surfaces allocated is max then
+    //   discard the least recently used surface
     // endif
     if (num_allocated >= MAX_HASH_ENTRY) {
         entry = TAILQ_LAST(&age_list_head, age_list);
         TAILQ_REMOVE(&age_list_head, entry, age_list_entry);
         TAILQ_REMOVE(&hash_list_head[entry->hash_idx], entry, hash_list_entry);
-        SDL_DestroyTexture(entry->texture);
+        SDL_DestroySurface(entry->surface);
         free(entry->key);
         free(entry);
         num_allocated--;
@@ -740,36 +745,23 @@ static sdlx_loc_t *render_text(int x, int y, int fontid, sdlx_color_t color, uns
         goto return_error;
     }
 
-    // create texture from the surface
-    texture = SDL_CreateTextureFromSurface(renderer, surface);
-    if (texture == NULL) {
-        ERROR("SDL_CreateTextureFromSurface failed, %s\n", SDL_GetError());
-        goto return_error;
-    }
-
-    // allocate and init new hash table entry
+    // allocate and init new hash table entry, and insert on head of age_list and hash_list
     entry = malloc(sizeof(ht_entry_t));
     entry->key = strdup(key);
-    entry->texture = texture;
-    entry->surface_w = surface->w;
-    entry->surface_h = surface->h;
+    entry->surface = surface;
     entry->hash_idx = hash_idx;
     TAILQ_INSERT_HEAD(&age_list_head, entry, age_list_entry);
     TAILQ_INSERT_HEAD(&hash_list_head[hash_idx], entry, hash_list_entry);
     num_allocated++;
 
-    // render the texture
+    // render the surface
     pos.x = x;
     pos.y = y;
     pos.w = surface->w;
     pos.h = surface->h;
     if (flags & FLAG_X_CTR) pos.x -= pos.w / 2;
     if (flags & FLAG_Y_CTR) pos.y -= pos.h / 2;
-    render_text_texture(texture, &pos, flags);
-
-    // the surface is no longer needed, destroy the surface
-    SDL_DestroySurface(surface);
-    surface = NULL;
+    render_text_surface(surface, &pos, flags);
 
     // return the display location where the text was rendered;
 return_loc:
@@ -781,10 +773,6 @@ return_loc:
 
     // error return path
 return_error:
-    if (surface) {
-        SDL_DestroySurface(surface);
-        surface = NULL;
-    }
     loc.x = 0;
     loc.y = 0;
     loc.w = 0;
@@ -1206,6 +1194,9 @@ void sdlx_render_points(sdlx_point_t *points, int count,
 
 // - - - - - - create/destroy/query/clear/color_mod texture  - - - - - - - 
 
+long texture_num_alloced;
+long texture_num_pixels_alloced;
+
 sdlx_texture_t *sdlx_create_texture(int width, int height)
 {
     sdlx_texture_t *texture;
@@ -1214,12 +1205,19 @@ sdlx_texture_t *sdlx_create_texture(int width, int height)
     texture = (sdlx_texture_t*)
               SDL_CreateTexture(renderer,
                                 SDL_PIXELFORMAT_ABGR8888,
-                                SDL_TEXTUREACCESS_TARGET,  // SDL_TEXTUREACCESS_STREAMING,
+                                SDL_TEXTUREACCESS_TARGET,
                                 width, height);
     if (texture == NULL) {
         ERROR("failed to allocate texture\n");
         return NULL;
     }
+
+    // update texture stats
+    texture_num_alloced++;
+    texture_num_pixels_alloced += width * height;
+    INFO("texture stats: alloced=%ld pixels_alloced=%ld\n",
+         texture_num_alloced,
+         texture_num_pixels_alloced);
 
     // init texture pixels to transparent black (alpha=0)
     sdlx_clear_texture(texture, 0);
@@ -1230,11 +1228,20 @@ sdlx_texture_t *sdlx_create_texture(int width, int height)
 
 void sdlx_destroy_texture(sdlx_texture_t *texture)
 {
+    // if caller passed in NULL then return
     if (texture == NULL) {
         return;
     }
 
+    // destroy the texture
     SDL_DestroyTexture((SDL_Texture *)texture);
+
+    // updte texture stats
+    texture_num_alloced--;
+    texture_num_pixels_alloced -= width * height;
+    INFO("texture stats: alloced=%ld pixels_alloced=%ld\n",
+         texture_num_alloced,
+         texture_num_pixels_alloced);
 }
 
 void sdlx_query_texture(sdlx_texture_t *texture, int * width, int * height)

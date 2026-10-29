@@ -1965,6 +1965,7 @@ static void page_17_draw(void)
 
 // -----------------  PAGE 18: PRINT  -------------------------
 
+// xxx needed?
 static long num;
 
 static void page_18_init(void)
