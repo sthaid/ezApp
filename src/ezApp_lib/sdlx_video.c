@@ -1195,7 +1195,6 @@ void sdlx_render_points(sdlx_point_t *points, int count,
 // - - - - - - create/destroy/query/clear/color_mod texture  - - - - - - - 
 
 long texture_num_alloced;
-long texture_num_pixels_alloced;
 
 sdlx_texture_t *sdlx_create_texture(int width, int height)
 {
@@ -1214,10 +1213,7 @@ sdlx_texture_t *sdlx_create_texture(int width, int height)
 
     // update texture stats
     texture_num_alloced++;
-    texture_num_pixels_alloced += width * height;
-    INFO("texture stats: alloced=%ld pixels_alloced=%ld\n",
-         texture_num_alloced,
-         texture_num_pixels_alloced);
+    INFO("texture stats: alloced=%ld\n", texture_num_alloced);
 
     // init texture pixels to transparent black (alpha=0)
     sdlx_clear_texture(texture, 0);
@@ -1238,10 +1234,7 @@ void sdlx_destroy_texture(sdlx_texture_t *texture)
 
     // updte texture stats
     texture_num_alloced--;
-    texture_num_pixels_alloced -= width * height;
-    INFO("texture stats: alloced=%ld pixels_alloced=%ld\n",
-         texture_num_alloced,
-         texture_num_pixels_alloced);
+    INFO("texture stats: alloced=%ld\n", texture_num_alloced);
 }
 
 void sdlx_query_texture(sdlx_texture_t *texture, int * width, int * height)
