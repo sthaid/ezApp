@@ -700,6 +700,21 @@ void display_map_mark(double lat, double lon, double map_rotate_angle)
 
 sdlx_texture_t *compass_texture;
 
+void render_triangle(int x_top, int y_top, int width, int height, sdlx_color_t color)
+{
+    int i, y, x1, x2;
+    double w;
+
+    y = y_top;
+    for (i = 0; i < height; i++) {
+        w = width * ((double)i / height) + 1;
+        x1 = nearbyint(x_top - w / 2);
+        x2 = nearbyint(x_top + w / 2);
+        sdlx_render_line(x1, y, x2, y, color);
+        y++;
+    }
+}
+
 void display_compass_init(void)
 {
     compass_texture = sdlx_create_texture(2*COMPASS_RADIUS, 2*COMPASS_RADIUS);
@@ -709,7 +724,7 @@ void display_compass_init(void)
 
     sdlx_set_render_target(compass_texture);
     sdlx_render_fill_circle(COMPASS_RADIUS, COMPASS_RADIUS, COMPASS_RADIUS, COLOR_WHITE);
-    sdlx_render_point(COMPASS_RADIUS, 10, COLOR_RED, MAX_POINT_SIZE);  // xxx use triangle
+    render_triangle(COMPASS_RADIUS, 0, COMPASS_RADIUS*0.50, COMPASS_RADIUS*0.85, COLOR_RED);
     sdlx_set_render_target(NULL);
 }
 
