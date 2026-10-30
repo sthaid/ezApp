@@ -10,16 +10,19 @@
 #include "lib/lib.h"
 #include "svcs/Location/location.h"
 
-// xxx 
-// - when program exits, are all params saved?
-// - add CTR cmd
-// - for map ctr always use data from location svc;  except if not available then fallback to util_location
-// - yyy search
+// xxx  priority
+// - and display map name  <============
+// - add CTR cmd  <===== ctr on track start
+// - also display lat/long,  MAYBE
 // - improve throw away outliers
-// - on devel pc, when zoom in the current loc moves, probably because of how map ctr is initialized
-// - comments throughout
-// - review that all defines are used
 // - option to mark location with text and possibly picture
+
+// xxx
+// - bearing to select point
+
+// xxx 
+// - yyy search
+// - comments throughout
 
 //
 // defines
@@ -112,7 +115,7 @@ params_t    *params;
 void display(void);
 void get_latest_lat_lon_for_day(int day, double *lat, double *lon);
 void get_magnetic_declination(void);
-void display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_secs, int *last_loc_secs,
+void display_loc_points(struct loc_hist2_day_s *lh2d, int end_secs, int *last_loc_secs, 
                         double *distance_meters);
 void display_map_mark(double lat, double lon, double map_rotate_angle);
 
@@ -129,9 +132,9 @@ char *double_to_str(double val);
 
 int main(int argc, char **argv)
 {
-    //
+    // --------
     // INIT
-    //
+    // --------
 
     // save args
     if (argc != 2) {
@@ -149,12 +152,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // init compass  yyy move ?
+    // init compass
     display_compass_init();
 
-    //
+    // --------
     // RUNTIME
-    //
+    // --------
 
 #ifdef PROFILE
     profile_start();
@@ -166,9 +169,9 @@ int main(int argc, char **argv)
     profile_stop(1);
 #endif
 
-    //
+    // --------
     // CLEANUP
-    //
+    // --------
 
     // cleanup and end program
     util_unmap_file(lh2, sizeof(loc_hist2_t));
@@ -178,9 +181,6 @@ int main(int argc, char **argv)
 }
 
 // -----------------  DISPLAY HANDLER  --------------------
-
-// xxx also display lat/long
-// xxx and display map name
 
 void display(void)
 {
@@ -259,7 +259,7 @@ void display(void)
             // do nothing
         }
 
-        display_loc_points(lh2d, params->track_start_secs, end_secs, &last_loc_secs, &distance_meters);
+        display_loc_points(lh2d, end_secs, &last_loc_secs, &distance_meters);
         sdlx_set_render_target(NULL);
 
         //
@@ -588,29 +588,30 @@ void get_magnetic_declination(void)
         } else {
             printf("E %s: failed to get mag_dec, mag_decl value remains %0.1f\n", 
                    progname, mag_decl);
-            mag_decl_valid = false;  // yyy display warning
+            mag_decl_valid = false;  // yyy display warning under compass
         }
         mag_decl_last_query_time_usec = time_now_usec;
     }
 }
 
-// xxx keep color constant in playback
-void display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_secs, int *last_loc_secs,
+void display_loc_points(struct loc_hist2_day_s *lh2d, int end_secs, int *last_loc_secs,
                         double *distance_meters) 
 {
     int          i, x, y, n, tmp_secs, secs, wvlen;
     double       k_lat, k_lon, dist;
     sdlx_point_t points[MAX_LH2_LOC];
     sdlx_color_t colors[MAX_LH2_LOC];
-    int          start_minute, end_minute, span_minute, span_wvlen;
+    int          track_start_secs, track_end_secs, track_start_minute, track_end_minute, track_span_minute, track_span_wvlen;
     long         time_execution_usec;
 
     time_execution_usec = util_microsec_timer();
 
-    start_minute = start_secs/60;
-    end_minute   = end_secs/60;
-    span_minute  = (end_minute - start_minute) + 1;
-    span_wvlen   = WVLEN_PURPLE - WVLEN_RED;
+    track_start_secs   = params->track_start_secs;
+    track_end_secs     = params->track_end_secs;
+    track_start_minute = track_start_secs/60;
+    track_end_minute   = track_end_secs/60;
+    track_span_minute  = (track_end_minute - track_start_minute) + 1;
+    track_span_wvlen   = WVLEN_PURPLE - WVLEN_RED;
 
     k_lat = MILES_PER_DEGREE_LATITUDE / params->map_height_miles * MAP_WH;
     k_lon = MILES_PER_DEGREE_LONGITUDE(params->map_ctr_lat) / params->map_height_miles * MAP_WH;
@@ -621,7 +622,7 @@ void display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_se
 
     for (i = 0; i < lh2d->max_loc; i++) {
         tmp_secs = lh2d->loc[i].secs;
-        if (tmp_secs < start_secs) continue;
+        if (tmp_secs < track_start_secs) continue;
         if (tmp_secs >= end_secs) break;
 
         secs = tmp_secs;
@@ -639,7 +640,7 @@ void display_loc_points(struct loc_hist2_day_s *lh2d, int start_secs, int end_se
 
         points[n].x = x;
         points[n].y = y;
-        wvlen = WVLEN_RED + ((secs/60.0 - start_minute) / span_minute) * span_wvlen;
+        wvlen = WVLEN_RED + ((secs/60.0 - track_start_minute) / track_span_minute) * track_span_wvlen;
         colors[n] = sdlx_wavelength_to_color(wvlen);
 
         n++;
