@@ -42,13 +42,14 @@ typedef struct {
         int month;
         int day;
         int max_loc;
+        char reserved1[4080];
         struct {
             int    secs;            // seconds into the day, range 0-86399
             int    pad;
             double latitude;
             double longitude;
             double distance;        // meters
-            double reserved[4];
+            double reserved2[4];
         } loc[MAX_LH2_LOC];
     } day[MAX_LH2_DAY];
 } loc_hist2_t;
