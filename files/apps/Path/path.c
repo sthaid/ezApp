@@ -724,7 +724,7 @@ void display_compass_init(void)
 
     sdlx_set_render_target(compass_texture);
     sdlx_render_fill_circle(COMPASS_RADIUS, COMPASS_RADIUS, COMPASS_RADIUS, COLOR_WHITE);
-    render_triangle(COMPASS_RADIUS, 0, COMPASS_RADIUS*0.50, COMPASS_RADIUS*0.85, COLOR_RED);
+    render_triangle(COMPASS_RADIUS, 0, COMPASS_RADIUS*0.60, COMPASS_RADIUS*1.00, COLOR_RED);
     sdlx_set_render_target(NULL);
 }
 
