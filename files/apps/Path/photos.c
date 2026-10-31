@@ -10,6 +10,7 @@
 
 // defines
 #define EVID_SCALE_RESET 1
+#define EVID_CHANGE_NAME 2
 
 // variables
 char photos_dir[100];
@@ -113,7 +114,7 @@ int photos_display(int idx)
     unsigned int   *pixels = NULL;
     sdlx_texture_t *t      = NULL;
     char            photo_filename[100];
-    sdlx_loc_t src, dest;
+    sdlx_loc_t      src, dest, *loc;
     sdlx_event_t    event;
     int             y;
 
@@ -163,8 +164,14 @@ int photos_display(int idx)
 
         // display photo name and lat/lon
         y = 1400;
-        sdlx_render_printf(0, y, "%s\n%0.4f %0.4f", 
-                           photos[idx].name, photos[idx].lat, photos[idx].lon);
+        loc = sdlx_render_printf_ex(
+                    0, y, 
+                    FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
+                    "%s", photos[idx].name);
+        sdlx_register_event(loc, EVID_CHANGE_NAME);
+        y += sdlx_char_height_dflt;
+
+        sdlx_render_printf(0, y, "%0.4f %0.4f", photos[idx].lat, photos[idx].lon);
 
         // register events
         sdlx_register_event(NULL, EVID_PINCH);
@@ -206,6 +213,11 @@ int photos_display(int idx)
                 scale = 1;
             }
             break;
+        case EVID_CHANGE_NAME: {
+            char *photo_name;
+            photo_name = sdlx_get_input_str("Name", false, NULL);
+            snprintf(photos[idx].name, sizeof(photos[idx].name), "%s", photo_name);
+            break; }
         }
     }
 
