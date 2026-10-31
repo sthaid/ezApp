@@ -270,6 +270,8 @@ void *util_map_file(char *dir, char *file, int len_arg, bool create_if_needed, i
     concat(dir, file, path);
 
     // round len up to multiple of pagesize
+    // xxx support xfering files to larger pagesize
+    // xxx adb shell getconf PAGE_SIZE
     len = (len_arg + PAGE_SIZE2 - 1) & ~(PAGE_SIZE2-1);
 
     // preset 'created_flag' return to false

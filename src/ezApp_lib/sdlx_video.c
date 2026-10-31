@@ -1232,7 +1232,8 @@ void sdlx_destroy_texture(sdlx_texture_t *texture)
     // destroy the texture
     SDL_DestroyTexture((SDL_Texture *)texture);
 
-    // updte texture stats
+    // update texture stats
+    // xxx why one alloced when exitting
     texture_num_alloced--;
     INFO("texture stats: alloced=%ld\n", texture_num_alloced);
 }

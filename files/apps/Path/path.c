@@ -9,13 +9,14 @@
 
 #include "lib/lib.h"
 #include "svcs/Location/location.h"
+#include "apps/Path/common.h"
 
 // xxx  priority
-// - and display map name  <============
+// - option to mark location with text and possibly picture  <=======
+// - add display map name  <============
 // - add CTR cmd  <===== ctr on track start
 // - also display lat/long,  MAYBE
 // - improve throw away outliers
-// - option to mark location with text and possibly picture
 
 // xxx
 // - bearing to select point
@@ -45,6 +46,8 @@
 #define EVID_PLAYBACK_CONTINUE      9
 #define EVID_PLAYBACK_MINUTE_PLUS   10
 #define EVID_PLAYBACK_MINUTE_MINUS  11
+#define EVID_TAKE_PHOTO             12
+#define EVID_PHOTO_SLCT             100   // to plus MAX_PHOTOS
 
 // the map width and height must be the same to support map rotation
 #define MAP_WH     1500            // map width and height
@@ -75,6 +78,8 @@
 
 #define BOSTON_MASS_LATITUDE  42.3601
 #define BOSTON_MASS_LONGITUDE -71.0589
+
+#define PHOTO_MARK_RADIUS 30
     
 //
 // typedefs
@@ -95,9 +100,6 @@ typedef struct {
 // variables
 //
 
-char         *progname;
-char         *data_dir;
-
 bool         end_program = false;
 loc_hist2_t *lh2;
 
@@ -105,6 +107,8 @@ double       mag_decl;
 bool         mag_decl_valid;
 
 params_t    *params;
+
+sdlx_texture_t *photo_mark_texture;
 
 //
 // prototypes
@@ -127,6 +131,8 @@ char *heading_abbreviation(double heading);
 void print_time_since_last_call(void);
 char *secs_to_str(int secs);
 char *double_to_str(double val);
+// yyy better name
+void cvt_lat_lon_angle_to_xy(double lat, double lon, double map_rotate_angle, int *x, int *y, bool *xy_on_map_display);
 
 // -----------------  MAIN  ------------------------------------------
 
@@ -152,8 +158,15 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // init compass
+    // call init routines
     display_compass_init();
+    photos_init();
+
+    // xxx comment
+    photo_mark_texture = sdlx_create_texture(2*PHOTO_MARK_RADIUS, 2*PHOTO_MARK_RADIUS);
+    sdlx_set_render_target(photo_mark_texture);
+    sdlx_render_fill_circle(PHOTO_MARK_RADIUS, PHOTO_MARK_RADIUS, PHOTO_MARK_RADIUS, COLOR_WHITE);
+    sdlx_set_render_target(NULL);
 
     // --------
     // RUNTIME
@@ -176,6 +189,8 @@ int main(int argc, char **argv)
     // cleanup and end program
     util_unmap_file(lh2, sizeof(loc_hist2_t));
     display_compass_cleanup();
+    photos_cleanup();
+    sdlx_destroy_texture(photo_mark_texture);
     printf("I %s: terminating\n", progname);
     return 0;
 }
@@ -298,9 +313,9 @@ void display(void)
         // so clear the display area below the map
         sdlx_render_fill_rect(0, MAP_YB+1, sdlx_win_width, sdlx_win_height-MAP_YB+1, COLOR_BLACK);
 
-        //
+        // -----------------------
         // display map annotations
-        //
+        // -----------------------
 
         // display compass abbreviatios at the top, right, bottom, and left of the map
         if (params->map_lock_north) {
@@ -343,6 +358,35 @@ void display(void)
         get_latest_lat_lon_for_day(day, &lat, &lon);
         if (lat != INVALID_NUMBER && lon != INVALID_NUMBER) {
             display_map_mark(lat, lon, map_rotate_angle);
+        }
+
+        // display white circle at the photo locations on the map,
+        // and register events
+        // xxxxxx  make routine for this
+        // xxxxx perhaps cache the result
+        for (int i = 0; i < max_photos; i++) {
+            int x, y;
+            bool xy_on_map_display;
+
+            if (photos[i].lon == 0) {
+                continue;
+            }
+
+            cvt_lat_lon_angle_to_xy(photos[i].lat, photos[i].lon, map_rotate_angle, &x, &y, &xy_on_map_display);
+
+            if (xy_on_map_display) {
+                dest.x = x - PHOTO_MARK_RADIUS;
+                dest.y = y - PHOTO_MARK_RADIUS;
+                dest.w = 2 * PHOTO_MARK_RADIUS;
+                dest.h = 2 * PHOTO_MARK_RADIUS;
+                sdlx_render_texture(photo_mark_texture, NULL, &dest);
+
+                dest.x = x - 75;
+                dest.y = y - 75;
+                dest.w = 2 * 75;
+                dest.h = 2 * 75;
+                sdlx_register_event(&dest, EVID_PHOTO_SLCT+i);
+            }
         }
 
         // draw border around the map display area
@@ -423,6 +467,12 @@ void display(void)
             sdlx_register_event(loc, EVID_PLAYBACK_MINUTE_PLUS);
         }
 
+        // 5: take photo
+        loc = sdlx_render_printf_ex(COL2X(0), MAP_YB+ROW2Y(5), 
+                                    FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
+                                    "PHOTO");
+        sdlx_register_event(loc, EVID_TAKE_PHOTO);
+
         //
         // register additional events
         //
@@ -452,6 +502,11 @@ void display(void)
         //
         // process events
         //
+
+        if (event.event_id >= EVID_PHOTO_SLCT && event.event_id < EVID_PHOTO_SLCT+MAX_PHOTOS) {
+            photos_display(event.event_id - EVID_PHOTO_SLCT);            
+            continue;
+        }
 
         switch (event.event_id) {
         case EVID_SHOW_README_FILE:
@@ -508,6 +563,7 @@ void display(void)
             state = STATE_PLAYBACK;
             break;
         case EVID_PLAYBACK_MINUTE_PLUS:
+            // yyy this did not terminate the playback when track_end_secs was reached
             end_secs += 60;
             if (end_secs >= params->track_end_secs) {
                 end_secs = params->track_end_secs;
@@ -547,6 +603,9 @@ void display(void)
                 params->track_end_secs = hours*3600 + minutes*60;
             } 
             break; }
+        case EVID_TAKE_PHOTO:
+            photos_take();
+            break;
         case EVID_QUIT:
             end_program = true;
             break;
@@ -658,26 +717,9 @@ void display_loc_points(struct loc_hist2_day_s *lh2d, int end_secs, int *last_lo
 
 void display_map_mark(double lat, double lon, double map_rotate_angle)
 {
-    double k_lat, k_lon, x, y, x1, y1;
-    int length = 50;
+    int x, y, length = 50;
 
-    k_lat = MILES_PER_DEGREE_LATITUDE / params->map_height_miles * MAP_WH;
-    k_lon = MILES_PER_DEGREE_LONGITUDE(params->map_ctr_lat) / params->map_height_miles * MAP_WH;
-
-    x = MAP_XY_CTR + (lon - params->map_ctr_lon) * k_lon;
-    if (x < 0 || x > MAP_WH) return;
-
-    y = MAP_XY_CTR - (lat - params->map_ctr_lat) * k_lat;
-    if (y < 0 || y > MAP_WH) return;
-
-    x -= 750;
-    y -= 750;
-    x1 = x * cosd(-map_rotate_angle) - y * sind(-map_rotate_angle);
-    y1 = x * sind(-map_rotate_angle) + y * cosd(-map_rotate_angle);
-    x = x1 + 750;
-    y = y1 + 750;
-
-    x -= 250;
+    cvt_lat_lon_angle_to_xy(lat, lon, map_rotate_angle, &x, &y, NULL);
 
     sdlx_render_line(x-length, y-2, x+length, y-2, COLOR_WHITE);
     sdlx_render_line(x-length, y-1, x+length, y-1, COLOR_WHITE);
@@ -837,3 +879,33 @@ char *double_to_str(double val)
 
     return util_double_to_str(val, 0, precision, s, 20);
 }
+
+void cvt_lat_lon_angle_to_xy(double lat, double lon, double map_rotate_angle, int *x_arg, int *y_arg, bool *xy_on_map_display)
+{
+    double k_lat, k_lon, x, y, x1, y1;
+
+    k_lat = MILES_PER_DEGREE_LATITUDE / params->map_height_miles * MAP_WH;
+    k_lon = MILES_PER_DEGREE_LONGITUDE(params->map_ctr_lat) / params->map_height_miles * MAP_WH;
+
+    x = MAP_XY_CTR + (lon - params->map_ctr_lon) * k_lon;
+    if (x < 0 || x > MAP_WH) return;
+
+    y = MAP_XY_CTR - (lat - params->map_ctr_lat) * k_lat;
+    if (y < 0 || y > MAP_WH) return;
+
+    x -= 750;   // xxx replace 750 with define;  and optimize
+    y -= 750;
+    x1 = x * cosd(-map_rotate_angle) - y * sind(-map_rotate_angle);
+    y1 = x * sind(-map_rotate_angle) + y * cosd(-map_rotate_angle);
+    x = x1 + 750;
+    y = y1 + 750;
+
+    x -= 250;
+
+    if (xy_on_map_display) {
+        *xy_on_map_display = (x >= 0 && x < sdlx_win_width && y >= 0 && y < MAP_YB);
+    }
+    *x_arg = nearbyint(x);
+    *y_arg = nearbyint(y);
+}
+
