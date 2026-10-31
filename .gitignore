@@ -30,6 +30,7 @@ files/apps/ColrOrgn/files/*.mp3
 files/apps/Camera/photos
 files/apps/Log/logs
 files/apps/Stock/*.json
+files/apps/Path/photos
 params
 
 files/tmp/*

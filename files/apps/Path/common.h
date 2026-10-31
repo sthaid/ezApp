@@ -1,19 +1,29 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+// ---------------
+// --- general ---
+// ---------------
+
+char *progname;
+char *data_dir;
+
+// --------------
+// --- photos ---
+// --------------
+
 // defines
 #define MAX_PHOTOS 1000
 #define PHOTO_EXISTS(idx) (photos[idx].lon != 0)
 
 // typedefs
 typedef struct {
+    char   name[21];
     double lat;
     double lon;
 } photo_t;
 
 // variables
-char    *progname;
-char    *data_dir;
 int      max_photos;
 photo_t *photos;
 

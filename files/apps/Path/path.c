@@ -46,7 +46,7 @@
 #define EVID_PLAYBACK_CONTINUE      9
 #define EVID_PLAYBACK_MINUTE_PLUS   10
 #define EVID_PLAYBACK_MINUTE_MINUS  11
-#define EVID_TAKE_PHOTO             12
+#define EVID_SAVE_PHOTO_AT_MY_LOC   12
 #define EVID_PHOTO_SLCT             100   // to plus MAX_PHOTOS
 
 // the map width and height must be the same to support map rotation
@@ -79,7 +79,7 @@
 #define BOSTON_MASS_LATITUDE  42.3601
 #define BOSTON_MASS_LONGITUDE -71.0589
 
-#define PHOTO_MARK_RADIUS 30
+#define PHOTO_MARK_RADIUS 20
     
 //
 // typedefs
@@ -470,8 +470,8 @@ void display(void)
         // 5: take photo
         loc = sdlx_render_printf_ex(COL2X(0), MAP_YB+ROW2Y(5), 
                                     FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
-                                    "PHOTO");
-        sdlx_register_event(loc, EVID_TAKE_PHOTO);
+                                    "SAVE");
+        sdlx_register_event(loc, EVID_SAVE_PHOTO_AT_MY_LOC);
 
         //
         // register additional events
@@ -603,7 +603,7 @@ void display(void)
                 params->track_end_secs = hours*3600 + minutes*60;
             } 
             break; }
-        case EVID_TAKE_PHOTO:
+        case EVID_SAVE_PHOTO_AT_MY_LOC:
             photos_take();
             break;
         case EVID_QUIT:

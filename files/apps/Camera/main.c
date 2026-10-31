@@ -366,6 +366,8 @@ void show_photo(int idx)
                 sdlx_destroy_texture(t);
                 t = NULL; texture_w = 0; texture_h = 0;
             }
+            // xxx free pixels
+            // xxx ask cursor to check for errors
             return;
         }
         if (t != NULL && (jpeg_w != texture_w || jpeg_h != texture_h)) {
@@ -447,6 +449,7 @@ void show_photo(int idx)
 
             // wait for an event, with infinite timeout
             sdlx_get_event(!show ? -1 : 1000000, &event);
+            // xxx check for -1
 
             // process the event
             switch (event.event_id) {
