@@ -34,6 +34,10 @@ static bool    evid_pinch_registered;
 static int     event_quit_rcvd;
 static bool    event_box_enable;
 
+bool focus;
+bool exposed;
+bool restored;
+
 //
 // prototypes
 //
@@ -254,16 +258,6 @@ try_again:
     // preset return sdlx event 
     memset(event, 0, sizeof(*event));
     event->event_id = -1;
-
-#if 0  // xxx del later
-    // if redraw_needed flag is set then return EVID_REDRAW
-    if (redraw_needed) {
-        INFO("returning EVID_REDRAW\n");
-        event->event_id = EVID_REDRAW;
-        redraw_needed = false;
-        return;
-    }
-#endif
 
     // get SDL event
     got_event = SDL_PollEvent(&ev);
@@ -522,6 +516,20 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
         // when Android device exits doze mode this event is generated
 
         INFO("SDL_EVENT_WINDOW_FOCUS_GAINED\n");
+        focus = true;
+        break;
+
+    case SDL_EVENT_WINDOW_EXPOSED:
+
+        INFO("SDL_EVENT_WINDOW_EXPOSED\n");
+        exposed = true;
+        event->event_id = EVID_REDRAW;
+        break;
+
+    case SDL_EVENT_WINDOW_RESTORED:
+
+        INFO("SDL_EVENT_WINDOW_RESTORED\n");
+        restored = true;
         event->event_id = EVID_REDRAW;
         break;
 

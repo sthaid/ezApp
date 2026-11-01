@@ -127,6 +127,13 @@ char *sdlx_get_input_str(char *prompt, bool numeric_keybd, char *dflt_input_str)
     sdlx_loc_t        *loc;
     sdlx_event_t       event;
 
+#if 0 // xxx temp test code
+    SDL_SetRenderDrawColor(renderer, 0xff, 0, 0, 0xff);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
+    usleep(2000000);
+#endif
+
     // init
     memset(input, 0, sizeof(input));
     if (dflt_input_str) {

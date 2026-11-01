@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>  // xxx del
 
 #include <sdlx.h>
 #include <utils.h>
@@ -84,6 +85,7 @@ int photos_take(void) //xxx name
     util_rename_file("tmp", "photo.jpg", photos_dir, photo_filename);
 
     // save photo location in photos array, which is mapped to file photos.dat
+    sleep(1); // xxx temp
     photo_name = sdlx_get_input_str("Name", false, NULL);
     snprintf(photos[idx].name, sizeof(photos[idx].name), "%s", photo_name);
     photos[idx].lat = lat;

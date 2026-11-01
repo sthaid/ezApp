@@ -160,6 +160,82 @@ int util_get_playbackcapture_audio(float *array, int num_array_elements) {
     return call_java3("get_playbackcapture_audio", array, num_array_elements);
 }
 
+#if 0 //xxx
+
+// camera
+extern "C" {
+    bool flag;
+}
+extern "C" JNIEXPORT void JNICALL
+Java_org_libsdl_app_SDLActivity_notifyCameraFinishedAndOpenKeyboard(JNIEnv* env, jobject thiz) {
+    INFO("XXXXXXXXXXXX CAN COMPLETE XXXXXXXXXXXXXX\n");
+    flag = true;
+}
+
+int util_take_photo(void) 
+{
+    int rc;
+    //sdlx_event_t ev;
+    char tmp[] = "tmp";
+    char photo_jpg[] = "photo.jpg";
+    SDL_Event ev;
+
+    // values copied from _SDLActivity.java
+    #define RESULT_OK                         -1
+    #define RESULT_CANCELLED                  0
+    #define RESULT_FAILED                     1
+    #define RESULT_NO_CAMERA                  2
+    #define RESULT_FAILED_TO_CREATE_PHOTO_JPG 3;
+    #define RESULT_NOT_SET                    99
+
+    // remove existing tmp/photo.jpg file
+    util_delete_file(tmp, photo_jpg);
+
+    flag = false;
+    focus = false;
+    exposed = false;
+
+    // take the photo
+    rc = call_java1("take_photo");
+    if (rc != 0) {
+        ERROR("take_photo failed, rc=%d\n", rc);
+        return -1;
+    }
+
+    INFO("xxxxx wait for flag\n");
+    while (flag == false) {
+        SDL_PollEvent(&ev);
+        usleep(50000);
+    }
+    INFO("xxxxx wait for flag done\n");
+
+    INFO("xxxxx wait for focus flag\n");
+    while (focus == false) {
+        SDL_PollEvent(&ev);
+        usleep(50000);
+    }
+    INFO("xxxxx wait for focus flag done\n");
+
+    INFO("xxxxx wait for exposed flag\n");
+    while (exposed == false) {
+        SDL_PollEvent(&ev);
+        usleep(50000);
+    }
+    INFO("xxxxx wait for exposed flag done\n");
+
+    // if photo.jpg does not exist then return error
+    if (!util_file_exists(tmp, photo_jpg)) {
+        ERROR("tmp/photo.jpg does not exist\n");
+        return -1;
+    }
+
+    // return success
+    INFO("XXXXXXXXX return success\n");
+    return 0;
+}
+
+#else
+
 // camera
 int util_take_photo(void) 
 {
@@ -220,6 +296,8 @@ int util_take_photo(void)
     // return success
     return 0;
 }
+
+#endif
 
 // -----------------  COMMON ROUTINES TO CALL JAVA METHOD  -------------------------
 

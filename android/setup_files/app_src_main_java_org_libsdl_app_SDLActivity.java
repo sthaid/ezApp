@@ -285,6 +285,8 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     private static final int         RESULT_NO_CAMERA                  = 2;
     private static final int         RESULT_FAILED_TO_CREATE_PHOTO_JPG = 3;
     private static final int         RESULT_NOT_SET                    = 99;
+    // xxx
+    //public native void notifyCameraFinishedAndOpenKeyboard();
 
     public static SDLGenericMotionListener_API14 getMotionListener() {
         if (mMotionListener == null) {
@@ -1194,6 +1196,14 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
                 Log.e(EZAPP_TAG, "REQUEST_IMAGE_CAPTURE failed, resoltCode = " + resultCode);
                 mezApp_image_capture_result = RESULT_FAILED;
             }
+            // xxx
+            //mSurface.post(new Runnable() {
+            //    @Override
+            //    public void run() {
+            //        // Explicitly call it using the outer class context
+            //        SDLActivity.this.notifyCameraFinishedAndOpenKeyboard();
+            //    }
+            //});
         }
 
         if (mFileDialogState != null && mFileDialogState.requestCode == requestCode) {
