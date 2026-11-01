@@ -140,6 +140,7 @@ char *secs_to_str(int secs);
 char *double_to_str(double val);
 // yyy better name
 void cvt_lat_lon_angle_to_xy(double lat, double lon, double map_rotate_angle, int *x, int *y, bool *xy_on_map_display);
+void cvt_xy_angle_to_lat_lon(double x, double y, double map_rotate_angle, double *lat, double *lon);
 
 // -----------------  MAIN  ------------------------------------------
 
@@ -643,12 +644,16 @@ void display(void)
             printf("XXX setting tgt_set_enabled\n");
             tgt_set_enabled = true;
             break;
-        case EVID_SET_TARGET_SELECTED:
+        case EVID_SET_TARGET_SELECTED: {
             // xxxxxxxxxxxx print here
-            printf("XXXXXXXXXXXXXXXXX GOT EVID_SET_TARGET_SELECTED %.0f %.0f\n",
-                event.u.select.x, event.u.select.y);
+            double x = event.u.select.x;
+            double y = event.u.select.y;
+            printf("XXXXXXXXXXXXXXXXX GOT EVID_SET_TARGET_SELECTED %.0f %.0f\n", x, y);
             tgt_set_enabled = false;
-            break;
+            cvt_xy_angle_to_lat_lon(x, y, map_rotate_angle, &tgt_lat, &tgt_lon);
+            printf("   lat lon   %.4f %.4f\n", tgt_lat, tgt_lon);
+            printf("   ctr       %.4f %.4f\n", params->map_ctr_lat, params->map_ctr_lon);
+            break; }
         case EVID_CLR_TARGET:
             // xxxxxxxxxxxxxxx
             printf("XXX clearing TGT\n");
@@ -934,6 +939,7 @@ char *double_to_str(double val)
     return util_double_to_str(val, 0, precision, s, 20);
 }
 
+// yyy perhaps dont need xy_on_map_display here
 void cvt_lat_lon_angle_to_xy(double lat, double lon, double map_rotate_angle, int *x_arg, int *y_arg, bool *xy_on_map_display)
 {
     double k_lat, k_lon, x, y, x1, y1;
@@ -942,10 +948,10 @@ void cvt_lat_lon_angle_to_xy(double lat, double lon, double map_rotate_angle, in
     k_lon = MILES_PER_DEGREE_LONGITUDE(params->map_ctr_lat) / params->map_height_miles * MAP_WH;
 
     x = MAP_XY_CTR + (lon - params->map_ctr_lon) * k_lon;
-    if (x < 0 || x > MAP_WH) return;
+    //if (x < 0 || x > MAP_WH) return;
 
     y = MAP_XY_CTR - (lat - params->map_ctr_lat) * k_lat;
-    if (y < 0 || y > MAP_WH) return;
+    //if (y < 0 || y > MAP_WH) return;
 
     x -= 750;   // xxx replace 750 with define;  and optimize
     y -= 750;
@@ -963,3 +969,24 @@ void cvt_lat_lon_angle_to_xy(double lat, double lon, double map_rotate_angle, in
     *y_arg = nearbyint(y);
 }
 
+// yyy name  cvt_map_xy_to_lat_lon, maybe use double for x,y, and in above routine
+void cvt_xy_angle_to_lat_lon(double x, double y, double map_rotate_angle, double *lat, double *lon)
+{
+    double x1, y1;
+    double k_lat, k_lon;
+
+    // yyy make a rotate proc
+    x += 250;
+    x1 = x - 750;
+    y1 = y - 750;
+    x = x1 * cosd(map_rotate_angle) - y1 * sind(map_rotate_angle);
+    y = x1 * sind(map_rotate_angle) + y1 * cosd(map_rotate_angle);
+    x += 750;
+    y += 750;
+
+    k_lat = MILES_PER_DEGREE_LATITUDE / params->map_height_miles * MAP_WH;
+    k_lon = MILES_PER_DEGREE_LONGITUDE(params->map_ctr_lat) / params->map_height_miles * MAP_WH;
+
+    *lon = (x - MAP_XY_CTR) / k_lon + params->map_ctr_lon;
+    *lat = (y - MAP_XY_CTR) / k_lat + params->map_ctr_lat;
+}
