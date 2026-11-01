@@ -11,6 +11,13 @@
 #include "svcs/Location/location.h"
 #include "apps/Path/common.h"
 
+// xxx no keybd shown when saving a place
+//  - back out camera fix
+
+// xxx 
+// - dislay compass green when within 3 degrees of N
+// - space out control lines
+
 // xxx  priority
 // - option to mark location with text and possibly picture  <=======
 // - add display map name  <============
@@ -425,10 +432,14 @@ void display(void)
         if (params->tgt_lat != 0 && params->tgt_lon != 0) {
             double range_miles, bearing_deg;
             get_latest_lat_lon_for_day(day, &lat, &lon);
-            calculate_range_and_bearing(params->map_ctr_lat, params->map_ctr_lon, params->tgt_lat, params->tgt_lon, &range_miles, &bearing_deg);
+            calculate_range_and_bearing(
+                //params->map_ctr_lat, params->map_ctr_lon, 
+                lat, lon,
+                params->tgt_lat, params->tgt_lon, 
+                &range_miles, &bearing_deg);
             //printf("XXXXXXXXXXXX %.3f miles  %.3f deg\n", range_miles, bearing_deg);
 
-            display_bearing(range_miles, bearing_deg);  // xxx also range
+            display_bearing(range_miles, bearing_deg-true_heading);  // xxx also range
         }
 
         // draw border around the map display area
@@ -440,7 +451,9 @@ void display(void)
         // ---------------------------------
 
         // 0: date and time of the last loc
-        sdlx_render_printf(0, MAP_YB+ROW2Y(0),
+        int yloc;
+        yloc = MAP_YB+ROW2Y(0);
+        sdlx_render_printf(0, yloc,
                            "%s %s %d  %s", 
                            get_weekday_str(lh2d->year, lh2d->month, lh2d->day),
                            get_month_str(lh2d->month),
@@ -448,80 +461,84 @@ void display(void)
                            (state != STATE_MONITOR ? secs_to_str(end_secs) : ""));  //yyy maybe display always
 
         // 1: distance and speed
-        sdlx_render_printf(0, MAP_YB+ROW2Y(1), 
+        yloc = MAP_YB+ROW2Y(1);
+        sdlx_render_printf(0, yloc,
                            "%s mi. %s mph", 
                            double_to_str(distance_meters * METERS_TO_MILES),
                            double_to_str(distance_meters / (end_secs - params->track_start_secs) * METERS_PER_SEC_TO_MILES_PER_HOUR));
 
         // 2: display time of track start and end, and register event to modify them
-        loc = sdlx_render_printf_ex(0, MAP_YB+ROW2Y(2), 
+        yloc = MAP_YB+ROW2Y(2);
+        loc = sdlx_render_printf_ex(0, yloc,
                                     FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                     "%s",
                                     secs_to_str(params->track_start_secs));
         sdlx_register_event(loc, EVID_START_SECS);
 
-        sdlx_render_printf(COL2X(5), MAP_YB+ROW2Y(2), "-");
+        sdlx_render_printf(COL2X(5), yloc, "-");
 
-        loc = sdlx_render_printf_ex(COL2X(6), MAP_YB+ROW2Y(2), 
+        loc = sdlx_render_printf_ex(COL2X(6), yloc,
                                     FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                     "%s",
                                     secs_to_str(params->track_end_secs));
         sdlx_register_event(loc, EVID_END_SECS);
 
         if (state == STATE_MONITOR) {
-            loc = sdlx_render_printf_ex(COL2X(15), MAP_YB+ROW2Y(2), 
+            loc = sdlx_render_printf_ex(COL2X(15), yloc,
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                         "Play");
             sdlx_register_event(loc, EVID_PLAYBACK);
         }
 
-        // 3: playback control
-       if (state == STATE_PLAYBACK) {
+        // 3.35: playback control
+        yloc = MAP_YB+ROW2Y(3.35);
+        if (state == STATE_PLAYBACK) {
             // ctrls: CANCEL, PAUSE
-            loc = sdlx_render_printf_ex(COL2X(0), MAP_YB+ROW2Y(3), 
+            loc = sdlx_render_printf_ex(COL2X(0), yloc, 
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                         "Cancel");
             sdlx_register_event(loc, EVID_PLAYBACK_CANCEL);
 
-            loc = sdlx_render_printf_ex(COL2X(8), MAP_YB+ROW2Y(3), 
+            loc = sdlx_render_printf_ex(COL2X(8), yloc,
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                         "Pause");
             sdlx_register_event(loc, EVID_PLAYBACK_PAUSE);
         } else if (state == STATE_PLAYBACK_PAUSED) {
             // ctrls:  CANCEL, CONT, -,  +
-            loc = sdlx_render_printf_ex(COL2X(0), MAP_YB+ROW2Y(3), 
+            loc = sdlx_render_printf_ex(COL2X(0), yloc,
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                         "Cancel");
             sdlx_register_event(loc, EVID_PLAYBACK_CANCEL);
 
-            loc = sdlx_render_printf_ex(COL2X(8), MAP_YB+ROW2Y(3), 
+            loc = sdlx_render_printf_ex(COL2X(8), yloc,
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                         "Cont");
             sdlx_register_event(loc, EVID_PLAYBACK_CONTINUE);
 
-            loc = sdlx_render_printf_ex(COL2X(13), MAP_YB+ROW2Y(3), 
+            loc = sdlx_render_printf_ex(COL2X(13), yloc,
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                         " - ");
             sdlx_register_event(loc, EVID_PLAYBACK_MINUTE_MINUS);
 
-            loc = sdlx_render_printf_ex(COL2X(17), MAP_YB+ROW2Y(3), 
+            loc = sdlx_render_printf_ex(COL2X(17), yloc,
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                         " + ");
             sdlx_register_event(loc, EVID_PLAYBACK_MINUTE_PLUS);
         }
 
-        // 5: xxxxxxxxxxxxxx
-        loc = sdlx_render_printf_ex(COL2X(0), MAP_YB+ROW2Y(5), 
+        // 4.70: xxxxxxxxxxxxxx
+        yloc = MAP_YB+ROW2Y(4.70);
+        loc = sdlx_render_printf_ex(COL2X(0), yloc,
                                     FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                     "Save");
         sdlx_register_event(loc, EVID_SAVE_PHOTO_AT_MY_LOC);
 
-        loc = sdlx_render_printf_ex(COL2X(6), MAP_YB+ROW2Y(5), 
+        loc = sdlx_render_printf_ex(COL2X(6), yloc,
                                     FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                     "SetTgt");
         sdlx_register_event(loc, EVID_SET_TARGET_ENABLE);
 
-        loc = sdlx_render_printf_ex(COL2X(14), MAP_YB+ROW2Y(5), 
+        loc = sdlx_render_printf_ex(COL2X(14), yloc,
                                     FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
                                     "ClrTgt");
         sdlx_register_event(loc, EVID_CLR_TARGET);
