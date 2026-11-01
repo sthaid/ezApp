@@ -570,6 +570,9 @@ typedef struct {
     union {
         struct {
             double x, y;
+        } select;  // xxx doc comments needed
+        struct {
+            double x, y;
         } motion_begin;
         struct {
             double x, y, xrel, yrel;

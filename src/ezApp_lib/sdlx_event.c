@@ -304,9 +304,13 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
     static bool pinching;
     static bool motioning;
     static int pending_event_id = -1;
+    static int pending_event_x;
+    static int pending_event_y;
 
     if (pending_event_id != -1) {
         event->event_id = pending_event_id;
+        event->u.select.x = pending_event_x;
+        event->u.select.y = pending_event_y;
         pending_event_id = -1;
         return;
     }
@@ -352,8 +356,12 @@ static void process_sdlx_event(SDL_Event *ev, sdlx_event_t *event)
             if (i >= 0) {
                 if (!set_pending_event) {
                     event->event_id = event_tbl[i].event_id;
+                    event->u.select.x = x;
+                    event->u.select.y = y;
                 } else {
                     pending_event_id = event_tbl[i].event_id;
+                    pending_event_x  = x;                
+                    pending_event_y  = y;                
                 }
             }
         }

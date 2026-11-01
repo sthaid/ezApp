@@ -916,6 +916,10 @@ typedef struct { \n\
         struct { \n\
             double x; \n\
             double y; \n\
+        } select; \n\
+        struct { \n\
+            double x; \n\
+            double y; \n\
         } motion_begin; \n\
         struct { \n\
             double x; \n\

@@ -47,7 +47,10 @@
 #define EVID_PLAYBACK_MINUTE_PLUS   10
 #define EVID_PLAYBACK_MINUTE_MINUS  11
 #define EVID_SAVE_PHOTO_AT_MY_LOC   12
-#define EVID_PHOTO_SLCT             100   // to plus MAX_PHOTOS
+#define EVID_SET_TARGET_ENABLE      13
+#define EVID_SET_TARGET_SELECTED    14
+#define EVID_CLR_TARGET             15
+#define EVID_PHOTO_SLCT             100   // EVID_PHOTO_SLCT ... EVID_PHOTO_SLCT+MAX_PHOTOS-1
 
 // the map width and height must be the same to support map rotation
 #define MAP_WH     1500            // map width and height
@@ -100,15 +103,19 @@ typedef struct {
 // variables
 //
 
-bool         end_program = false;
-loc_hist2_t *lh2;
+bool            end_program;
+loc_hist2_t    *lh2;
 
-double       mag_decl;
-bool         mag_decl_valid;
+double          mag_decl;
+bool            mag_decl_valid;
 
-params_t    *params;
+params_t       *params;
 
 sdlx_texture_t *photo_mark_texture;
+
+bool            tgt_set_enabled;
+double          tgt_lat;
+double          tgt_lon;
 
 //
 // prototypes
@@ -223,10 +230,10 @@ void display(void)
     while (!end_program) {
         //print_time_since_last_call();
 
-        //
+        // -----------------------------------------
         // get params for the currently selected day;
         // init the params if needed
-        //
+        // -----------------------------------------
 
         lh2d = &lh2->day[day % MAX_LH2_DAY];
         void *tmp = lh2->day[day % MAX_LH2_DAY].reserved1;
@@ -248,15 +255,15 @@ void display(void)
             params->map_lock_north   = DFLT_MAP_LOCK_NORTH;
         }
 
-        //
+        // ------------------------
         // get magnetic declination
-        //
+        // ------------------------
 
         get_magnetic_declination();
 
-        //
+        // ---------------------------------------
         // draw location points to the map_texture
-        //
+        // ---------------------------------------
 
         sdlx_set_render_target(map_texture);
         sdlx_clear_texture(map_texture, COLOR_BLACK);
@@ -277,15 +284,15 @@ void display(void)
         display_loc_points(lh2d, end_secs, &last_loc_secs, &distance_meters);
         sdlx_set_render_target(NULL);
 
-        //
+        // ----------------------------------
         // init the backbuffer to COLOR_BLACK
-        //
+        // ----------------------------------
 
         sdlx_display_init(COLOR_BLACK, PORTRAIT);
 
-        //
+        // --------------------------------------------------
         // get true_heading, from mag_heading and declination
-        //
+        // --------------------------------------------------
 
         sdlx_sensor_read_mag_heading(&mag_heading, K_COMPASS_SHOOTH);
         if (mag_heading == INVALID_NUMBER) {
@@ -296,9 +303,9 @@ void display(void)
             if (true_heading >= 360) true_heading -= 360;
         }
 
-        //
+        // -----------------------------------------------------------
         // display the map_texture, which contains the location points
-        //
+        // -----------------------------------------------------------
 
         // display the texture containing the loc points;
         // rotated by 0 when map is locked north, else rotated by true_heading
@@ -389,12 +396,23 @@ void display(void)
             }
         }
 
-        // draw border around the map display area
-        sdlx_render_rect(0, 0, sdlx_win_width, MAP_WH, MAP_BORDER, COLOR_GREEN);
+        // xxxxxxxxxxxxxxxxxxxxxx
+        if (tgt_set_enabled) {
+// xxxxxxxxxxxxxx
+            dest.x = 0;
+            dest.y = 0;
+            dest.w = sdlx_win_width;
+            dest.h = MAP_YB;
+            sdlx_register_event(&dest, EVID_SET_TARGET_SELECTED);
+        }
 
-        //
+        // draw border around the map display area
+        sdlx_render_rect(0, 0, sdlx_win_width, MAP_WH, MAP_BORDER, 
+                         tgt_set_enabled ? COLOR_LIGHT_BLUE : COLOR_GREEN);
+
+        // ---------------------------------
         // display the control & status area
-        //
+        // ---------------------------------
 
         // 0: date and time of the last loc
         sdlx_render_printf(0, MAP_YB+ROW2Y(0),
@@ -402,7 +420,7 @@ void display(void)
                            get_weekday_str(lh2d->year, lh2d->month, lh2d->day),
                            get_month_str(lh2d->month),
                            lh2d->day,
-                           (state != STATE_MONITOR ? secs_to_str(end_secs) : ""));
+                           (state != STATE_MONITOR ? secs_to_str(end_secs) : ""));  //yyy maybe display always
 
         // 1: distance and speed
         sdlx_render_printf(0, MAP_YB+ROW2Y(1), 
@@ -428,7 +446,7 @@ void display(void)
         if (state == STATE_MONITOR) {
             loc = sdlx_render_printf_ex(COL2X(15), MAP_YB+ROW2Y(2), 
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
-                                        "PLAY");
+                                        "Play");
             sdlx_register_event(loc, EVID_PLAYBACK);
         }
 
@@ -437,23 +455,23 @@ void display(void)
             // ctrls: CANCEL, PAUSE
             loc = sdlx_render_printf_ex(COL2X(0), MAP_YB+ROW2Y(3), 
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
-                                        "CANCEL");
+                                        "Cancel");
             sdlx_register_event(loc, EVID_PLAYBACK_CANCEL);
 
             loc = sdlx_render_printf_ex(COL2X(8), MAP_YB+ROW2Y(3), 
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
-                                        "PAUSE");
+                                        "Pause");
             sdlx_register_event(loc, EVID_PLAYBACK_PAUSE);
         } else if (state == STATE_PLAYBACK_PAUSED) {
             // ctrls:  CANCEL, CONT, -,  +
             loc = sdlx_render_printf_ex(COL2X(0), MAP_YB+ROW2Y(3), 
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
-                                        "CANCEL");
+                                        "Cancel");
             sdlx_register_event(loc, EVID_PLAYBACK_CANCEL);
 
             loc = sdlx_render_printf_ex(COL2X(8), MAP_YB+ROW2Y(3), 
                                         FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
-                                        "CONT");
+                                        "Cont");
             sdlx_register_event(loc, EVID_PLAYBACK_CONTINUE);
 
             loc = sdlx_render_printf_ex(COL2X(13), MAP_YB+ROW2Y(3), 
@@ -467,41 +485,53 @@ void display(void)
             sdlx_register_event(loc, EVID_PLAYBACK_MINUTE_PLUS);
         }
 
-        // 5: take photo
+        // 5: xxxxxxxxxxxxxx
         loc = sdlx_render_printf_ex(COL2X(0), MAP_YB+ROW2Y(5), 
                                     FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
-                                    "SAVE");
+                                    "Save");
         sdlx_register_event(loc, EVID_SAVE_PHOTO_AT_MY_LOC);
 
-        //
-        // register additional events
-        //
+        loc = sdlx_render_printf_ex(COL2X(6), MAP_YB+ROW2Y(5), 
+                                    FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
+                                    "SetTgt");
+        sdlx_register_event(loc, EVID_SET_TARGET_ENABLE);
 
-        sdlx_register_event(NULL, EVID_PINCH);
-        sdlx_register_event(NULL, EVID_MOTION);
-        reg_event_show_readme_file();
+        loc = sdlx_render_printf_ex(COL2X(14), MAP_YB+ROW2Y(5), 
+                                    FONT_NORMAL, COLOR_LIGHT_BLUE, FLAG_NONE,
+                                    "ClrTgt");
+        sdlx_register_event(loc, EVID_CLR_TARGET);
+
+        // --------------------------
+        // register additional events
+        // --------------------------
+
+        if (!tgt_set_enabled) {
+            sdlx_register_event(NULL, EVID_PINCH);
+            sdlx_register_event(NULL, EVID_MOTION);
+            reg_event_show_readme_file();
+        }
         sdlx_register_control_events(EVID_PREV_DAY, "<", EVID_NEXT_DAY, ">", EVID_QUIT, "X");
 
-        //
+        // -------------------
         // present the display
-        //
+        // -------------------
 
         sdlx_display_present();
 
-        //
+        // --------------------------------------------------------------------------------
         // wait for event, with 50 ms timeout; 
         // the short timeout is needed because the displayed map depends on device heading,
         // and because the compass needs to be periodically updated
-        //
+        // --------------------------------------------------------------------------------
 
         sdlx_get_event(50000, &event);
         if (event.event_id == -1) {
             continue;
         }
 
-        //
+        // --------------
         // process events
-        //
+        // --------------
 
         if (event.event_id >= EVID_PHOTO_SLCT && event.event_id < EVID_PHOTO_SLCT+MAX_PHOTOS) {
             photos_display(event.event_id - EVID_PHOTO_SLCT);            
@@ -516,6 +546,7 @@ void display(void)
             int new_day = day - 1;
 
             state = STATE_MONITOR;
+            tgt_set_enabled = false;
             if ((new_day) >= 0 && (lh2->last_day - new_day < MAX_LH2_DAY)) {
                 if (lh2->day[new_day % MAX_LH2_DAY].max_loc > 0) {
                     day = new_day;
@@ -524,6 +555,7 @@ void display(void)
             break; }
         case EVID_NEXT_DAY:
             state = STATE_MONITOR;
+            tgt_set_enabled = false;
             if (day < lh2->last_day) {
                 day++;
             }
@@ -606,11 +638,33 @@ void display(void)
         case EVID_SAVE_PHOTO_AT_MY_LOC:
             photos_take();
             break;
+        case EVID_SET_TARGET_ENABLE:
+            // xxxxxxxxxxxxxxx
+            printf("XXX setting tgt_set_enabled\n");
+            tgt_set_enabled = true;
+            break;
+        case EVID_SET_TARGET_SELECTED:
+            // xxxxxxxxxxxx print here
+            printf("XXXXXXXXXXXXXXXXX GOT EVID_SET_TARGET_SELECTED %.0f %.0f\n",
+                event.u.select.x, event.u.select.y);
+            tgt_set_enabled = false;
+            break;
+        case EVID_CLR_TARGET:
+            // xxxxxxxxxxxxxxx
+            printf("XXX clearing TGT\n");
+            tgt_lat = 0;
+            tgt_lon = 0;
+            tgt_set_enabled = false;
+            break;
         case EVID_QUIT:
             end_program = true;
             break;
         }
     }
+
+    // --------
+    // cleanup
+    // --------
 
     sdlx_destroy_texture(map_texture);
 }
