@@ -15,6 +15,9 @@
 // variables
 char photos_dir[100];
 
+// xxx all writes to params should sync
+// xxx add Del photo
+
 // -----------------  INIT AND CLEANUP  ------------------------------
 
 int photos_init(void)

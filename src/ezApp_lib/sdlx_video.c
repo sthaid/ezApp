@@ -68,7 +68,6 @@ int          logical_win_width_portrait, logical_win_height_portrait;
 int          logical_win_width_landscape, logical_win_height_landscape;
 double       scale_events_x;
 double       scale_events_y;
-bool         redraw_needed;
 
 //
 // prototypes
@@ -296,7 +295,6 @@ static bool event_watcher(void* userdata, SDL_Event* event)
 {
     switch (event->type) {
     case SDL_EVENT_WILL_ENTER_BACKGROUND:
-        // pause here, if needed
         INFO("about to be backgrounded\n");
         break;
     case SDL_EVENT_DID_ENTER_BACKGROUND:
@@ -304,10 +302,8 @@ static bool event_watcher(void* userdata, SDL_Event* event)
         break;
     case SDL_EVENT_WILL_ENTER_FOREGROUND:
         INFO("about to be foregrounded\n");
-        redraw_needed = true;
         break;
     case SDL_EVENT_DID_ENTER_FOREGROUND:
-        // resume here, if needed
         INFO("now in the foreground\n");
         break;
     default:
