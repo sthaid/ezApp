@@ -263,11 +263,12 @@ int util_take_photo(void)
     }
 
     // wait for taking the photo to be completed
+    INFO("polling for take photo completed\n")
     while (true) {
         // This call to sdlx_get_event ensures that after taking the
         // photo has completed, and the Android camera code has 
         // finished with the display, the ezApp display becomes visible.
-        // Reason why this is needed is not known.
+        // The reason why this is needed is not known.
         sdlx_get_event(100000, &ev);
 
         // check if the taking of the photo has completed
@@ -278,8 +279,8 @@ int util_take_photo(void)
         if (rc != RESULT_NOT_SET) {
             break;
         }
-        INFO("polling for take_photo_complete\n");
     }
+    INFO("polling done\n");
 
     // if rc is not RESULT_OK then return error
     if (rc != RESULT_OK) {
