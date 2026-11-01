@@ -176,7 +176,7 @@ int photos_display(int idx)
         // register events
         sdlx_register_event(NULL, EVID_PINCH);
         sdlx_register_event(NULL, EVID_MOTION);
-        sdlx_register_control_events(EVID_SCALE_RESET, "Rst", 0, NULL, EVID_QUIT, "X");
+        sdlx_register_control_events(EVID_SCALE_RESET, "Reset", 0, NULL, EVID_QUIT, "X");
 
         // present the display
         sdlx_display_present();

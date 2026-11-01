@@ -88,7 +88,7 @@
 // typedefs
 //
 
-#define PARAMS_MAGIC 0x12345678
+#define PARAMS_MAGIC 0x12345679
 typedef struct {
     long   magic;
     double map_ctr_lat;
@@ -97,6 +97,8 @@ typedef struct {
     int    track_end_secs;
     double map_height_miles;
     bool   map_lock_north;
+    double tgt_lat;
+    double tgt_lon;
 } params_t;
 
 //
@@ -114,8 +116,6 @@ params_t       *params;
 sdlx_texture_t *photo_mark_texture;
 
 bool            tgt_set_enabled;
-double          tgt_lat;
-double          tgt_lon;
 
 //
 // prototypes
@@ -128,11 +128,15 @@ void get_latest_lat_lon_for_day(int day, double *lat, double *lon);
 void get_magnetic_declination(void);
 void display_loc_points(struct loc_hist2_day_s *lh2d, int end_secs, int *last_loc_secs, 
                         double *distance_meters);
-void display_map_mark(double lat, double lon, double map_rotate_angle);
+void display_map_mark(double lat, double lon, double map_rotate_angle, sdlx_color_t color);
 
 void display_compass_init(void);
 void display_compass_cleanup(void);
 void display_compass(double true_heading);
+
+void display_bearing_init(void);
+void display_bearing_cleanup(void);
+void display_bearing(double range, double bearing);
 
 char *heading_abbreviation(double heading);
 void print_time_since_last_call(void);
@@ -141,6 +145,7 @@ char *double_to_str(double val);
 // yyy better name
 void cvt_lat_lon_angle_to_xy(double lat, double lon, double map_rotate_angle, int *x, int *y, bool *xy_on_map_display);
 void cvt_xy_angle_to_lat_lon(double x, double y, double map_rotate_angle, double *lat, double *lon);
+void calculate_range_and_bearing(double lat1, double lon1, double lat2, double lon2, double *range_miles, double *bearing_deg);
 
 // -----------------  MAIN  ------------------------------------------
 
@@ -168,6 +173,7 @@ int main(int argc, char **argv)
 
     // call init routines
     display_compass_init();
+    display_bearing_init();
     photos_init();
 
     // xxx comment
@@ -197,6 +203,7 @@ int main(int argc, char **argv)
     // cleanup and end program
     util_unmap_file(lh2, sizeof(loc_hist2_t));
     display_compass_cleanup();
+    display_bearing_cleanup();
     photos_cleanup();
     sdlx_destroy_texture(photo_mark_texture);
     printf("I %s: terminating\n", progname);
@@ -254,6 +261,8 @@ void display(void)
             params->track_end_secs   = DFLT_TRACK_END_SECS;
             params->map_height_miles = DFLT_MAP_HEIGHT_MILES;
             params->map_lock_north   = DFLT_MAP_LOCK_NORTH;
+            params->tgt_lat          = 0; //xxx use invalid num
+            params->tgt_lon          = 0;
         }
 
         // ------------------------
@@ -365,7 +374,12 @@ void display(void)
         // display mark on map at current location
         get_latest_lat_lon_for_day(day, &lat, &lon);
         if (lat != INVALID_NUMBER && lon != INVALID_NUMBER) {
-            display_map_mark(lat, lon, map_rotate_angle);
+            display_map_mark(lat, lon, map_rotate_angle, COLOR_WHITE);
+        }
+
+        // display mark on map at the target location
+        if (params->tgt_lat != 0 && params->tgt_lon != 0) { // xxx use invalid number
+            display_map_mark(params->tgt_lat, params->tgt_lon, map_rotate_angle, COLOR_BLUE);
         }
 
         // display white circle at the photo locations on the map,
@@ -405,6 +419,16 @@ void display(void)
             dest.w = sdlx_win_width;
             dest.h = MAP_YB;
             sdlx_register_event(&dest, EVID_SET_TARGET_SELECTED);
+        }
+
+// aaaaaaaaa
+        if (params->tgt_lat != 0 && params->tgt_lon != 0) {
+            double range_miles, bearing_deg;
+            get_latest_lat_lon_for_day(day, &lat, &lon);
+            calculate_range_and_bearing(params->map_ctr_lat, params->map_ctr_lon, params->tgt_lat, params->tgt_lon, &range_miles, &bearing_deg);
+            //printf("XXXXXXXXXXXX %.3f miles  %.3f deg\n", range_miles, bearing_deg);
+
+            display_bearing(range_miles, bearing_deg);  // xxx also range
         }
 
         // draw border around the map display area
@@ -548,6 +572,7 @@ void display(void)
 
             state = STATE_MONITOR;
             tgt_set_enabled = false;
+            params->tgt_lat = params->tgt_lon = 0;
             if ((new_day) >= 0 && (lh2->last_day - new_day < MAX_LH2_DAY)) {
                 if (lh2->day[new_day % MAX_LH2_DAY].max_loc > 0) {
                     day = new_day;
@@ -557,6 +582,7 @@ void display(void)
         case EVID_NEXT_DAY:
             state = STATE_MONITOR;
             tgt_set_enabled = false;
+            params->tgt_lat = params->tgt_lon = 0;
             if (day < lh2->last_day) {
                 day++;
             }
@@ -643,6 +669,7 @@ void display(void)
             // xxxxxxxxxxxxxxx
             printf("XXX setting tgt_set_enabled\n");
             tgt_set_enabled = true;
+            params->tgt_lat = params->tgt_lon = 0;
             break;
         case EVID_SET_TARGET_SELECTED: {
             // xxxxxxxxxxxx print here
@@ -650,16 +677,21 @@ void display(void)
             double y = event.u.select.y;
             printf("XXXXXXXXXXXXXXXXX GOT EVID_SET_TARGET_SELECTED %.0f %.0f\n", x, y);
             tgt_set_enabled = false;
-            cvt_xy_angle_to_lat_lon(x, y, map_rotate_angle, &tgt_lat, &tgt_lon);
-            printf("   lat lon   %.4f %.4f\n", tgt_lat, tgt_lon);
+            cvt_xy_angle_to_lat_lon(x, y, map_rotate_angle, &params->tgt_lat, &params->tgt_lon);
+            printf("   lat lon   %.4f %.4f\n", params->tgt_lat, params->tgt_lon);
             printf("   ctr       %.4f %.4f\n", params->map_ctr_lat, params->map_ctr_lon);
+
+            double range_miles, bearing_deg;
+            get_latest_lat_lon_for_day(day, &lat, &lon);
+            calculate_range_and_bearing(params->map_ctr_lat, params->map_ctr_lon, params->tgt_lat, params->tgt_lon, &range_miles, &bearing_deg);
+            printf("%.3f miles  %.3f deg\n", range_miles, bearing_deg);
+            
             break; }
         case EVID_CLR_TARGET:
             // xxxxxxxxxxxxxxx
             printf("XXX clearing TGT\n");
-            tgt_lat = 0;
-            tgt_lon = 0;
             tgt_set_enabled = false;
+            params->tgt_lat = params->tgt_lon = 0;  // xxx use invalid num
             break;
         case EVID_QUIT:
             end_program = true;
@@ -774,30 +806,25 @@ void display_loc_points(struct loc_hist2_day_s *lh2d, int end_secs, int *last_lo
     //printf("duration = %ld ms\n", (util_microsec_timer() - time_execution_usec) / 1000);
 }
 
-void display_map_mark(double lat, double lon, double map_rotate_angle)
+void display_map_mark(double lat, double lon, double map_rotate_angle, sdlx_color_t color)
 {
-    int x, y, length = 50;
+    int i, x, y, length = 50;  // xxx use double for xy
 
     cvt_lat_lon_angle_to_xy(lat, lon, map_rotate_angle, &x, &y, NULL);
 
-    sdlx_render_line(x-length, y-2, x+length, y-2, COLOR_WHITE);
-    sdlx_render_line(x-length, y-1, x+length, y-1, COLOR_WHITE);
-    sdlx_render_line(x-length, y, x+length, y, COLOR_WHITE);
-    sdlx_render_line(x-length, y+1, x+length, y+1, COLOR_WHITE);
-    sdlx_render_line(x-length, y+2, x+length, y+2, COLOR_WHITE);
-
-    sdlx_render_line(x-2, y-length, x-2, y+length, COLOR_WHITE);
-    sdlx_render_line(x-1, y-length, x-1, y+length, COLOR_WHITE);
-    sdlx_render_line(x, y-length, x, y+length, COLOR_WHITE);
-    sdlx_render_line(x+1, y-length, x+1, y+length, COLOR_WHITE);
-    sdlx_render_line(x+2, y-length, x+2, y+length, COLOR_WHITE);
+    for (i = -3; i <= 3; i++) {
+        sdlx_render_line(x-length, y-i, x+length, y-i, color);
+    }
+    for (i = -3; i <= 3; i++) {
+        sdlx_render_line(x-i, y-length, x-i, y+length, color);
+    }
 }
 
 // -----------------  DISPLAY COMPASS  ---------------------------------
 
 #define COMPASS_RADIUS 75
 #define COMPASS_XL     800
-#define COMPASS_YT     200
+#define COMPASS_YT     150
 
 sdlx_texture_t *compass_texture;
 
@@ -840,6 +867,7 @@ void display_compass_cleanup(void)
 void display_compass(double true_heading)
 {
     sdlx_loc_t dest;
+    int x, y;
 
     if (compass_texture == NULL) {
         return;
@@ -856,6 +884,67 @@ void display_compass(double true_heading)
                                 -true_heading,  // rotation angle
                                 NULL,           // rotate about dest rect center
                                 FLIP_NONE);
+
+    x = COMPASS_XL - 40;
+    y = COMPASS_YT + 2 * COMPASS_RADIUS;
+    sdlx_render_printf_ex(x, y, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "Compass");
+}
+
+// -----------------  DISPLAY BEARING TO TARGET  -----------------------
+
+#define BEARING_RADIUS 75
+#define BEARING_XL     800
+#define BEARING_YT     (MAP_YB - 300)
+
+sdlx_texture_t *bearing_texture;
+
+void display_bearing_init(void)
+{
+    bearing_texture = sdlx_create_texture(2*BEARING_RADIUS, 2*BEARING_RADIUS);
+    if (bearing_texture == NULL) {
+        return;
+    }
+
+    sdlx_set_render_target(bearing_texture);
+    sdlx_render_fill_circle(BEARING_RADIUS, BEARING_RADIUS, BEARING_RADIUS, COLOR_WHITE);
+    render_triangle(BEARING_RADIUS, 0, BEARING_RADIUS*0.60, BEARING_RADIUS*1.00, COLOR_BLUE);
+    sdlx_set_render_target(NULL);
+}
+
+void display_bearing_cleanup(void)
+{
+    // xxx is the check needed
+    if (bearing_texture != NULL) {
+        sdlx_destroy_texture(bearing_texture);
+        bearing_texture = NULL;
+    }
+}
+
+void display_bearing(double range, double bearing)
+{
+    sdlx_loc_t dest;
+    int x, y;
+
+    if (bearing_texture == NULL) {
+        return;
+    }
+
+    dest.x = BEARING_XL;
+    dest.y = BEARING_YT;
+    dest.w = 2*BEARING_RADIUS;
+    dest.h = 2*BEARING_RADIUS;
+
+    sdlx_render_texture_rotated(bearing_texture, 
+                                NULL,           // copy entire src textrue
+                                &dest,          // dest rect
+                                bearing,        // rotation angle
+                                NULL,           // rotate about dest rect center
+                                FLIP_NONE);
+    x = BEARING_XL - 40;
+    y = BEARING_YT + 2 * BEARING_RADIUS;
+    sdlx_render_printf_ex(x, y, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%s mi.", double_to_str(range));
+    y += sdlx_char_height(FONT_SMALL);
+    sdlx_render_printf_ex(x, y, FONT_SMALL, COLOR_WHITE, FLAG_NONE, "%.0f deg", bearing);
 }
 
 // -----------------  UTILS  -------------------------------------------
@@ -988,5 +1077,45 @@ void cvt_xy_angle_to_lat_lon(double x, double y, double map_rotate_angle, double
     k_lon = MILES_PER_DEGREE_LONGITUDE(params->map_ctr_lat) / params->map_height_miles * MAP_WH;
 
     *lon = (x - MAP_XY_CTR) / k_lon + params->map_ctr_lon;
-    *lat = (y - MAP_XY_CTR) / k_lat + params->map_ctr_lat;
+    *lat = -(y - MAP_XY_CTR) / k_lat + params->map_ctr_lat;
+}
+
+#define EARTH_RADIUS_MILES  3963.19
+
+double to_radians(double degrees) {
+    return degrees * M_PI / 180.0;
+}
+
+double to_degrees(double radians) {
+    return radians * 180.0 / M_PI;
+}
+
+// Calculates the great-circle range and initial bearing between two points.
+void calculate_range_and_bearing(double lat1, double lon1, double lat2, double lon2, double *range_miles, double *bearing_deg) 
+{
+    // Convert inputs to radians
+    double r_lat1 = to_radians(lat1);  // xxx use my macros for this
+    double r_lon1 = to_radians(lon1);
+    double r_lat2 = to_radians(lat2);
+    double r_lon2 = to_radians(lon2);
+    
+    // Calculate Range (Haversine Formula)
+    double dlat = r_lat2 - r_lat1;
+    double dlon = r_lon2 - r_lon1;
+    
+    double a = sin(dlat / 2.0) * sin(dlat / 2.0) +
+               cos(r_lat1) * cos(r_lat2) *
+               sin(dlon / 2.0) * sin(dlon / 2.0);
+               
+    double c = 2.0 * atan2(sqrt(a), sqrt(1.0 - a));
+    *range_miles = EARTH_RADIUS_MILES * c;
+    
+    // Calculate Initial Bearing
+    double y = sin(dlon) * cos(r_lat2);
+    double x = cos(r_lat1) * sin(r_lat2) -
+               sin(r_lat1) * cos(r_lat2) * cos(dlon);
+               
+    double bearing_rad = atan2(y, x);
+    *bearing_deg = to_degrees(bearing_rad);
+    if (*bearing_deg < 0) *bearing_deg += 360;
 }
